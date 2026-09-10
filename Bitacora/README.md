@@ -37,7 +37,7 @@
 
 | Fecha | Objetivo | Inicio | Fin | Duración | Notas |
 |---|---|---|---|---|---|
-| 2026-09-10 | `core-image-base` |  |  |  | Primera compilación para RPi4 |
+| 2026-09-10 | `core-image-base` | 11:09 |  |  | Primera compilación para RPi4 |
 |  |  |  |  |  |  |
 
 ---
