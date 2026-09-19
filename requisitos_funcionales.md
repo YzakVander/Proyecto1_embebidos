@@ -1,6 +1,7 @@
 # Especificación de Requerimientos Funcionales - Proyecto 1: Sistema de Control de Acceso
-**Curso:** Taller de Sistemas Embebidos (EL-5841)[cite: 1]  
+**Curso:** Taller de Sistemas Embebidos (EL-5841)  
 **Estándar usado como Referencia:** ISO/IEC/IEEE 29148:2018 
+
 ---
 
 ### **Requisito funcional 1: Transmisión de video en tiempo real**
@@ -11,32 +12,32 @@
 
 ---
 
-### **Requisito funcional 2: Bifurcación y almacenamiento de video en disco**
+### **Requisito funcional 2: Bifurcación y extracción de video en disco**
 
-* **Enunciado:** El sistema deberá duplicar internamente el flujo de video capturado desde la cámara para guardar una copia en el disco local de la Raspberry Pi 4 en formato MP4, de manera simultánea a la transmisión en red.
+* **Enunciado:** El sistema deberá duplicar internamente el flujo de video capturado desde la cámara para guardar una copia en el disco local de la Raspberry Pi 4 en formato MP4 y permitir su extracción posterior.
 * **Trazabilidad:** Caso de uso 2.
-* **Método de Verificación:** Verificación de la creación y reproducibilidad del archivo de video almacenado en la Raspberry.
+* **Método de Verificación:** Verificación de la creación, reproducibilidad y transferencia del archivo de video almacenado en la Raspberry Pi 4.
 
 ---
 
 ### **Requisito funcional 3: Captura de evento de identificación**
 
-* **Enunciado:** La aplicación en Python deberá detectar la recepción de una señal de entrada (pulsación de tecla en consola) en un tiempo máximo de 100 ms desde su generación. *****sujeto a cambios
+* **Enunciado:** La aplicación en Python en la Raspberry deberá detectar la recepción de una señal de entrada (pulsación de tecla en consola) en un tiempo máximo de 100 ms desde su generación.
 * **Trazabilidad:** Caso de uso 3.
 * **Método de Verificación:** Medición del tiempo de respuesta mediante marcas de tiempo en la aplicación de Python.
 
---- 
+---
 
-### **Requisito funcional 4: Registro de eventos en bitácora local** ESTE HAY QUE MODIFICARLO
+### **Requisito funcional 4: Registro de eventos en bitácora local**
 
-* **Enunciado:** Al procesar un evento, la aplicación deberá registrar en un archivo de bitácora local en disco la fecha y hora exacta (timestamp) en formato ISO-8601 junto con el resultado de la solicitud.
+* **Enunciado:** Al procesar un evento, la aplicación deberá registrar en un archivo de bitácora local en el almacenamiento de la Raspberry Pi 4 la fecha y hora exacta (timestamp) en formato ISO-8601 junto con el resultado de la solicitud (permitido o denegado).
 * **Trazabilidad:** Caso de uso 3.
-* **Método de Verificación:** Inspección (revisión del contenido del archivo de texto `.log` generado en disco).
+* **Método de Verificación:** Inspección del contenido del archivo de texto `.log` generado en la Raspberry Pi 4.
 
 ---
 
-### **Requisito funcional 5: Conmutación de salida de control (GPIO)**
+### **Requisito funcional 5: Conmutación de LEDS de estado**
 
-* **Enunciado:** Al validarse una solicitud de ingreso, el sistema deberá conmutar el estado lógico de la línea GPIO durante un intervalo configurable, retornando posteriormente al estado original.
+* **Enunciado:** Al procesarse una solicitud de ingreso, el sistema deberá conmutar el estado de los LEDS en la Raspberry Pi 4 para indicar el resultado durante un intervalo configurable, retornando posteriormente al estado original.
 * **Trazabilidad:** Caso de uso 4.
-* **Método de Verificación:** Medición del tiempo de encendido con osciloscopio.
+* **Método de Verificación:** Inspección visual de los LEDS y medición del tiempo de encendido por medio de osciloscopio.

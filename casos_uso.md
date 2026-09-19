@@ -8,6 +8,7 @@
 
 * **Actor Principal:** Persona en el puesto de vigilancia.
 * **Propósito:** Permitir la supervisión remota del punto de acceso.
+* **Recurso accesible:** Video en vivo de la cámara en la puerta.
 * **Precondiciones:** La Raspberry Pi 4 se encuentra encendida, conectada a la red local y con la cámara operativa.
 * **Flujo Principal:**
   1. El sistema inicia la tubería de GStreamer capturando video de la cámara.
@@ -17,39 +18,39 @@
 
 ---
 
-### **Caso de uso 2: Grabación y almacenamiento de video**
+### **Caso de uso 2: Extracción y consulta de evidencia en video**
 
-* **Actor Principal:** Sistema (Proceso de fondo de la aplicación).
-* **Propósito:** Almacenar en un medio local no volátil el video.
-* **Precondiciones:** Existe espacio suficiente de almacenamiento en el medio de destino de la Raspberry Pi 4.
-* **Flujo Principal:** (esto hay que revisarlo después*****)
-  1. La aplicación utiliza un elemento de bifurcación (`tee`) en GStreamer para duplicar la fuente de captura.
-  2. El flujo secundario se direcciona hacia el codificador H.264 por hardware (`v4l2h264enc`).
-  3. El sistema empaqueta el flujo codificado en un contenedor de video y lo guarda en disco de manera continua o fragmentada.
-* **Postcondiciones:** La evidencia en video queda almacenada en el sistema de archivos local para ser consultada posteriormente.
+* **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
+* **Propósito:** Recuperar los archivos de video grabados localmente en la tarjeta de la placa.
+* **Precondiciones:** El sistema ha estado grabando y reteniendo evidencia en el almacenamiento local de la Raspberry Pi 4.
+* **Flujo Principal:**
+  1. La persona de mantenimiento solicita la extracción o consulta del archivo de video almacenado en la Raspberry Pi 4.
+  2. La aplicación ubica el archivo de video registrado en el sistema de archivos local.
+  3. El sistema transfiere o entrega la evidencia en video al usuario de mantenimiento.
+* **Postcondiciones:** La evidencia en video queda extraída y disponible fuera del sistema para su revisión.
 
 ---
 
 ### **Caso de uso 3: Procesamiento de Evento de Identificación**
 
-* **Actor Principal:** Usuario que solicita acceso y persona en puesto de vigilancia.
-* **Propósito:** Registrar y validar una solicitud de ingreso en el punto de acceso.
-* **Precondiciones:** La aplicación en Python se encuentra en ejecución monitoreando las fuentes de eventos de entrada. Por simplicidad, puede ser simplemente presionar una tecla en la computadora remota.
+* **Actor Principal:** Persona en el puesto de vigilancia.
+* **Propósito:** Evaluar visualmente la presencia de un sujeto en la puerta y resolver una solicitud de ingreso.
+* **Precondiciones:** La aplicación se encuentra en ejecución transmitiendo video en vivo y monitoreando las entradas de control (teclado/consola en la computadora remota).
 * **Flujo Principal:**
-  1. Ocurre una solicitud de acceso.
-  2. La aplicación de Python captura el evento.
-  3. La aplicación asocia el instante de la identificación con el flujo de evidencia y autoriza la apertura.
-* **Postcondiciones:** Se valida la solicitud y se activa la rutina de apertura del acceso.
+  1. Una persona se presenta en el punto de acceso y es observada por la persona en el puesto de vigilancia.
+  2. La persona en el puesto de vigilancia presiona un botón/tecla para permitir el acceso (u otro botón para denegarlo).
+  3. La aplicación de Python captura el evento de decisión, lo asocia con la marca de tiempo de la evidencia y procesa la autorización o denegación.
+* **Postcondiciones:** Se registra el resultado de la solicitud y se dispara la respuesta en el lado del sujeto.
 
 ---
 
 ### **Caso de uso 4: Actuación y Control de Salida Eléctrica**
 
-* **Actor Principal:** Sistema (control de GPIO).
-* **Propósito:** Accionar físicamente el mecanismo de apertura (módulo de relevador) tras la validación de un evento. Por ahora se puede simular simplemente prendiendo un LED.
-* **Precondiciones:** Los pines GPIO de la Raspberry Pi 4 están disponibles y el caso de uso 3 fue ejecutado exitosamente.
+* **Actor Principal:** Sujeto que solicita acceso.
+* **Propósito:** Percibir el resultado de la solicitud de ingreso mediante los LEDS de la placa.
+* **Precondiciones:** El Caso de Uso 3 fue ejecutado exitosamente y los LEDS de la Raspberry 4 están disponibles.
 * **Flujo Principal:**
-  1. La aplicación en Python envía una señal de activación a la placa que modifica el estado de algún GPIO.
-  2. El pin GPIO cambia de estado, activando el LED por un tiempo determinado.
-  3. Transcurrido el intervalo, la aplicación restablece el pin GPIO a su estado de reposo y registra el evento.
-* **Postcondiciones:** Después de haber indicado el acceso permitido con el LED se retorna al estado inicial.
+  1. La aplicación en Python dentro de la Raspberry envía la señal de activación a la línea GPIO correspondiente según el resultado procesado.
+  2. El sujeto en la puerta observa la conmutación del estado de los LEDS en la placa durante un tiempo determinado.
+  3. Transcurrido el intervalo, la aplicación restablece la los LEDS a su estado de reposo.
+* **Postcondiciones:** El sujeto recibe la retroalimentación visual de su solicitud.
