@@ -54,3 +54,84 @@
   2. El sujeto en la puerta observa la conmutación del estado de los LEDS en la placa durante un tiempo determinado.
   3. Transcurrido el intervalo, la aplicación restablece la los LEDS a su estado de reposo.
 * **Postcondiciones:** El sujeto recibe la retroalimentación visual de su solicitud.
+
+---
+
+### **Caso de uso 5: Denegación por vencimiento del tiempo de decisión**
+
+* **Actor Principal:** Sujeto que solicita acceso.
+* **Propósito:** Denegar el acceso por defecto (estado seguro) cuando no hay respuesta desde el puesto de vigilancia en el tiempo límite.
+* **Precondiciones:** Una persona se encuentra en el punto de acceso y el sistema está a la espera de la decisión del vigilante.
+* **Flujo Principal:**
+  1. El sistema inicia un temporizador de espera de decisión al presentarse la solicitud de acceso.
+  2. El vigilante no emite una respuesta dentro del plazo máximo definido.
+  3. El sistema aplica la política por defecto, deniega el acceso y lo registra en la bitácora.
+  4. El sistema desencadena la indicación de acceso denegado (LEDS) para informar al sujeto.
+* **Postcondiciones:** La solicitud es rechazada automáticamente por omisión, priorizando la seguridad.
+
+---
+
+### **Caso de uso 6: Continuidad ante desconexión de la cámara**
+
+* **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
+* **Propósito:** Garantizar que el sistema gestione correctamente la desconexión física de la cámara sin quedar en un estado indeterminado.
+* **Precondiciones:** El sistema se encuentra en operación normal transmitiendo y grabando video.
+* **Flujo Principal:**
+  1. La cámara se desconecta físicamente en caliente de la Raspberry Pi 4.
+  2. El sistema detecta la pérdida del flujo multimedia.
+  3. La aplicación maneja la excepción internamente o el servicio es finalizado y reiniciado automáticamente por el administrador de servicios (systemd).
+* **Postcondiciones:** El sistema aborta la operación de forma controlada y queda a la espera de recuperación al reconectarse el dispositivo, sin procesos colgados.
+
+---
+
+### **Caso de uso 7: Puesta en servicio tras corte de energía**
+
+* **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
+* **Propósito:** Asegurar que el sistema arranque de manera autónoma y segura tras restaurarse la energía eléctrica.
+* **Precondiciones:** La Raspberry Pi 4 sufrió un corte de energía y se restablece el suministro eléctrico.
+* **Flujo Principal:**
+  1. El hardware recibe energía y arranca el núcleo (kernel) de Linux.
+  2. Durante el arranque, los LEDS/pines GPIO se mantienen en un estado inicial definido y seguro (denegado/apagado).
+  3. El gestor de servicios (systemd) inicia automáticamente el servicio de la aplicación en Python.
+  4. La aplicación inicializa la cámara, levanta la tubería de GStreamer y comienza a monitorear eventos.
+* **Postcondiciones:** El sistema queda operando normalmente sin necesidad de intervención manual.
+
+---
+
+### **Caso de uso 8: Gestión del almacenamiento de evidencia**
+
+* **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
+* **Propósito:** Evitar la caída del sistema por falta de espacio en disco gestionando las grabaciones de video mediante una política de retención.
+* **Precondiciones:** La partición o directorio de almacenamiento de la Raspberry Pi 4 se acerca a su límite máximo de capacidad.
+* **Flujo Principal:**
+  1. La aplicación genera continuamente los archivos de video.
+  2. El sistema detecta que el espacio disponible alcanzó el límite mínimo de almacenamiento permitido.
+  3. La aplicación ejecuta la política de retención para liberar espacio de forma dinámica.
+* **Postcondiciones:** Se libera espacio en el almacenamiento, permitiendo que la grabación de la evidencia continúe de forma ininterrumpida.
+
+---
+
+### **Caso de uso 9: Detención programada para mantenimiento**
+
+* **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
+* **Propósito:** Detener la aplicación de manera ordenada garantizando que los archivos de video en curso se guarden sin corrupción.
+* **Precondiciones:** El sistema se encuentra grabando video hacia el disco.
+* **Flujo Principal:**
+  1. La persona de mantenimiento envía una solicitud de detención del servicio en la placa.
+  2. La aplicación intercepta la señal y ordena a la tubería de GStreamer cerrar el flujo multimedia.
+  3. Se escriben correctamente los metadatos finales en el contenedor de video actual y el archivo se cierra.
+  4. La aplicación finaliza el proceso de Python.
+* **Postcondiciones:** El sistema se detiene y el último archivo de video queda íntegro, reproducible y verificable (ej. con ffprobe).
+
+---
+
+### **Caso de uso 10: Auditoría de la bitácora de accesos**
+
+* **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
+* **Propósito:** Consultar el historial local de decisiones (permitidas o denegadas) que ha tomado el sistema.
+* **Precondiciones:** Se ha ejecutado el sistema previamente, registrando decisiones, y ha sobrevivido a reinicios o cortes de energía.
+* **Flujo Principal:**
+  1. La persona de mantenimiento solicita la revisión del registro local (`access.log`).
+  2. El sistema accede al medio de almacenamiento no volátil.
+  3. El usuario lee y revisa las entradas con marcas de tiempo y el estado final de cada acceso.
+* **Postcondiciones:** La bitácora se consulta exitosamente demostrando la persistencia de los eventos en el tiempo.
