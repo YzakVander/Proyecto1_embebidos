@@ -91,8 +91,15 @@ class PipelineAcceso:
         if c.clips.habilitados:
             # B4: max-buffers acota la memoria y drop=true garantiza que un
             # consumidor lento jamas frene la tuberia.
+            # El capsfilter byte-stream es obligatorio: sin el, h264parse
+            # entrega formato 'avc' (NAL con prefijo de longitud) y el clip
+            # resultante no lo puede releer ningun h264parse posterior, que
+            # espera codigos de inicio 00 00 00 01. Verificado con xxd sobre
+            # un clip generado sin esta linea: empezaba en 00 00 00 02.
+            # alignment=au mantiene un cuadro completo por buffer.
             partes.append(
                 f"t_h264. ! queue max-size-buffers=8 leaky=downstream "
+                f"! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au "
                 f"! appsink name=captura emit-signals=true sync=false "
                 f"max-buffers={c.clips.max_buffers} drop=true"
             )
