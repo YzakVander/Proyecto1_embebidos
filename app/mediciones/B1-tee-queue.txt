@@ -1,0 +1,14 @@
+# B1 - cada salida de tee necesita su propio queue
+# Plataforma: x86_64 WSL2, GStreamer 1.24.2
+# Prueba: 150 cuadros 1280x720 I420; rama lenta = x264enc speed-preset=veryslow
+#
+#   sin queue : 122 s  (segunda corrida interrumpida a los 640 s sin terminar)
+#   con queue :  38 s  (interrumpida antes de completar)
+#
+# Factor > 3x. El tee entrega los buffers a todas sus ramas en el MISMO hilo:
+# la rama rapida queda esperando a que la lenta termine cada cuadro. El queue
+# crea un hilo por rama y desacopla los ritmos.
+#
+# Consecuencia de diseno: en el pipeline del proyecto, cada salida de tee
+# lleva queue. La rama de grabacion sin leaky (no se descarta evidencia);
+# las ramas de red y foto con leaky=downstream.

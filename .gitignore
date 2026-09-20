@@ -1,0 +1,27 @@
+# --- Yocto: nunca se versiona el directorio de compilacion ---
+build/
+layers/
+downloads/
+sstate-cache/
+
+# --- Salidas de ejecucion de la aplicacion ---
+app/evidencia/
+app/eventos/
+app/grafos/
+app/accesos.log
+*.mp4
+*.h264
+*.jpg
+*.png
+*.dot
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- Editor / sistema ---
+.vscode/
+.idea/
+*.swp
