@@ -1,0 +1,19 @@
+# A5 / A6 - inventario del grafo real
+# Fuente: grafos/0.00.03.384296098-gst-launch.PLAYING_PAUSED.dot
+# Plataforma: x86_64 WSL2, GStreamer 1.24.2, fuente videotestsrc
+#
+#   6 GstQueue        2 GstTee         1 GstX264Enc
+#   1 GstVideoTestSrc 1 GstValve       1 GstUDPSink
+#   1 GstSplitMuxSink 1 GstRtpH264Pay  1 GstMultiFileSink
+#   1 GstMP4Mux       1 GstJpegEnc     1 GstH264Parse
+#   1 GstFileSink     1 GstCapsFilter
+#
+# A5: videoconvert/videoscale/videorate en el grafo = 0
+#     Ningun elemento fue insertado por GStreamer. Es consecuencia de fijar
+#     format=I420 en el capsfilter: toda la cadena aguas abajo lo acepta.
+#     NOTA: con camara USB real (MJPEG o YUY2) este conteo dejara de ser 0.
+#
+# B1: 6 queue para 2 tee -> cada salida de tee tiene su propio queue.
+#
+# splitmuxsink no es un elemento sino un bin: se expande en GstMP4Mux +
+# GstFileSink, visibles en el grafo.

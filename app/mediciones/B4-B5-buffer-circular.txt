@@ -1,0 +1,31 @@
+# B4 / B5 - buffer circular de pre-evento con appsink
+# Plataforma: x86_64 WSL2, GStreamer 1.24.2
+
+B4 - Topes declarados:
+    appsink max-buffers=600 drop=true sync=false
+    deque   maxlen=450 (10 s x 30 fps x 1.5 de holgura)
+    Dos topes independientes. Memoria medida con el buffer lleno: 235 KiB.
+
+B5 - Callback del appsink:
+    Solo mapea el buffer, copia los bytes a la deque y retorna.
+    Toda la escritura a disco ocurre en el hilo de la solicitud.
+
+Verificacion de extremo a extremo:
+    clip evento_20260919-205439_ID-004.h264: 314 cuadros, 160 KiB
+    convertido a MP4 -> Duration 00:00:10.47, 1280x720, 30 fps
+    Los 0.47 s extra son el retroceso al cuadro clave anterior.
+
+HALLAZGOS
+
+1. Un tee impone las mismas caps a TODAS sus ramas. Un capsfilter despues
+   del tee no puede pedir otro formato: produce not-negotiated. Hace falta
+   un elemento conversor propio en esa rama (segundo h264parse).
+
+2. Sin stream-format=byte-stream el appsink recibe formato 'avc' (NAL con
+   prefijo de longitud). Verificado con xxd: el archivo empezaba en
+   00 00 00 02 en vez de 00 00 00 01, y ningun h264parse posterior podia
+   releerlo.
+
+3. mp4mux de GStreamer exige PTS y no los deriva del framerate. ffmpeg con
+   -r antes del -i si lo hace. Sin ese -r, ffmpeg asume 25 fps y el clip
+   sale mas lento que la realidad.

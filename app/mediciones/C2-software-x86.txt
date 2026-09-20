@@ -1,0 +1,17 @@
+# C2 software-x86 | x264enc tune=zerolatency bitrate=2500 | 1280x720@30 | 2026-09-19T18:16:05-06:00
+   5150 daniel    20   0  382920  55388   9548 S 181.8   0.7   0:09.12 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 174.8   0.7   0:17.86 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 177.6   0.7   0:26.76 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 171.6   0.7   0:35.34 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 164.8   0.7   0:43.58 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 170.3   0.7   0:52.11 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 174.4   0.7   1:00.83 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 178.8   0.7   1:09.79 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 177.2   0.7   1:18.65 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 172.8   0.7   1:27.29 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 173.7   0.7   1:35.99 gst-lau+
+   5150 daniel    20   0  382920  55388   9548 S 177.0   0.7   1:44.84 gst-lau+
+
+# Promedio: 174% CPU (1.74 nucleos) - 12 muestras de 5 s
+# Plataforma: x86_64 WSL2, GStreamer 1.24.2, sin /dev/dri (sin codificador por hardware)
+# PENDIENTE: medir software y hardware sobre RPi4 para completar la razon de C2

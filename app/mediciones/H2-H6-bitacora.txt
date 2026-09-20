@@ -1,0 +1,4 @@
+2026-09-19 20:43:35,302 INFO    acceso.decision        bitacora de accesos: accesos.log
+2026-09-19T20:38:53.509-06:00  ID-001       permitido                      6801.8 ms  eventos/evento_20260919-203853_ID-001.h264
+2026-09-19T20:39:27.818-06:00  ID-002       denegado                      15910.9 ms  eventos/evento_20260919-203927_ID-002.h264
+2026-09-19T20:42:33.830-06:00  ID-003       denegado_por_vencimiento      30000.6 ms  eventos/evento_20260919-204233_ID-003.h264
