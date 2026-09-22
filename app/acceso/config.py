@@ -17,8 +17,8 @@ from dataclasses import dataclass, field
 
 RUTA_CONFIG_DEFECTO = "/etc/acceso/acceso.conf"
 
-
-@dataclass
+#Estos dataclass se usan para manejar la configuración de los bloques del pipeline
+@dataclass #Equivalente a un struct en C. Se usa para almacenar datos sin metodos.
 class CamaraCfg:
     # Fragmentos de tuberia GStreamer: se prueban tal cual con gst-launch-1.0
     # antes de ponerlos aqui.
@@ -86,10 +86,12 @@ class BitacoraCfg:
     """H6: registro de accesos persistente entre reinicios."""
     ruta: str = "accesos.log"
 
-
+#Clase para agrupar la configuracion de los bloques del pipeline. Se usa como contenedor de los dataclass anteriores. Se usa para manejar la configuracion del pipeline de manera centralizada.
 @dataclass
 class Config:
-    camara: CamaraCfg = field(default_factory=CamaraCfg)
+    #Objetos anidados
+    camara: CamaraCfg = field(default_factory=CamaraCfg) #Se utiliza field para crear instancias DIFERENTES en caso que en tiempo de corrida se
+    #intente crear mas objetos de esta clase o del propio Config. De otra forma, las "instancias" compartirian el mismo puntero (solo una instancia en realidad).
     codec: CodecCfg = field(default_factory=CodecCfg)
     grabacion: GrabacionCfg = field(default_factory=GrabacionCfg)
     streaming: StreamingCfg = field(default_factory=StreamingCfg)
@@ -100,8 +102,8 @@ class Config:
     nivel_log: str = "INFO"
 
 
-def _asignar(destino, seccion) -> None:
-    """Copia las claves de una seccion INI respetando el tipo del dataclass."""
+def _asignar(destino, seccion) -> None: #Es parecido a un método estático: no pertenece a ninguna clase.
+    """Copia las claves de una seccion del acceso.conf respetando el tipo del dataclass."""
     for clave, valor in seccion.items():
         if not hasattr(destino, clave):
             continue
@@ -116,26 +118,29 @@ def _asignar(destino, seccion) -> None:
             setattr(destino, clave, valor.strip())
 
 
-def cargar(ruta: str | None = None) -> Config:
-    """Lee el archivo INI. Si no existe, devuelve los valores por defecto."""
-    cfg = Config()
-    ruta = ruta or os.environ.get("ACCESO_CONFIG", RUTA_CONFIG_DEFECTO)
+def cargar(ruta: str | None = None) -> Config: #Retorna un objeto de la clase Config. 
+    #El método lee el archivo acceso.conf y lo convierte en un objeto de la clase Config. Si el archivo no existe/encuentra se usan valores predefinidos
+    cfg = Config() #Genera instancia de clase Config. No se usa field porque se espera crear en tiempo de corrida solo una instancia de Config.
+    ruta = ruta or os.environ.get("ACCESO_CONFIG", RUTA_CONFIG_DEFECTO) #En caso de hacer llamado sin argumento (ruta), se pone una por defecto.
 
+    #Creador de objeto parseador
     parser = configparser.ConfigParser(
         interpolation=None, inline_comment_prefixes=(";", "#")
     )
     if not parser.read(ruta):
         return cfg
 
-    mapa = {
+    mapa = { #Esto es un diccionario que mapea los nombres de las secciones de configuracion a los objetos de configuración correspondientes en la clase Config.
         "camara": cfg.camara, "codec": cfg.codec,
         "grabacion": cfg.grabacion, "streaming": cfg.streaming,
         "clips": cfg.clips, "actuador": cfg.actuador,
         "eventos": cfg.eventos, "bitacora": cfg.bitacora,
     }
+
+    #Recorre cada objeto metido en el objeto de configuracion y le asigna los valores correspondientes
     for nombre, objeto in mapa.items():
         if parser.has_section(nombre):
-            _asignar(objeto, parser[nombre])
+            _asignar(objeto, parser[nombre]) 
 
     if parser.has_section("registro"):
         cfg.nivel_log = parser["registro"].get("nivel", cfg.nivel_log).strip().upper()
