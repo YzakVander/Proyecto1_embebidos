@@ -73,8 +73,8 @@ class PipelineAcceso:
 
         if c.grabacion.habilitada: #Si la grabacion esta habilitada en el acceso.conf...
             os.makedirs(c.grabacion.directorio, exist_ok=True)
-            ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron)
-            ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000
+            ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron) #Junta directorio y nombre de la grabacion
+            ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000 #Convierte los segundos a nanosegundos para el parametro max-size-time del splitmuxsink
             partes.append(
                 f"t_h264. ! queue "
                 f"! splitmuxsink name=grabador location={ruta} "
