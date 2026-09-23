@@ -1,0 +1,30 @@
+[Unit]
+Description=Sistema de control de acceso (GStreamer)
+After=network-online.target systemd-tmpfiles-setup.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/acceso-control --config /etc/acceso/acceso.conf
+Environment=PYTHONUNBUFFERED=1
+Environment=GST_DEBUG=2
+
+# E4: SIGTERM dispara el EOS que cierra los MP4. 20 s da margen para
+# vaciar el ultimo segmento antes de que systemd mate el proceso.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# E6: reinicio automatico ante terminacion anormal (RF-12).
+# Se verifica con: kill -9 $(pidof python3) && systemctl status acceso-control
+Restart=on-failure
+RestartSec=5
+
+# Directorios gestionados por systemd: se crean al arrancar con los
+# permisos correctos y persisten entre reinicios (H6).
+StateDirectory=acceso
+RuntimeDirectory=acceso
+
+User=root
+
+[Install]
+WantedBy=multi-user.target
