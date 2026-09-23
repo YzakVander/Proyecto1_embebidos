@@ -71,7 +71,7 @@ class PipelineAcceso:
             f"! h264parse config-interval=-1 ! tee name=t_h264"
         ) #Se van agregando los elementos de la rama de codificacion de video. 
 
-        if c.grabacion.habilitada:
+        if c.grabacion.habilitada: #Si la grabacion esta habilitada en el acceso.conf...
             os.makedirs(c.grabacion.directorio, exist_ok=True)
             ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron)
             ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000
@@ -79,7 +79,7 @@ class PipelineAcceso:
                 f"t_h264. ! queue "
                 f"! splitmuxsink name=grabador location={ruta} "
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
-            )
+            ) #Agrega los bloques de la rama de grabacion. Se pegan al segundo tee (tee_h264)
 
         if c.streaming.habilitado:
             partes.append(
