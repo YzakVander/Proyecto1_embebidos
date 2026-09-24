@@ -34,12 +34,14 @@ log = logging.getLogger(__name__)
 
 
 class ServicioAcceso:
-    def __init__(self, cfg: Config) -> None:
-        self._cfg = cfg
+    def __init__(self, cfg: Config) -> None: #Constructor de la clase.
+        self._cfg = cfg #Copia el argumento a un atributo _cfg
         # El buffer debe alcanzar para la ventana COMPLETA del clip:
         # los segundos previos al evento mas los posteriores. Dimensionarlo
         # solo con segundos_antes hace que al pedir la instantanea la parte
         # mas vieja ya se haya descartado y el clip quede corto.
+
+        #-----> Por aqui freno: voy a revisar buffer_circular.py
         self._buffer = BufferCircular(
             segundos=cfg.clips.segundos_antes + cfg.clips.segundos_despues,
             fps=cfg.codec.fps,

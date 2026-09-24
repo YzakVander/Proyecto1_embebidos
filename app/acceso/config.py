@@ -118,6 +118,7 @@ def _asignar(destino, seccion) -> None: #Es parecido a un método estático: no 
             setattr(destino, clave, valor.strip())
 
 
+#ACLARACIÓN: esto es una función independiente, no un método de la clase Config.
 def cargar(ruta: str | None = None) -> Config: #Retorna un objeto de la clase Config. 
     #El método lee el archivo acceso.conf y lo convierte en un objeto de la clase Config. Si el archivo no existe/encuentra se usan valores predefinidos
     cfg = Config() #Genera instancia de clase Config. No se usa field porque se espera crear en tiempo de corrida solo una instancia de Config.
