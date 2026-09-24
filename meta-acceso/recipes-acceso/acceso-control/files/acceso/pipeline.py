@@ -4,14 +4,8 @@ Topologia
 ---------
 El codificador va ANTES del tee de salida: el video se comprime una sola vez
 y el flujo H.264 se reparte. Codificar dos veces desperdiciaria el
-codificador por hardware del BCM2711, que en la practica tiene una sola
+codificador por hardware del BCM2711 (el proce de la placa ), que en la practica tiene una sola
 instancia util.
-
-    fuente ! caps ! queue ! tee t_raw
-        t_raw. ! queue ! [convertidor] ! encoder ! h264parse ! tee t_h264
-            t_h264. ! queue ! splitmuxsink          <- evidencia continua
-            t_h264. ! queue ! rtph264pay ! udpsink  <- puesto de vigilancia
-            t_h264. ! queue ! appsink               <- buffer circular (B4/B5)
 
 Notas de diseno
 ---------------
@@ -44,9 +38,14 @@ log = logging.getLogger(__name__)
 
 
 class PipelineAcceso:
-    def __init__(self, cfg: Config, buffer: BufferCircular) -> None:
+    #Constructor de la clase.
+    #cfg y buffer son punteros a objetos de las clases Config y BufferCircular respectivamente
+    def __init__(self, cfg: Config, buffer: BufferCircular) -> None: #Esa flecha indica lo que retorna el metodo. Este caso es equivalente void
+        #Se declaran e inicializan los atributos de la clase. 
+        #Se usa el guion bajo para indicar que son privados.
         self._cfg = cfg
         self._buffer = buffer
+        #Punteros que tienen valor por defecto none.
         self._pipeline: Gst.Pipeline | None = None
         self._appsink: Gst.Element | None = None
         self._grabador: Gst.Element | None = None
@@ -56,29 +55,31 @@ class PipelineAcceso:
     # Construccion
     # ------------------------------------------------------------------ #
     def descripcion(self) -> str:
-        c = self._cfg
+        c = self._cfg #Copia local del atributo _cfg
         partes = []
 
-        conv = f"! {c.camara.convertidor} " if c.camara.convertidor else ""
-        caps_enc = f" ! {c.codec.caps_salida}" if c.codec.caps_salida else ""
+        conv = f"! {c.camara.convertidor} " if c.camara.convertidor else "" #Operador ternario. Asigna el nombre del convertidor si existe, 
+        #sino asigna una cadena vacia.
+        caps_enc = f" ! {c.codec.caps_salida}" if c.codec.caps_salida else "" #Asigna una cadena de texto con los caps de salida del codec si existen, sino asigna una cadena vacia.
+        #La f es para introducir expresiones dentro del string
 
-        partes.append(f"{c.camara.fuente} ! {c.camara.caps}")
-        partes.append("! queue max-size-buffers=8 leaky=downstream ! tee name=t_raw")
+        partes.append(f"{c.camara.fuente} ! {c.camara.caps}") #Agrega la fuente de la camara y sus caps a la lista de partes.
+        partes.append("! queue max-size-buffers=8 leaky=downstream ! tee name=t_raw") #Agrega cola de tamaño 8, su politica para overflow y genera la bifucacion.
         partes.append(
-            f"t_raw. ! queue max-size-buffers=8 leaky=downstream "
+            f"t_raw. ! queue max-size-buffers=8 leaky=downstream " 
             f"{conv}! {c.codec.encoder}{caps_enc} "
             f"! h264parse config-interval=-1 ! tee name=t_h264"
-        )
+        ) #Se van agregando los elementos de la rama de codificacion de video. 
 
-        if c.grabacion.habilitada:
+        if c.grabacion.habilitada: #Si la grabacion esta habilitada en el acceso.conf...
             os.makedirs(c.grabacion.directorio, exist_ok=True)
-            ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron)
-            ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000
+            ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron) #Junta directorio y nombre de la grabacion
+            ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000 #Convierte los segundos a nanosegundos para el parametro max-size-time del splitmuxsink
             partes.append(
                 f"t_h264. ! queue "
                 f"! splitmuxsink name=grabador location={ruta} "
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
-            )
+            ) #Agrega los bloques de la rama de grabacion. Se pegan al segundo tee (tee_h264)
 
         if c.streaming.habilitado:
             partes.append(
