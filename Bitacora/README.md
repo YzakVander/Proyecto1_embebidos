@@ -1,7 +1,7 @@
 # Bitácora individual de trabajo
 
 **Estudiante:** Daniel Chavarría García
-**Rol en el equipo:** B — Plataforma (Yocto, BSP, imagen) · asumiendo temporalmente el Rol A (aplicación)
+**Rol en el equipo:** B — Plataforma (Yocto, BSP, imagen) · asumió temporalmente el Rol A mientras el compañero no tuvo disponibilidad
 **Proyecto 1 — Sistema de control de acceso con Yocto Project y GStreamer**
 **Taller de Sistemas Embebidos · TEC · II Semestre 2026**
 **Prof. Dr. Ing. Johan Carvajal Godínez**
@@ -19,6 +19,8 @@
 | Máquina destino | `raspberrypi4-64` (`TUNE_FEATURES = aarch64 crc cortexa72 nocrypto`) |
 | GStreamer en la imagen | 1.28.2 |
 | GStreamer en el host (desarrollo) | 1.24.2 |
+| Python en la imagen | 3.14 |
+| OpenCV en la imagen | 4.13.0 (`python3-opencv`) |
 | Directorio de compilación | `~/proyecto-acceso/build` |
 | Aplicación (Rol A) | `~/proyecto-acceso/app` |
 | Capa propia | `~/proyecto-acceso/meta-acceso` (enlazada desde `layers/`) |
@@ -38,13 +40,20 @@
 | D-05 | 09-10 | Cámara **USB (UVC)** con `v4l2src` | CSI con `libcamerasrc` | Autorizado por el profesor; elimina el riesgo técnico más alto |
 | D-06 | 09-10 | Conjuntos completos de plugins en la 1.ª iteración | Subpaquetes desde el inicio | Primero funcionar, después afinar (RP-08) |
 | D-07 | 09-10 | Compilar en casa, verificar en laboratorio | QEMU para todo | Acceso intermitente a la RPi4 |
-| **D-08** | **09-19** | **`appsink` con búfer circular de pre-evento** | `split-now` sobre `splitmuxsink`; cuadro único | El clip necesita contexto ANTES del evento: una cámara de vigilancia real hace pre-roll. `split-now` empezaría el clip *en* el evento |
-| **D-09** | **09-19** | **Guardar cuadros H.264 comprimidos, no crudos** | Cuadros I420 en RAM | 10 s comprimidos = 235 KiB medidos, contra ~415 MB crudos. Precio: hay que recortar en cuadro clave |
-| **D-10** | **09-19** | **Ventana del clip: 5 s antes + 5 s después** | 3+2 | Más contexto para auditar. Con cuadros comprimidos el costo en RAM es irrelevante |
-| **D-11** | **09-19** | **E3: reconectar con alerta, no morir** | Morir y que systemd reinicie | Decisión propia; el checklist acepta ambas pero exige decidir. Reintentos indefinidos cada 5 s |
-| **D-12** | **09-19** | **H2: plazo de 30 s, vencimiento DEFINITIVO** | 5 s, 10 s | 30 s da margen a una persona real (latencias medidas: 6.8 s y 15.9 s). El vencimiento cierra la solicitud: un PERMITIR tardío se rechaza |
-| **D-13** | **09-19** | **H6: archivo JSONL con `fsync`** | journald | H6 exige verificar persistencia tras reinicio; un archivo se inspecciona con `cat`. `fsync` lo protege de corte de energía, no solo de cierre ordenado |
-| **D-14** | **09-19** | **B4/B5 se CUMPLEN, no se declaran N/A** | Declararlos no aplicables | Con `appsink` real hay topes de memoria y callback medible. Único N/A legítimo: **H4** (no hay cerradura física, solo LED indicadores) |
+| D-08 | 09-19 | `appsink` con búfer circular de pre-evento | `split-now` sobre `splitmuxsink`; cuadro único | El clip necesita contexto ANTES del evento: una cámara de vigilancia real hace pre-roll |
+| D-09 | 09-19 | Guardar cuadros H.264 comprimidos, no crudos | Cuadros I420 en RAM | 10 s comprimidos = 235 KiB medidos, contra ~415 MB crudos. Precio: recortar en cuadro clave |
+| D-10 | 09-19 | Ventana del clip: 5 s antes + 5 s después | 3+2 | Más contexto para auditar; con cuadros comprimidos el costo en RAM es irrelevante |
+| D-11 | 09-19 | E3: reconectar con alerta, no morir | Morir y que systemd reinicie | El checklist acepta ambas pero exige decidir. Reintentos indefinidos cada 5 s |
+| D-12 | 09-19 | H2: plazo de 30 s, vencimiento DEFINITIVO | 5 s, 10 s | 30 s da margen a una persona real (latencias medidas: 6.8 s y 15.9 s) |
+| D-13 | 09-19 | H6: archivo JSONL con `fsync` | journald | Un archivo se inspecciona con `cat`; `fsync` lo protege de corte de energía |
+| D-14 | 09-19 | B4/B5 se CUMPLEN, no se declaran N/A | Declararlos no aplicables | Único N/A legítimo: **H4** (no hay cerradura física, solo LED indicadores) |
+| **D-15** | **09-23** | **Desglosar `packagegroup-acceso` a subpaquetes derivados de la tubería real** | Mantener los conjuntos completos `-good`/`-bad` | Cumple G1 y RP-08. La lista **no se adivinó**: se obtuvo mapeando cada elemento de la tubería a su biblioteca con `gst-inspect-1.0 \| grep Filename`, y de ahí al subpaquete |
+| **D-16** | **09-23** | **`videotestsrc` y las herramientas van en `-diagnostico`, fuera del núcleo** | Un solo paquete con todo | La imagen de producción no debe llevar la fuente de prueba usada en desarrollo (G2) |
+| **D-17** | **09-23** | **SSH (dropbear) en la imagen** | Imagen sin acceso remoto | Permite iterar el código Python con `scp` + `systemctl restart` sin regenerar la imagen. Sin esto, cada cambio costaría una compilación completa |
+| **D-18** | **09-23** | **Instalación manual en `do_install` en vez de `inherit setuptools3`** | Empaquetado PEP 517 | Ocho módulos sin dependencias de compilación; `setuptools3` agregaría `python3-setuptools-native` al build sin aportar nada |
+| **D-19** | **09-23** | **OpenCV para la lectura de QR** | `zbar` (mucho más liviano) | Requisito del proyecto. Se asume el costo: ~4 h de compilación y varios cientos de MiB |
+| **D-20** | **09-23** | **El QR separa identificación de autorización** | Sustituir al vigilante por el QR | El lector **identifica**; el vigilante **autoriza**. Si el QR no resuelve (ilegible o no autorizado), escala al vigilante con el plazo de H2. El vigilante pasa de único camino a excepción, como en un control de acceso real |
+| **D-21** | **09-23** | **El reconocimiento de QR corre en la RPi4, no en el puesto de vigilancia** | Procesar en la máquina receptora | Un control de acceso que depende de que el puesto remoto esté conectado para abrir la puerta es frágil. La Pi decide sola e informa |
 
 ---
 
@@ -54,6 +63,8 @@
 |---|---|---|---|---|---|
 | 09-10 | `core-image-base` | 11:09 | 23:17 | ~6 h efectivas | 5819 tareas. Sstate previo solo aportó 5%: era de `qemux86-64` |
 | 09-10 | `packagegroup-acceso` (dry-run) | — | — | ~2 min | 72% completo; ~1024 tareas nuevas pendientes |
+| **09-23** | **`acceso-control`** | ___ | **15:06** | **~3.5 h** | Mucho más de lo esperado para una receta que solo copia archivos: `RDEPENDS = packagegroup-acceso` arrastra GStreamer, Python y PyGObject completos |
+| **09-23** | **`opencv` (PACKAGECONFIG mínimo)** | **~15:33** | **19:36** | **~4 h** | 3345 tareas. `do_compile` sola tomó la mayor parte; BitBake emite "still alive" cada 600 s cuando una tarea es larga |
 
 ---
 
@@ -65,17 +76,23 @@
 | P-02 | 09-10 | Fallo de parseo de `local.conf` | Comilla sin abrir en `SSTATE_DIR` y typo `sysyemd` | `sed` + verificación con `bitbake -e` | ~15 min |
 | P-03 | 09-10 | `Nothing RPROVIDES 'linux-firmware-rpidistro-bcm43456'` | Licencia restringida bloqueada por defecto | `LICENSE_FLAGS_ACCEPTED` | ~5 min |
 | P-04 | 09-10 | Sstate compartido sin reutilización | `BB_HASHSERVE_DB_DIR` dentro del build | Apuntarlo a `${SSTATE_DIR}` | Detectado con `--dry-run` |
-| P-05 | 09-10 | Windows congelado; `pgrep -c bitbake` = 0 | Falso negativo: BitBake corre como `python3`. El congelamiento fue presión de memoria del anfitrión | `pgrep -af`, `uptime` (load 7.2), fecha de los `log.do_*` | ~15 min |
+| P-05 | 09-10 | Windows congelado; `pgrep -c bitbake` = 0 | Falso negativo: BitBake corre como `python3` | `pgrep -af`, `uptime`, fecha de los `log.do_*` | ~15 min |
 | P-06 | 09-10 | `Nothing RPROVIDES 'gstremaer1.0-tools'` | Typo en `RDEPENDS` | `sed` | ~2 min |
-| P-07 | 09-10 | Mismo error tras corregir el typo | La receta `gstreamer1.0-tools` **no existe** en 1.28.2; las herramientas vienen en el paquete base | Eliminar la línea | ~10 min |
-| **P-08** | **09-19** | **`videotestsrc` negociaba `Y444_10LE` y `x264enc` producía perfil `high-4:4:4`** | El `capsfilter` fijaba resolución y tasa pero **no el formato de píxel**; GStreamer tomó el primero compatible, que era el más rico | Añadir `format=I420`. Perfil pasó a `high` (4:2:0) | ~20 min |
-| **P-09** | **09-19** | **`fpsdisplaysink` e `identity silent=false` no imprimían nada** | En GStreamer 1.24 dejaron de escribir a stdout; publican por señal o por el log de depuración | Cambiar de instrumento: medir **tiempo total** de procesar N cuadros | ~30 min |
-| **P-10** | **09-19** | **H2: un `PERMITIR` tardío era aceptado tras el vencimiento** | `esperar()` devolvía VENCIDO pero **no cerraba** la solicitud | Al vencer se fija el resultado y se marca el `Event` bajo lock. Verificado con 200 iteraciones de carrera | **Error crítico** |
-| **P-11** | **09-19** | **Clip de 10 s salía corto** | El búfer se dimensionaba solo con `segundos_antes` | Dimensionar con `antes + despues` | ~10 min |
-| **P-12** | **09-19** | **`mp4mux`: "Buffer has no PTS"** | El clip es flujo elemental: no lleva marcas de tiempo, y `mp4mux` no las deriva | `ffmpeg -r 30 -i ... -c copy`. El `-r` **antes** del `-i`; sin él ffmpeg asume 25 fps | ~25 min |
-| **P-13** | **09-19** | **El clip no era Annex B: empezaba en `00 00 00 02`** | `h264parse` entregaba formato `avc` (NAL con prefijo de longitud) | Diagnosticado con `xxd`. Ver P-14 | ~15 min |
-| **P-14** | **09-19** | **Al añadir `capsfilter byte-stream`: `not-negotiated` en bucle** | **Un `tee` impone las mismas caps a TODAS sus ramas.** Un `capsfilter` filtra, no convierte | Segundo `h264parse` en la rama del `appsink` | ~20 min |
-| **P-15** | **09-19** | **Push rechazado: "fetch first"** | La rama `Daniel` remota tenía commits de la bitácora hechos desde la web | `git pull --rebase origin Daniel` | ~10 min |
+| P-07 | 09-10 | Mismo error tras corregir el typo | La receta `gstreamer1.0-tools` **no existe** en 1.28.2 | Eliminar la línea | ~10 min |
+| P-08 | 09-19 | `x264enc` producía perfil `high-4:4:4` | El `capsfilter` no fijaba el formato de píxel | Añadir `format=I420` | ~20 min |
+| P-09 | 09-19 | `fpsdisplaysink` no imprimía nada | En 1.24 dejó de escribir a stdout | Medir tiempo total en vez de contar cuadros | ~30 min |
+| P-10 | 09-19 | Un `PERMITIR` tardío era aceptado tras el vencimiento | `esperar()` devolvía VENCIDO pero no cerraba la solicitud | Fijar el resultado y marcar el `Event` bajo lock | **Error crítico** |
+| P-11 | 09-19 | Clip de 10 s salía corto | El búfer se dimensionaba solo con `segundos_antes` | Dimensionar con `antes + despues` | ~10 min |
+| P-12 | 09-19 | `mp4mux`: "Buffer has no PTS" | Flujo elemental sin marcas de tiempo | `ffmpeg -r 30 -i ... -c copy` | ~25 min |
+| P-13 | 09-19 | El clip no era Annex B: empezaba en `00 00 00 02` | `h264parse` entregaba formato `avc` | Diagnosticado con `xxd`. Ver P-14 | ~15 min |
+| P-14 | 09-19 | `not-negotiated` en bucle al añadir `capsfilter` | Un `tee` impone las mismas caps a TODAS sus ramas | Segundo `h264parse` en la rama del `appsink` | ~20 min |
+| P-15 | 09-19 | Push rechazado: "fetch first" | La rama remota tenía commits hechos desde la web | `git pull --rebase origin Daniel` | ~10 min |
+| **P-16** | **09-23** | **Los módulos Python quedaron instalados en `/acceso/`, en la raíz del sistema de archivos** | **`${PYTHON_SITEPACKAGES_DIR}` se expandió VACÍA: la receta no heredaba `python3-dir`.** BitBake no advierte de variables indefinidas y `/acceso` es una ruta válida; el QA tampoco lo detectó porque `FILES` se expandió igual | `inherit systemd python3-dir`. Verificado con `bitbake -e \| grep ^PYTHON_SITEPACKAGES_DIR=` y reinspección del directorio `image/` | **Error silencioso** |
+| **P-17** | **09-23** | **`Nothing RPROVIDES 'python3-libgpiod'`** | El paquete no existe con ese nombre; `PACKAGES` de `libgpiod` no incluye enlaces de Python y la receta no expone un `PACKAGECONFIG[python3]` en esta versión | Se retira del packagegroup. La aplicación ya cae al backend simulado si falta `gpiod`; para el destino queda `libgpiod-tools` (`gpioset`) | ~15 min |
+| **P-18** | **09-23** | **`Nothing RPROVIDES 'ffmpeg'`** | Licencia `commercial`, bloqueada por defecto | Se retira: `ffmpeg` se usa en la PC de desarrollo para convertir clips, no en la Raspberry. Error de alcance, no de configuración | ~5 min |
+| **P-19** | **09-23** | **Segunda terminal: "No reply from server", reconexión en bucle** | **BitBake usa un único servidor por directorio de build.** La primera terminal lo tenía ocupado compilando | No es un error: es exclusión mutua. Para consultar metadatos mientras se compila, leer las recetas directamente con `grep` en vez de usar `bitbake-layers` | ~5 min |
+| **P-20** | **09-23** | **El build arrastró `mesa` y `llvm-native`, horas de compilación** | Cadena `gstreamer1.0-plugins-base → opengl (activado por Poky) → mesa → llvm`. **La aplicación no usa OpenGL**: codifica, transmite y graba sin mostrar nada | Detectado, no corregido aún: cambiar `DISTRO_FEATURES` invalida firmas y obliga a recompilar. Pendiente para la imagen mínima: `DISTRO_FEATURES:remove = "opengl wayland x11"` | Hallazgo |
+| **P-21** | **09-23** | **`PACKAGECONFIG:pn-opencv = "python3"` no redujo los módulos compilados** | Se generaron igual `gapi`, `tracking`, `xfeatures2d`, `stitching`, `face` y el resto de contrib | Sin resolver. Pendiente revisar si esos módulos dependen de otra variable o si la asignación no sobrescribió el `??=` | Pendiente |
 
 ---
 
@@ -89,135 +106,165 @@ _(entrada previa sin cambios — ver historial del repositorio)_
 
 ### 2026-09-19 · ___ h — Aplicación: pipeline, búfer circular y decisión de acceso
 
+_(entrada previa sin cambios — ver historial del repositorio)_
+
+**Resumen:** diseño y validación de la tubería GStreamer, implementación de los
+ocho módulos de la aplicación en Python, pruebas unitarias y ejecución de los
+tres casos de uso con evidencia medida. 21 de 44 ítems del checklist cerrados.
+
+---
+
+### 2026-09-2_ · ___ h — Revisión con el profesor
+
+**Objetivo:** presentar casos de uso, requisitos y el estado de la lista de
+verificación del pipeline.
+
+_(completar: qué se presentó, observaciones recibidas, qué se acordó corregir)_
+
+---
+
+### 2026-09-23 · ___ h — Plataforma: empaquetado, imagen y OpenCV
+
 **Objetivo de la sesión**
 
-Avanzar el Rol A mientras el compañero no está disponible: diseñar y validar
-la tubería GStreamer, implementar la aplicación en Python y cerrar con
-evidencia medida los ítems del checklist que no requieren la RPi4.
+Convertir la aplicación validada en un paquete que la imagen instale y systemd
+arranque solo, desglosar las dependencias a nivel de subpaquete (G1), y
+compilar OpenCV para habilitar la lectura de códigos QR.
 
 **Actividades**
 
-1. Análisis del checklist del profesor (44 ítems, secciones A–H) y mapeo a los roles.
-2. Sección A completa: lectura de caps negociados, justificación del `capsfilter`, inventario del grafo real.
-3. Sección B: demostración medida del efecto de `queue` en las ramas de un `tee`.
-4. Sección C parcial: medición de CPU del codificador por software.
-5. Sección D: medición de latencia con el tracer y corrección del presupuesto.
-6. Diseño e implementación de la aplicación completa en Python (8 módulos).
-7. Pruebas unitarias del búfer circular y de la lógica de decisión.
-8. Ejecución real de los tres casos de uso con evidencia.
-9. Inicialización del repositorio git y publicación en la rama `Daniel`.
+1. Derivación de la lista real de plugins: cada elemento de la tubería mapeado
+   a su biblioteca con `gst-inspect-1.0 | grep Filename`, y de ahí al subpaquete.
+2. Reescritura de `packagegroup-acceso.bb` con subpaquetes individuales (G1) y
+   separación del bloque de diagnóstico (G2).
+3. Redacción de `acceso-control_1.0.bb`: instalación manual, `CONFFILES`,
+   `RDEPENDS` al packagegroup.
+4. Unidad systemd con `Restart=on-failure`, `RestartSec=5`, `TimeoutStopSec=20`,
+   `StateDirectory` y `RuntimeDirectory` (E6, E4).
+5. Script `sincronizar-receta.sh` para mantener al día la copia de `app/` que
+   la receta consume vía `file://`.
+6. Compilación de `acceso-control`, diagnóstico y corrección de P-16.
+7. Merge de `origin/main` con los cambios del compañero; resincronización.
+8. Redacción de `acceso-image.bb` con SSH (dropbear).
+9. Configuración y compilación de OpenCV 4.13.0 con `python3-opencv`.
+10. Prueba de cámara y de transmisión en vivo hacia la computadora del compañero.
 
 **Comandos relevantes**
 
 ```bash
-# A1/A2/A4 - leer los caps, no suponerlos
-gst-launch-1.0 -v videotestsrc ! video/x-raw,format=I420,... ! x264enc ! fakesink \
-  2>&1 | grep -A2 "caps = "
+# G1 - derivar la lista de plugins de la tuberia real
+gst-inspect-1.0 <elemento> | grep -m1 Filename
 
-# A5/A6 - inventario del grafo REAL
-DOT=$(ls grafos/*PLAYING_PAUSED*.dot | tail -1)
-grep -oE "Gst[A-Za-z0-9]+\\\\n" "$DOT" | sort | uniq -c | sort -rn
-grep -icE "videoconvert|videoscale|videorate" "$DOT"
+# Diagnostico de P-16
+bitbake -e acceso-control | grep ^PYTHON_SITEPACKAGES_DIR=
+find tmp/work/*/acceso-control/*/image -type f | sed 's|.*/image||'
+cat tmp/work/*/acceso-control/*/temp/log.do_package_qa | grep -iE "WARNING|ERROR"
 
-# D1 - latencia medida, no estimada
-GST_DEBUG="GST_TRACER:7" GST_TRACERS="latency" gst-launch-1.0 -q ... \
-  2>&1 | grep latency
+# OpenCV
+echo 'PACKAGECONFIG:pn-opencv = "python3"' >> conf/local.conf
+bitbake opencv
+find tmp/work/*/opencv/*/image -name "cv2*"
 
-# P-13 - diagnóstico del encuadre del clip
-head -c 16 eventos/*.h264 | xxd
-
-# Ejecución y verificación
-python3 -m acceso -c config/acceso.conf --dot grafos
-echo "SOLICITUD ID-001" > /tmp/acceso-eventos
-python3 -m acceso -c config/acceso.conf --ver-bitacora
+# Integracion con el Rol A
+git merge origin/main
+./scripts/sincronizar-receta.sh
 ```
 
 **Resultados**
 
-| Medición | Valor |
-|---|---|
-| Conversores insertados por GStreamer en el grafo | **0** (consecuencia de fijar `format=I420`) |
-| `queue` por rama de `tee` | 6 `queue` para 2 `tee` |
-| Bloqueo sin `queue` | **122 s** contra **38 s** para 150 cuadros (>3×) |
-| CPU codificando por software (x86) | **174 %** = 1.74 núcleos a 720p30 |
-| Latencia extremo a extremo (602 muestras) | **12–21 ms** |
-| Memoria del búfer circular lleno | **235 KiB** (10 s comprimidos) |
-| Clip verificado | **10.47 s**, 1280×720, 30 fps |
-| Vencimiento H2 | **30000.6 ms** (desviación de 0.6 ms) |
-
-Bitácora de accesos con los tres resultados distintos:
+Empaquetado verificado, con rutas correctas tras corregir P-16:
 
 ```
-20:38:53  ID-001  permitido                  6801.8 ms
-20:39:27  ID-002  denegado                  15910.9 ms
-20:42:33  ID-003  denegado_por_vencimiento  30000.6 ms
+/usr/bin/acceso-control
+/etc/acceso/acceso.conf
+/usr/lib/systemd/system/acceso-control.service
+/usr/lib/python3.14/site-packages/acceso/{8 módulos}
 ```
+
+`log.do_package_qa` sin advertencias ni errores.
+
+OpenCV compilado y empaquetado:
+
+```
+python3-opencv-4.13.0-r0.cortexa72.rpm            2.3 MB
+libopencv-objdetect413-...rpm                    573 KB   ← QRCodeDetector
+/usr/lib/python3.14/site-packages/cv2/python-3.14/cv2.cpython-314-aarch64-linux-gnu.so
+```
+
+**Cámara y transmisión en vivo**
+
+_(completar con los datos concretos)_
+
+- Fuente de video utilizada: ___
+- Caps negociadas por la cámara: ___
+- Máquina emisora: ___ · Máquina receptora: ___
+- Red utilizada: ___ · IP destino: ___ · Puerto: 5000/UDP
+- Resultado: transmisión en vivo verificada de extremo a extremo
 
 **Aprendizajes**
 
-- **Sub-restringir un `capsfilter` es tan peligroso como sobre-restringirlo.**
-  Sin `format=I420` el codificador producía perfil `high-4:4:4`, que la
-  mayoría de reproductores no decodifica y el codificador por hardware de la
-  RPi 4 no acepta. El pipeline "funcionaba" y el error habría aparecido en la
-  demostración.
-- **Un `tee` impone las mismas caps a todas sus ramas.** Si una rama necesita
-  otro formato, hace falta un elemento *conversor* en esa rama; un
-  `capsfilter` solo filtra lo que ya existe.
-- **El presupuesto de latencia falló por 35×** (estimado 605 ms, medido 17 ms).
-  La causa: un `queue` solo aporta latencia cuando está **lleno**. La tabla
-  del checklist describe el peor caso, no la operación normal. La profundidad
-  acota la latencia máxima bajo carga, no la nominal.
-- **Un flujo H.264 elemental no lleva marcas de tiempo.** `mp4mux` las exige y
-  no las deriva; `ffmpeg` sí, con `-r` *antes* del `-i`. Sin ese parámetro
-  asume 25 fps y el clip se reproduce más lento que la realidad.
-- **En control de acceso, el estado por omisión es negar.** El error P-10 —un
-  `PERMITIR` tardío aceptado tras el vencimiento— habría abierto la puerta
-  después de que el sistema ya denegó. Lo reveló una prueba, no la lectura del
-  código.
-- Las herramientas de diagnóstico cambian entre versiones: `fpsdisplaysink` e
-  `identity silent=false` dejaron de imprimir a stdout en 1.24. Conviene medir
-  con instrumentos independientes del elemento bajo prueba.
+- **Una variable de clase no heredada se expande vacía sin producir error.**
+  `${PYTHON_SITEPACKAGES_DIR}` sin `inherit python3-dir` dejó los módulos en la
+  raíz del sistema de archivos, y el control de calidad no lo detectó porque
+  `FILES` se expandió de la misma forma. El paquete era internamente
+  coherente y completamente inútil. Solo se ve inspeccionando el directorio
+  `image/` antes de construir la imagen.
+- **G1 se cumple derivando, no adivinando.** El mapeo elemento → biblioteca →
+  subpaquete reveló que `splitmuxsink` vive en `multifile` y no en `isomp4`,
+  algo contraintuitivo que habría producido un `no element` en el destino
+  después de una hora de compilación.
+- **Los nombres de paquete no son estables entre versiones ni entre proyectos.**
+  `gstreamer1.0-tools` y `python3-libgpiod` no existen en esta versión, y
+  `ffmpeg` está bloqueado por licencia. El `--dry-run` los detecta en minutos;
+  sin él aparecerían al final de una compilación larga.
+- **Una imagen "mínima" no lo es por omisión.** Poky activa `opengl`, y esa
+  sola feature arrastró Mesa y LLVM, horas de compilación para algo que un
+  dispositivo sin monitor no usa. Saber por qué entró un paquete que la
+  aplicación nunca invoca es parte de diseñar la imagen, no solo de compilarla.
+- **El código Python no obliga a regenerar la imagen.** Con SSH en la imagen,
+  el ciclo es `scp` + `systemctl restart`: segundos en vez de horas. Solo se
+  recompila cuando cambia *qué paquetes* contiene la imagen. La disciplina
+  necesaria es llevar de vuelta al repositorio todo lo que se edite en el
+  destino, o la imagen y la Pi divergen.
 
-**Estado del checklist: 21 de 44 con evidencia**
+**Estado del checklist**
 
 | Sección | Cerrados | Pendientes |
 |---|---|---|
-| A · Caps | A1, A2, A4, A5, A6 | A3 (contar cuadros) |
-| B · Topología | B1, B2, B3, B4, B5 | B6 (coordinación de EOS) |
-| C · Hardware | C3 · C2 parcial | C1, C2, C4 — **requieren RPi4** |
-| D · Latencia | D1, D3, D4 | D2 (cronómetro filmado) |
-| E · Errores | E1, E3, E4 | E2, E5, E6 |
-| F · Estabilidad | — | F1–F6 (corrida larga / RPi4) |
-| G · Yocto | — | G1–G5 (Rol B) |
-| H · Acceso | H1, H2, H6 | H3, H5, H7 · **H4 = N/A justificado** |
+| A · Caps | A1, A2, A4, A5, A6 | A3 |
+| B · Topología | B1, B2, B3, B4, B5 | B6 |
+| C · Hardware | C3 · C2 parcial | C1, C2, C4 — requieren RPi4 |
+| D · Latencia | D1, D3, D4 | D2 |
+| E · Errores | E1, E3, E4, **E6** | E2, E5 |
+| F · Estabilidad | — | F1–F6 |
+| G · Yocto | **G1** | G2, G3, G4, G5 |
+| H · Acceso | H1, H2, H6 | H3, H5, H7 · H4 = N/A justificado |
 
-**Pendientes inmediatos (entrega del lunes)**
+**Pendientes**
 
-- [ ] D2 — medición de latencia con cronómetro filmado (~15 min)
-- [ ] E6 — unidad systemd con `Restart=on-failure`, probada con `kill -9`
-- [ ] H7 — política de retención de imágenes (dos párrafos, exigido por el checklist)
-- [ ] Redactar los casos de uso nuevos CU-5 a CU-10 en formato ISO 29148
-- [ ] Hoja de limitaciones declaradas (los 5 ítems bloqueados por hardware)
-
-**Pendientes de plataforma (Rol B)**
-
-- [ ] `acceso-image.bb` con servidor SSH
-- [ ] G1 — desglosar el packagegroup a subpaquetes
-- [ ] G4 — reconstrucción limpia sin `sstate-cache`
-
-**Hallazgo de diseño sin resolver**
-
-Al apagarse, el servicio **no espera** a las solicitudes en curso. Una decisión
-tomada segundos antes del cierre puede no llegar a la bitácora — observado con
-ID-003 en la primera ronda. En producción sería un defecto menor pero real.
-Material para la tercera pregunta de la defensa oral.
+- [ ] Compilar `acceso-image` con `python3-opencv`
+- [ ] `gpio=27=op,dl` y `gpio=22=op,dl` en `RPI_EXTRA_CONFIG` (H5)
+- [ ] Documento tutorial paso a paso (G5)
+- [ ] Reconstrucción limpia sin `sstate-cache` (G4) — mayor riesgo de cronograma
+- [ ] Quitar `opengl wayland x11` de `DISTRO_FEATURES` (RP-08)
+- [ ] Verificar en la RPi4: C1, C2, F4, E2
+- [ ] Revisar por qué el `PACKAGECONFIG` de OpenCV no redujo los módulos
 
 **Coordinación con el compañero**
 
-- **Pendiente:** informar que se usará **cámara USB** (`v4l2src`, no `libcamerasrc`).
-- **Pendiente:** entregar la lista de elementos GStreamer usados para afinar el packagegroup (G1).
-- **Pendiente:** acordar la rama de integración (local es `master`, remoto usa `main`).
-- **Avance:** la aplicación del Rol A está implementada y validada; queda por revisar y continuar cuando se reincorpore.
+- Se integró su rama `main`: documentó línea por línea `config.py` y
+  `pipeline.py`. **Verificado que la corrección de P-14 (`h264parse` en la rama
+  del `appsink`) sobrevivió a su edición** — de haberse perdido, los clips
+  volverían a salir en formato `avc` e irreproducibles.
+- Se retiraron `app.zip` y `app.7z` del repositorio: duplicaban código ya
+  versionado. Acordar que no se vuelvan a subir.
+- **Entregado:** la lista de elementos GStreamer usados, base del packagegroup.
+- **Informado:** OpenCV 4.13.0 estará disponible en la imagen, compilado **sin**
+  soporte GStreamer. Los cuadros le llegan por el `appsink` y los convierte a
+  NumPy él mismo.
+- **Acordado (D-20):** el QR identifica, el vigilante autoriza. El lector escala
+  al vigilante cuando no puede resolver.
+- **Pendiente:** definir la rama de integración y la lista de usuarios autorizados.
 
 ---
 
