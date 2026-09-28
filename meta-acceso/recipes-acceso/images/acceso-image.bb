@@ -8,9 +8,9 @@ inherit core-image
 # una compilacion completa.
 IMAGE_FEATURES += "ssh-server-dropbear"
 
-# debug-tweaks deja root sin contrasena. Necesario para desarrollar,
+# Estas tres features dejan root sin contrasena y permiten login remoto.
 # PROHIBIDO en la imagen de entrega (G2). Comentar antes de la version final.
-IMAGE_FEATURES += "debug-tweaks"
+IMAGE_FEATURES += "allow-empty-password allow-root-login empty-root-password"
 
 IMAGE_INSTALL:append = "\
     packagegroup-acceso \
