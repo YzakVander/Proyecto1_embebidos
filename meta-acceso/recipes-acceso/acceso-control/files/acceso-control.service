@@ -7,7 +7,9 @@ Wants=network-online.target
 Type=simple
 ExecStart=/usr/bin/acceso-control --config /etc/acceso/acceso.conf
 Environment=PYTHONUNBUFFERED=1
-Environment=GST_DEBUG=2
+Environment=GST_DEBUG=1
+StandardOutput=journal+console
+StandardError=journal+console
 
 # E4: SIGTERM dispara el EOS que cierra los MP4. 20 s da margen para
 # vaciar el ultimo segmento antes de que systemd mate el proceso.
