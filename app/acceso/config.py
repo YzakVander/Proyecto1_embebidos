@@ -65,12 +65,18 @@ class ClipsCfg:
 
 @dataclass
 class ActuadorCfg:
-    backend: str = "auto"          # auto | libgpiod | simulado
-    gpio_chip: str = "/dev/gpiochip0"
-    linea_permitido: int = 27
-    linea_denegado: int = 22
-    activo_bajo: bool = False
-    pulso_ms: int = 3000
+    """RF-5 / CU-4: buzzer pasivo por PWM de hardware (ver actuador.py)."""
+    backend: str = "auto"          # auto | pwm | simulado
+    pwm_chip: int = 0              # /sys/class/pwm/pwmchip0
+    pwm_canal: int = 0             # PWM0 = GPIO 18 con dtoverlay=pwm,pin=18,func=2
+    # Permitido: un tono agudo continuo
+    frecuencia_permitido_hz: int = 2500
+    duracion_permitido_ms: int = 800
+    # Denegado (y vencido): pitidos graves cortos
+    frecuencia_denegado_hz: int = 800
+    pitidos_denegado: int = 3
+    duracion_pitido_ms: int = 200
+    pausa_pitido_ms: int = 150
 
 
 @dataclass
@@ -79,6 +85,12 @@ class EventosCfg:
     fifo: str = "/tmp/acceso-eventos"
     timeout_decision_s: float = 30.0   # H2: vencido -> DENIEGA
     enfriamiento_s: float = 2.0
+    # CU-3: canal TCP para el puesto de vigilancia, que esta en OTRA
+    # computadora (ver red.py). Convive con el FIFO: ambos aceptan los
+    # mismos comandos.
+    red_habilitada: bool = True
+    red_puerto: int = 5001             # el video ya usa el 5000 (UDP)
+    red_clientes: str = ""             # IPs autorizadas separadas por coma; vacio = cualquiera
 
 
 @dataclass
