@@ -24,3 +24,8 @@ IMAGE_INSTALL:append = "\
 IMAGE_ROOTFS_EXTRA_SPACE = "1048576"
 
 export IMAGE_BASENAME = "acceso-image"
+
+# Estado seguro del GPIO de la bocina desde el arranque del kernel, antes de
+# que inicie cualquier aplicacion. Sin esto, la linea podria quedar en alto
+# al energizar y la bocina sonaria de forma continua.
+RPI_EXTRA_CONFIG = "gpio=18=op,dl"
