@@ -28,7 +28,7 @@ import time
 from gi.repository import GLib
 
 from .actuador import IndicadoresAcceso
-from .buffer_circular import BufferCircular, escribir_clip_anexo
+from .buffer_circular import BufferCircular, escribir_clip_anexo, escribir_clip_mp4
 from .config import Config
 from .decision import Bitacora, RegistroAcceso, Resultado, SolicitudAcceso, ahora_iso
 from .pipeline import PipelineAcceso
@@ -280,7 +280,7 @@ class ServicioAcceso:
     def _ruta_clip(self, identificador: str) -> str:
         """Ruta del clip de un evento, con la hora actual en el nombre."""
         seguro = "".join(c if c.isalnum() or c in "-_" else "_" for c in identificador)
-        nombre = f"evento_{time.strftime('%Y%m%d-%H%M%S')}_{seguro}.h264"
+        nombre = f"evento_{time.strftime('%Y%m%d-%H%M%S')}_{seguro}.mp4"
         return os.path.join(self._cfg.clips.directorio, nombre)
 
     def _escribir_clip(self, ruta: str) -> bool:
@@ -296,7 +296,18 @@ class ServicioAcceso:
             log.warning("buffer vacio; no se escribio el clip %s", ruta)
             return False
 
-        escribir_clip_anexo(ruta, cuadros)
+        try:
+            escribir_clip_mp4(ruta, cuadros, self._cfg.codec.fps)
+        except Exception as exc:                     # noqa: BLE001
+            # Respaldo: no perder la evidencia. Se guarda el flujo crudo con
+            # el mismo nombre base; la bitacora apunta al .mp4, por eso el
+            # log deja claro donde quedo.
+            if os.path.exists(ruta):
+                os.remove(ruta)                      # MP4 a medias: inservible
+            respaldo = os.path.splitext(ruta)[0] + ".h264"
+            log.error("no se pudo empaquetar el clip en MP4 (%s); "
+                      "se guarda crudo en %s", exc, respaldo)
+            escribir_clip_anexo(respaldo, cuadros)
         return True
 
     # ------------------------------------------------------------------ #
