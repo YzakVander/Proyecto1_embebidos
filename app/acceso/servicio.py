@@ -208,33 +208,64 @@ class ServicioAcceso:
         return True, f"solicitud {identificador} abierta, plazo {plazo:.0f} s"
 
     def _resolver(self, permitido: bool) -> tuple[bool, str]:
+        # Resolver y liberar ocurren juntos, dentro del mismo candado: cuando
+        # el vigilante recibe el OK, la solicitud ya no esta pendiente. Si la
+        # liberacion quedara en manos del hilo de _atender, habria una ventana
+        # de milisegundos (lo que tarda en despertar) en la que ESTADO diria
+        # "pendiente" y una SOLICITUD nueva seria rechazada.
         with self._lock_pendiente:
             solicitud = self._pendiente
+            cerrada = solicitud is not None and not solicitud.resolver(permitido)
+            if solicitud is not None and not cerrada:
+                self._pendiente = None
         if solicitud is None:
             log.warning("no hay solicitud pendiente que resolver")
             return False, "no hay solicitud pendiente"
-        if not solicitud.resolver(permitido):
+        if cerrada:
             log.warning("la solicitud ya habia vencido")
             return False, f"la solicitud {solicitud.identificador} ya estaba cerrada"
         return True, f"{solicitud.identificador} {'PERMITIDO' if permitido else 'DENEGADO'}"
 
     def _atender(self, solicitud: SolicitudAcceso) -> None:
-        """Hilo por solicitud: espera la decision, indica y escribe el clip."""
+        """Hilo por solicitud: espera la decision, indica, anota y escribe el clip.
+
+        El orden importa. En cuanto hay decision (o vence el plazo):
+          1. Buzzer, consola y aviso al vigilante.
+          2. Bitacora, con la hora EXACTA de la decision (RF-4). Si se anotara
+             despues del clip, quedaria con segundos_despues de retraso y se
+             perderia si el servicio se apaga mientras se espera el clip.
+          3. La solicitud ya esta liberada (ver _resolver y el bloque de abajo):
+             ESTADO deja de reportarla como pendiente y se acepta una
+             SOLICITUD nueva de inmediato.
+          4. Al final el clip, que tiene que esperar segundos_despues. Si en
+             ese lapso se resuelve otra solicitud, los dos clips se escriben
+             en paralelo sin problema: cada uno toma su propia copia del buffer.
+        """
         inicio = time.monotonic()
         resultado = solicitud.esperar()          # H2: bloquea o vence
         latencia_ms = (time.monotonic() - inicio) * 1000.0
+        instante = ahora_iso()                   # hora de la decision
+
+        # Si fue el vigilante, _resolver ya libero la solicitud. Si vencio el
+        # plazo, se libera aqui. Solo si la pendiente sigue siendo ESTA: pudo
+        # haberse abierto otra nueva en cuanto _resolver libero la anterior.
+        with self._lock_pendiente:
+            if self._pendiente is solicitud:
+                self._pendiente = None
 
         self._indicadores.indicar(resultado, solicitud.identificador)   # RF-5: buzzer + consola
         # Aviso inmediato al vigilante, sobre todo para el vencimiento: el
         # temporizador corre en la placa y el vigilante no lo veria de otra forma.
         self._difundir(f"RESULTADO {solicitud.identificador} {resultado.value}")
 
+        # El nombre del clip se fija ya, con la hora de la decision, para
+        # poder anotarlo en la bitacora antes de escribir el archivo.
         clip = None
         if self._cfg.clips.habilitados:
-            clip = self._escribir_clip(solicitud.identificador)
+            clip = self._ruta_clip(solicitud.identificador)
 
         self._bitacora.anotar(RegistroAcceso(
-            timestamp=ahora_iso(),
+            timestamp=instante,
             identificador=solicitud.identificador,
             resultado=resultado.value,
             latencia_decision_ms=round(latencia_ms, 1),
@@ -243,10 +274,16 @@ class ServicioAcceso:
                  "denegado automaticamente por vencimiento del plazo",
         ))
 
-        with self._lock_pendiente:
-            self._pendiente = None
+        if clip is not None:
+            self._escribir_clip(clip)
 
-    def _escribir_clip(self, identificador: str) -> str | None:
+    def _ruta_clip(self, identificador: str) -> str:
+        """Ruta del clip de un evento, con la hora actual en el nombre."""
+        seguro = "".join(c if c.isalnum() or c in "-_" else "_" for c in identificador)
+        nombre = f"evento_{time.strftime('%Y%m%d-%H%M%S')}_{seguro}.h264"
+        return os.path.join(self._cfg.clips.directorio, nombre)
+
+    def _escribir_clip(self, ruta: str) -> bool:
         """Clip de pre-evento + post-evento desde el buffer circular."""
         cfg = self._cfg.clips
         # Esperar los segundos posteriores para que el buffer los acumule.
@@ -255,14 +292,12 @@ class ServicioAcceso:
         ventana = cfg.segundos_antes + cfg.segundos_despues
         cuadros = self._buffer.instantanea(ventana)
         if not cuadros:
-            log.warning("buffer vacio; no se escribe clip")
-            return None
+            # La bitacora ya tiene anotada esta ruta: se deja constancia aqui
+            log.warning("buffer vacio; no se escribio el clip %s", ruta)
+            return False
 
-        seguro = "".join(c if c.isalnum() or c in "-_" else "_" for c in identificador)
-        nombre = f"evento_{time.strftime('%Y%m%d-%H%M%S')}_{seguro}.h264"
-        ruta = os.path.join(cfg.directorio, nombre)
         escribir_clip_anexo(ruta, cuadros)
-        return ruta
+        return True
 
     # ------------------------------------------------------------------ #
     # E3: reconexion ante falla de la camara
