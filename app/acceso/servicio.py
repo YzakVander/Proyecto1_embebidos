@@ -9,6 +9,9 @@ Arquitectura de hilos (H1)
                               el clip. Al desprenderse del hilo de eventos,
                               varias solicitudes pueden convivir.
   4. Hilo de reconexion     - E3: reintenta levantar la tuberia tras una falla.
+  5. Hilos de red           - CU-3: uno por puesto de vigilancia conectado por
+                              TCP (red.py). Usan el mismo procesador de
+                              comandos que el FIFO.
 
 El callback del appsink (hilo 1) solo copia bytes a la deque y retorna: B5.
 Toda escritura a disco ocurre en el hilo 3.
@@ -29,6 +32,7 @@ from .buffer_circular import BufferCircular, escribir_clip_anexo
 from .config import Config
 from .decision import Bitacora, RegistroAcceso, Resultado, SolicitudAcceso, ahora_iso
 from .pipeline import PipelineAcceso
+from .red import ServidorDecisiones
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +62,17 @@ class ServicioAcceso:
         self._contador = 0
         self._reconectando = threading.Event()
 
+        # CU-3: canal de red para el puesto de vigilancia (otra computadora).
+        # Recibe los mismos comandos que el FIFO; origen="red" permite
+        # rechazar los que no deben llegar por red (SALIR).
+        self._red: ServidorDecisiones | None = None
+        if cfg.eventos.red_habilitada:
+            self._red = ServidorDecisiones(
+                cfg.eventos.red_puerto,
+                lambda texto: self._procesar_comando(texto, origen="red"),
+                cfg.eventos.red_clientes,
+            )
+
     # ------------------------------------------------------------------ #
     def ejecutar(self, dot_dir: str | None = None) -> int:
         self._pipeline.al_fallar(self._al_fallar_pipeline)
@@ -68,6 +83,8 @@ class ServicioAcceso:
             GLib.timeout_add_seconds(3, self._volcar_dot, dot_dir)
 
         threading.Thread(target=self._escuchar_eventos, daemon=True).start()
+        if self._red is not None:
+            self._red.iniciar()
 
         for sig in (signal.SIGINT, signal.SIGTERM):
             GLib.unix_signal_add(GLib.PRIORITY_HIGH, sig, self._al_senal)
@@ -120,51 +137,86 @@ class ServicioAcceso:
                 break
             self._procesar_comando(linea.strip())
 
-    def _procesar_comando(self, texto: str) -> None:
+    def _procesar_comando(self, texto: str, origen: str = "local") -> tuple[bool, str]:
+        """Interpreta un comando del FIFO, del teclado o de la red.
+
+        Devuelve (exito, mensaje). El FIFO y el teclado ignoran el retorno;
+        el canal de red se lo envia al vigilante como 'OK ...' o 'ERROR ...'.
+        """
         if not texto:
-            return
+            return False, "comando vacio"
         partes = texto.split(maxsplit=1)
         verbo = partes[0].upper()
 
         if verbo == "SOLICITUD":
-            ident = partes[1] if len(partes) > 1 else f"anonimo-{self._contador + 1}"
-            self._nueva_solicitud(ident)
-        elif verbo in ("PERMITIR", "DENEGAR"):
-            self._resolver(verbo == "PERMITIR")
-        elif verbo == "SALIR":
+            # Sin identificador, la placa lo genera con la fecha y hora de
+            # apertura: es unico aunque el servicio se reinicie.
+            ident = partes[1] if len(partes) > 1 else time.strftime("S-%Y%m%d-%H%M%S")
+            return self._nueva_solicitud(ident)
+        if verbo in ("PERMITIR", "DENEGAR"):
+            return self._resolver(verbo == "PERMITIR")
+        if verbo == "ESTADO":
+            return True, self._estado()
+        if verbo == "PING":
+            return True, "PONG"   # no toca nada; sirve para medir el RTT (RF-3)
+        if verbo == "SALIR":
+            if origen == "red":
+                # Nadie en la red deberia poder apagar el control de acceso
+                return False, "SALIR no se permite por red"
             self._bucle.quit()
-        else:
-            log.warning("comando no reconocido: %s", texto)
+            return True, "apagando"
+
+        log.warning("comando no reconocido: %s", texto)
+        return False, f"comando no reconocido: {texto}"
+
+    def _estado(self) -> str:
+        with self._lock_pendiente:
+            solicitud = self._pendiente
+        if solicitud is None:
+            return "sin solicitud pendiente"
+        return (f"pendiente {solicitud.identificador} "
+                f"restan {solicitud.restante_s():.0f} s")
+
+    def _difundir(self, texto: str) -> None:
+        """Aviso 'EVENTO ...' a los puestos de vigilancia conectados."""
+        if self._red is not None:
+            self._red.difundir(texto)
 
     # ------------------------------------------------------------------ #
     # CU-3: procesamiento de la solicitud
     # ------------------------------------------------------------------ #
-    def _nueva_solicitud(self, identificador: str) -> None:
+    def _nueva_solicitud(self, identificador: str) -> tuple[bool, str]:
         with self._lock_pendiente:
             if self._pendiente is not None:
                 log.warning("ya hay una solicitud en curso; se ignora '%s'",
                             identificador)
-                return
+                return False, ("ya hay una solicitud en curso "
+                               f"({self._pendiente.identificador})")
             self._contador += 1
             solicitud = SolicitudAcceso(
                 identificador, self._cfg.eventos.timeout_decision_s
             )
             self._pendiente = solicitud
 
+        plazo = self._cfg.eventos.timeout_decision_s
         log.info("=== SOLICITUD #%d: %s (plazo %.0f s) ===",
-                 self._contador, identificador, self._cfg.eventos.timeout_decision_s)
+                 self._contador, identificador, plazo)
         threading.Thread(
             target=self._atender, args=(solicitud,), daemon=True
         ).start()
+        self._difundir(f"SOLICITUD {identificador} plazo={plazo:.0f}s")
+        return True, f"solicitud {identificador} abierta, plazo {plazo:.0f} s"
 
-    def _resolver(self, permitido: bool) -> None:
+    def _resolver(self, permitido: bool) -> tuple[bool, str]:
         with self._lock_pendiente:
             solicitud = self._pendiente
         if solicitud is None:
             log.warning("no hay solicitud pendiente que resolver")
-            return
+            return False, "no hay solicitud pendiente"
         if not solicitud.resolver(permitido):
             log.warning("la solicitud ya habia vencido")
+            return False, f"la solicitud {solicitud.identificador} ya estaba cerrada"
+        return True, f"{solicitud.identificador} {'PERMITIDO' if permitido else 'DENEGADO'}"
 
     def _atender(self, solicitud: SolicitudAcceso) -> None:
         """Hilo por solicitud: espera la decision, indica y escribe el clip."""
@@ -172,8 +224,10 @@ class ServicioAcceso:
         resultado = solicitud.esperar()          # H2: bloquea o vence
         latencia_ms = (time.monotonic() - inicio) * 1000.0
 
-        permitido = resultado == Resultado.PERMITIDO
-        self._indicadores.indicar(permitido)      # RF-5
+        self._indicadores.indicar(resultado, solicitud.identificador)   # RF-5: buzzer + consola
+        # Aviso inmediato al vigilante, sobre todo para el vencimiento: el
+        # temporizador corre en la placa y el vigilante no lo veria de otra forma.
+        self._difundir(f"RESULTADO {solicitud.identificador} {resultado.value}")
 
         clip = None
         if self._cfg.clips.habilitados:
@@ -258,6 +312,8 @@ class ServicioAcceso:
     def _apagar(self) -> None:
         log.info("apagando el servicio")
         self._parar.set()
+        if self._red is not None:
+            self._red.detener()
         self._pipeline.detener()          # E4: EOS antes de NULL
         self._indicadores.cerrar()
         log.info("buffer circular al cierre: %s", self._buffer.estado())

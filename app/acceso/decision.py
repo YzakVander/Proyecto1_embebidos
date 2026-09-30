@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import threading
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -82,6 +83,7 @@ class SolicitudAcceso:
     def __init__(self, identificador: str, timeout_s: float) -> None:
         self.identificador = identificador
         self._timeout_s = timeout_s
+        self._inicio = time.monotonic()   # para informar el plazo restante (ESTADO)
         self._evento = threading.Event()
         self._cierre = threading.Lock()
         self._resultado: Resultado | None = None
@@ -94,6 +96,10 @@ class SolicitudAcceso:
             self._resultado = Resultado.PERMITIDO if permitido else Resultado.DENEGADO
             self._evento.set()
         return True
+
+    def restante_s(self) -> float:
+        """Segundos que faltan para que venza el plazo (0 si ya vencio)."""
+        return max(0.0, self._timeout_s - (time.monotonic() - self._inicio))
 
     def esperar(self) -> Resultado:
         """Bloquea hasta la decision o hasta que venza el plazo (H2)."""
