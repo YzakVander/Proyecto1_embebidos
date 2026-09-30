@@ -6,16 +6,23 @@
 # ---------------------------------------------------------------------------
 
 [camara]
-# Controles de la camara fijados al arrancar, para que la imagen no dependa
-# del estado en que la camara se encienda ni de pruebas anteriores con v4l2-ctl.
-# Valores elegidos probando en vivo en el lugar de las pruebas (2026-09-30).
-# - exposure_time_absolute=2000: medido, mantiene 29.9 fps en modo manual;
-#   esta camara no baja la tasa hasta algun punto entre 2000 y 5000.
-# - auto_exposure=1 (manual) tiene que ir ANTES que exposure_time_absolute.
-# Anterior: extra-controls="c,auto_exposure=1,exposure_time_absolute=250"
-fuente      = v4l2src device=/dev/video0 extra-controls="c,auto_exposure=1,exposure_time_absolute=2000,gain=5,brightness=0,contrast=300,saturation=200,gamma=10,sharpness=64,backlight_compensation=0,white_balance_temperature=4500,power_line_frequency=2"
+# Perfil de poca luz manteniendo 30 fps fijos:
+# - exposicion manual de 33.3 ms (333): el maximo que cabe en un cuadro a
+#   30 fps, y exactamente 4 ciclos del parpadeo de 120 Hz de las lamparas de
+#   60 Hz, asi que no hay parpadeo ni bandas. Si baja de ~29.5 fps, usar 330.
+# - ganancia moderada (5) para menos grano; la claridad la recupera gamma.
+# - brillo y compensacion de contraluz en 0: los negros no se lavan.
+# - nitidez a la mitad: no acentua el grano; saturacion baja: disimula el
+#   tinte verde de los fluorescentes. power_line_frequency=2 -> 60 Hz.
+# auto_exposure=1 (manual) tiene que ir ANTES que exposure_time_absolute.
+fuente      = v4l2src device=/dev/video0 extra-controls="c,auto_exposure=1,exposure_time_absolute=333,gain=5,brightness=0,backlight_compensation=0,contrast=300,saturation=200,sharpness=64,power_line_frequency=2"
 caps        = image/jpeg,width=1280,height=720,framerate=30/1
-convertidor = jpegdec ! videoconvert
+# gamma aclara las sombras sin subir los negros (1.3 a 2.0; mas alto = mas claro)
+convertidor = jpegdec ! videoconvert ! gamma gamma=1.5
+
+# --- Valores anteriores, por si hay que volver atras ---
+# fuente      = v4l2src device=/dev/video0 extra-controls="c,auto_exposure=1,exposure_time_absolute=250"
+# convertidor = jpegdec ! videoconvert
 
 
 # --- Camara USB (UVC) en la Raspberry Pi 4 ---
@@ -28,8 +35,16 @@ reintento_s    = 5.0
 reintentos_max = 0
 
 [codec]
-encoder     = v4l2h264enc extra-controls="controls,video_bitrate=2500000,h264_i_frame_period=30,repeat_sequence_header=1"
-caps_salida = video/x-h264,level=(string)4
+# 4 Mbit/s: una escena con poca luz tiene ruido, que consume bits; con
+# 2.5 Mbit/s aparecian bloques. Costo: ~1.8 GB por hora de grabacion.
+# Perfil High: comprime mejor que Baseline con el mismo bitrate. Si la app
+# no arranca con un error "not-negotiated", quitar ",profile=(string)high".
+encoder     = v4l2h264enc extra-controls="controls,video_bitrate=4000000,h264_i_frame_period=30,repeat_sequence_header=1"
+caps_salida = video/x-h264,level=(string)4,profile=(string)high
+
+# --- Valores anteriores, por si hay que volver atras ---
+# encoder     = v4l2h264enc extra-controls="controls,video_bitrate=2500000,h264_i_frame_period=30,repeat_sequence_header=1"
+# caps_salida = video/x-h264,level=(string)4
 fps         = 30
 gop         = 30
 
