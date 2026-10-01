@@ -29,3 +29,6 @@ venv/
 # Copias comprimidas: el codigo ya esta versionado
 *.zip
 *.7z
+
+*.zip
+*.7z

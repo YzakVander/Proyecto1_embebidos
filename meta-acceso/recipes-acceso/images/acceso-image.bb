@@ -25,7 +25,8 @@ IMAGE_ROOTFS_EXTRA_SPACE = "1048576"
 
 export IMAGE_BASENAME = "acceso-image"
 
-# Estado seguro del GPIO de la bocina desde el arranque del kernel, antes de
-# que inicie cualquier aplicacion. Sin esto, la linea podria quedar en alto
-# al energizar y la bocina sonaria de forma continua.
-RPI_EXTRA_CONFIG = "gpio=18=op,dl"
+# PWM de hardware para el buzzer pasivo en GPIO 18 (pin fisico 12). El buzzer
+# no oscila solo: necesita una onda cuadrada. Conmutar desde Python daria un
+# tono irregular y consumiria CPU. dtparam=audio=off libera el PWM, que el
+# audio analogico ocupa. Con el overlay cargado el pin arranca sin senal.
+RPI_EXTRA_CONFIG = "dtoverlay=pwm,pin=18,func=2\ndtparam=audio=off"

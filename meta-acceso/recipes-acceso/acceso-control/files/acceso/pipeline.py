@@ -51,10 +51,8 @@ class PipelineAcceso:
         self._grabador: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
 
-    # ------------------------------------------------------------------ #
-    # Construccion
-    # ------------------------------------------------------------------ #
-    def descripcion(self) -> str:
+    #Funcin que va leyendo el objeto de configuracion y va armando la tuberia en forma de cadena de texto
+    def descripcion(self) -> str: #Devuelve la cadena que describe el pipeline
         c = self._cfg #Copia local del atributo _cfg
         partes = []
 
@@ -81,15 +79,15 @@ class PipelineAcceso:
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
             ) #Agrega los bloques de la rama de grabacion. Se pegan al segundo tee (tee_h264)
 
-        if c.streaming.habilitado:
+        if c.streaming.habilitado: #Si la rama de streaming esta habilitada en el acceso.conf...
             partes.append(
                 f"t_h264. ! queue max-size-buffers=8 leaky=downstream "
                 f"! rtph264pay config-interval=1 pt=96 aggregate-mode=zero-latency "
                 f"! udpsink name=tx host={c.streaming.host} port={c.streaming.puerto} "
                 f"sync=false async=false"
-            )
+            ) #Se agregan los bloques de la rama de streaming. Se pegan al segundo tee (tee_h264)
 
-        if c.clips.habilitados:
+        if c.clips.habilitados: #Revisar esto...
             # B4: max-buffers acota la memoria y drop=true garantiza que un
             # consumidor lento jamas frene la tuberia.
             # El capsfilter byte-stream es obligatorio: sin el, h264parse
@@ -105,23 +103,24 @@ class PipelineAcceso:
                 f"max-buffers={c.clips.max_buffers} drop=true"
             )
 
-        return " ".join(partes)
+        return " ".join(partes) #Une todos los elementos de la lista partes en un solo string. Entre cada elemento coloca un espacio vacio. Este es el comando a ejecutar por GStreamer para crear la tuberia.
 
     def construir(self) -> None:
-        Gst.init(None)
-        desc = self.descripcion()
-        log.info("tuberia: %s", desc)
+        Gst.init(None) #Inicializa GStreamer
+        desc = self.descripcion() #Se extrae la cadena de texto que describe el pipeline
+        log.info("tuberia: %s", desc) #Se guarda en el log la descripcion del pipeline
 
+        #Se generan el pipeline con ayuda de la libreria GStreamer. Se extraen elementos particulares
         self._pipeline = Gst.parse_launch(desc)
-        self._grabador = self._pipeline.get_by_name("grabador")
-        self._appsink = self._pipeline.get_by_name("captura")
+        self._grabador = self._pipeline.get_by_name("grabador") #Puntero del sink de grabacion.
+        self._appsink = self._pipeline.get_by_name("captura") #Investigar...
 
         if self._appsink is not None:
             self._appsink.connect("new-sample", self._al_llegar_muestra)
 
-        bus = self._pipeline.get_bus()
-        bus.add_signal_watch()
-        bus.connect("message", self._al_mensaje)   # E1: watch de bus
+        bus = self._pipeline.get_bus() #Se obtiene puntero al bus de comunicacion entre el pipeline y python
+        bus.add_signal_watch() #Convierte los mensajes del bus en señales de Python.
+        bus.connect("message", self._al_mensaje)   # Pega los mensajes del bus a la funcion que maneja los mensajes del bus
 
     # ------------------------------------------------------------------ #
     # B5: el callback solo copia bytes y retorna
@@ -190,9 +189,8 @@ class PipelineAcceso:
         """E3: el servicio registra aqui su rutina de reconexion."""
         self._al_fallar = callback
 
-    # ------------------------------------------------------------------ #
-    # E1: watch de bus. Un pipeline sin esto falla en silencio.
-    # ------------------------------------------------------------------ #
+    #Funcion que maneja los mensajes generados por el pipelne. Sin esto, el pipeline podria fallar sin dar aviso
+    #Revisar bien la implementación de esta funcion. Tengo mis dudas sobre cómo funciona.
     def _al_mensaje(self, _bus: Gst.Bus, msg: Gst.Message) -> None:
         t = msg.type
         if t == Gst.MessageType.ERROR:
