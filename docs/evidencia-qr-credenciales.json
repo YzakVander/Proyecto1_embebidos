@@ -1,0 +1,47 @@
+[
+  {
+    "identificador": "ACC-95D552",
+    "nombre": "Daniel Chavarria",
+    "rol": "mantenimiento",
+    "alta": "2026-09-30T23:27:46-06:00",
+    "activa": false,
+    "baja": "2026-09-30T23:33:52-06:00",
+    "notas": "ya no trabaja aqui"
+  },
+  {
+    "identificador": "ACC-C1D68A",
+    "nombre": "Juan Perez",
+    "rol": "visitante",
+    "alta": "2026-09-30T23:34:46-06:00",
+    "activa": true,
+    "baja": null,
+    "notas": null
+  },
+  {
+    "identificador": "ACC-ED23F7",
+    "nombre": "Juan Perez",
+    "rol": "visitante",
+    "alta": "2026-09-30T23:35:26-06:00",
+    "activa": true,
+    "baja": null,
+    "notas": null
+  },
+  {
+    "identificador": "ACC-F41AF4",
+    "nombre": "Juan Perez",
+    "rol": "visitante",
+    "alta": "2026-09-30T23:35:41-06:00",
+    "activa": true,
+    "baja": null,
+    "notas": null
+  },
+  {
+    "identificador": "ACC-0755F2",
+    "nombre": "Maria ROjas",
+    "rol": "visitante",
+    "alta": "2026-10-01T07:03:32-06:00",
+    "activa": true,
+    "baja": null,
+    "notas": null
+  }
+]

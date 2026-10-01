@@ -25,3 +25,13 @@ venv/
 .vscode/
 .idea/
 *.swp
+
+# Copias comprimidas: el codigo ya esta versionado
+*.zip
+*.7z
+
+*.zip
+*.7z
+
+app/credenciales/
+*.png

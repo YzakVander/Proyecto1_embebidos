@@ -1,4 +1,4 @@
-# Bitácoras individuales
+# Bitácora individual de trabajo
 
 **Estudiante:** Daniel Chavarría García
 **Rol en el equipo:** B — Plataforma (Yocto, BSP, imagen) · asumió temporalmente el Rol A mientras el compañero no tuvo disponibilidad
