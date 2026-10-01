@@ -9,6 +9,9 @@ Arquitectura de hilos (H1)
                               el clip. Al desprenderse del hilo de eventos,
                               varias solicitudes pueden convivir.
   4. Hilo de reconexion     - E3: reintenta levantar la tuberia tras una falla.
+  5. Hilos de red           - CU-3: uno por puesto de vigilancia conectado por
+                              TCP (red.py). Usan el mismo procesador de
+                              comandos que el FIFO.
 
 El callback del appsink (hilo 1) solo copia bytes a la deque y retorna: B5.
 Toda escritura a disco ocurre en el hilo 3.
@@ -25,10 +28,11 @@ import time
 from gi.repository import GLib
 
 from .actuador import IndicadoresAcceso
-from .buffer_circular import BufferCircular, escribir_clip_anexo
+from .buffer_circular import BufferCircular, escribir_clip_anexo, escribir_clip_mp4
 from .config import Config
 from .decision import Bitacora, RegistroAcceso, Resultado, SolicitudAcceso, ahora_iso
 from .pipeline import PipelineAcceso
+from .red import ServidorDecisiones
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +62,17 @@ class ServicioAcceso:
         self._contador = 0
         self._reconectando = threading.Event()
 
+        # CU-3: canal de red para el puesto de vigilancia (otra computadora).
+        # Recibe los mismos comandos que el FIFO; origen="red" permite
+        # rechazar los que no deben llegar por red (SALIR).
+        self._red: ServidorDecisiones | None = None
+        if cfg.eventos.red_habilitada:
+            self._red = ServidorDecisiones(
+                cfg.eventos.red_puerto,
+                lambda texto: self._procesar_comando(texto, origen="red"),
+                cfg.eventos.red_clientes,
+            )
+
     # ------------------------------------------------------------------ #
     def ejecutar(self, dot_dir: str | None = None) -> int:
         self._pipeline.al_fallar(self._al_fallar_pipeline)
@@ -68,6 +83,8 @@ class ServicioAcceso:
             GLib.timeout_add_seconds(3, self._volcar_dot, dot_dir)
 
         threading.Thread(target=self._escuchar_eventos, daemon=True).start()
+        if self._red is not None:
+            self._red.iniciar()
 
         for sig in (signal.SIGINT, signal.SIGTERM):
             GLib.unix_signal_add(GLib.PRIORITY_HIGH, sig, self._al_senal)
@@ -120,67 +137,135 @@ class ServicioAcceso:
                 break
             self._procesar_comando(linea.strip())
 
-    def _procesar_comando(self, texto: str) -> None:
+    def _procesar_comando(self, texto: str, origen: str = "local") -> tuple[bool, str]:
+        """Interpreta un comando del FIFO, del teclado o de la red.
+
+        Devuelve (exito, mensaje). El FIFO y el teclado ignoran el retorno;
+        el canal de red se lo envia al vigilante como 'OK ...' o 'ERROR ...'.
+        """
         if not texto:
-            return
+            return False, "comando vacio"
         partes = texto.split(maxsplit=1)
         verbo = partes[0].upper()
 
         if verbo == "SOLICITUD":
-            ident = partes[1] if len(partes) > 1 else f"anonimo-{self._contador + 1}"
-            self._nueva_solicitud(ident)
-        elif verbo in ("PERMITIR", "DENEGAR"):
-            self._resolver(verbo == "PERMITIR")
-        elif verbo == "SALIR":
+            # Sin identificador, la placa lo genera con la fecha y hora de
+            # apertura: es unico aunque el servicio se reinicie.
+            ident = partes[1] if len(partes) > 1 else time.strftime("S-%Y%m%d-%H%M%S")
+            return self._nueva_solicitud(ident)
+        if verbo in ("PERMITIR", "DENEGAR"):
+            return self._resolver(verbo == "PERMITIR")
+        if verbo == "ESTADO":
+            return True, self._estado()
+        if verbo == "PING":
+            return True, "PONG"   # no toca nada; sirve para medir el RTT (RF-3)
+        if verbo == "SALIR":
+            if origen == "red":
+                # Nadie en la red deberia poder apagar el control de acceso
+                return False, "SALIR no se permite por red"
             self._bucle.quit()
-        else:
-            log.warning("comando no reconocido: %s", texto)
+            return True, "apagando"
+
+        log.warning("comando no reconocido: %s", texto)
+        return False, f"comando no reconocido: {texto}"
+
+    def _estado(self) -> str:
+        with self._lock_pendiente:
+            solicitud = self._pendiente
+        if solicitud is None:
+            return "sin solicitud pendiente"
+        return (f"pendiente {solicitud.identificador} "
+                f"restan {solicitud.restante_s():.0f} s")
+
+    def _difundir(self, texto: str) -> None:
+        """Aviso 'EVENTO ...' a los puestos de vigilancia conectados."""
+        if self._red is not None:
+            self._red.difundir(texto)
 
     # ------------------------------------------------------------------ #
     # CU-3: procesamiento de la solicitud
     # ------------------------------------------------------------------ #
-    def _nueva_solicitud(self, identificador: str) -> None:
+    def _nueva_solicitud(self, identificador: str) -> tuple[bool, str]:
         with self._lock_pendiente:
             if self._pendiente is not None:
                 log.warning("ya hay una solicitud en curso; se ignora '%s'",
                             identificador)
-                return
+                return False, ("ya hay una solicitud en curso "
+                               f"({self._pendiente.identificador})")
             self._contador += 1
             solicitud = SolicitudAcceso(
                 identificador, self._cfg.eventos.timeout_decision_s
             )
             self._pendiente = solicitud
 
+        plazo = self._cfg.eventos.timeout_decision_s
         log.info("=== SOLICITUD #%d: %s (plazo %.0f s) ===",
-                 self._contador, identificador, self._cfg.eventos.timeout_decision_s)
+                 self._contador, identificador, plazo)
         threading.Thread(
             target=self._atender, args=(solicitud,), daemon=True
         ).start()
+        self._difundir(f"SOLICITUD {identificador} plazo={plazo:.0f}s")
+        return True, f"solicitud {identificador} abierta, plazo {plazo:.0f} s"
 
-    def _resolver(self, permitido: bool) -> None:
+    def _resolver(self, permitido: bool) -> tuple[bool, str]:
+        # Resolver y liberar ocurren juntos, dentro del mismo candado: cuando
+        # el vigilante recibe el OK, la solicitud ya no esta pendiente. Si la
+        # liberacion quedara en manos del hilo de _atender, habria una ventana
+        # de milisegundos (lo que tarda en despertar) en la que ESTADO diria
+        # "pendiente" y una SOLICITUD nueva seria rechazada.
         with self._lock_pendiente:
             solicitud = self._pendiente
+            cerrada = solicitud is not None and not solicitud.resolver(permitido)
+            if solicitud is not None and not cerrada:
+                self._pendiente = None
         if solicitud is None:
             log.warning("no hay solicitud pendiente que resolver")
-            return
-        if not solicitud.resolver(permitido):
+            return False, "no hay solicitud pendiente"
+        if cerrada:
             log.warning("la solicitud ya habia vencido")
+            return False, f"la solicitud {solicitud.identificador} ya estaba cerrada"
+        return True, f"{solicitud.identificador} {'PERMITIDO' if permitido else 'DENEGADO'}"
 
     def _atender(self, solicitud: SolicitudAcceso) -> None:
-        """Hilo por solicitud: espera la decision, indica y escribe el clip."""
+        """Hilo por solicitud: espera la decision, indica, anota y escribe el clip.
+
+        El orden importa. En cuanto hay decision (o vence el plazo):
+          1. Buzzer, consola y aviso al vigilante.
+          2. Bitacora, con la hora EXACTA de la decision (RF-4). Si se anotara
+             despues del clip, quedaria con segundos_despues de retraso y se
+             perderia si el servicio se apaga mientras se espera el clip.
+          3. La solicitud ya esta liberada (ver _resolver y el bloque de abajo):
+             ESTADO deja de reportarla como pendiente y se acepta una
+             SOLICITUD nueva de inmediato.
+          4. Al final el clip, que tiene que esperar segundos_despues. Si en
+             ese lapso se resuelve otra solicitud, los dos clips se escriben
+             en paralelo sin problema: cada uno toma su propia copia del buffer.
+        """
         inicio = time.monotonic()
         resultado = solicitud.esperar()          # H2: bloquea o vence
         latencia_ms = (time.monotonic() - inicio) * 1000.0
+        instante = ahora_iso()                   # hora de la decision
 
-        permitido = resultado == Resultado.PERMITIDO
-        self._indicadores.indicar(permitido)      # RF-5
+        # Si fue el vigilante, _resolver ya libero la solicitud. Si vencio el
+        # plazo, se libera aqui. Solo si la pendiente sigue siendo ESTA: pudo
+        # haberse abierto otra nueva en cuanto _resolver libero la anterior.
+        with self._lock_pendiente:
+            if self._pendiente is solicitud:
+                self._pendiente = None
 
+        self._indicadores.indicar(resultado, solicitud.identificador)   # RF-5: buzzer + consola
+        # Aviso inmediato al vigilante, sobre todo para el vencimiento: el
+        # temporizador corre en la placa y el vigilante no lo veria de otra forma.
+        self._difundir(f"RESULTADO {solicitud.identificador} {resultado.value}")
+
+        # El nombre del clip se fija ya, con la hora de la decision, para
+        # poder anotarlo en la bitacora antes de escribir el archivo.
         clip = None
         if self._cfg.clips.habilitados:
-            clip = self._escribir_clip(solicitud.identificador)
+            clip = self._ruta_clip(solicitud.identificador)
 
         self._bitacora.anotar(RegistroAcceso(
-            timestamp=ahora_iso(),
+            timestamp=instante,
             identificador=solicitud.identificador,
             resultado=resultado.value,
             latencia_decision_ms=round(latencia_ms, 1),
@@ -189,10 +274,16 @@ class ServicioAcceso:
                  "denegado automaticamente por vencimiento del plazo",
         ))
 
-        with self._lock_pendiente:
-            self._pendiente = None
+        if clip is not None:
+            self._escribir_clip(clip)
 
-    def _escribir_clip(self, identificador: str) -> str | None:
+    def _ruta_clip(self, identificador: str) -> str:
+        """Ruta del clip de un evento, con la hora actual en el nombre."""
+        seguro = "".join(c if c.isalnum() or c in "-_" else "_" for c in identificador)
+        nombre = f"evento_{time.strftime('%Y%m%d-%H%M%S')}_{seguro}.mp4"
+        return os.path.join(self._cfg.clips.directorio, nombre)
+
+    def _escribir_clip(self, ruta: str) -> bool:
         """Clip de pre-evento + post-evento desde el buffer circular."""
         cfg = self._cfg.clips
         # Esperar los segundos posteriores para que el buffer los acumule.
@@ -201,14 +292,23 @@ class ServicioAcceso:
         ventana = cfg.segundos_antes + cfg.segundos_despues
         cuadros = self._buffer.instantanea(ventana)
         if not cuadros:
-            log.warning("buffer vacio; no se escribe clip")
-            return None
+            # La bitacora ya tiene anotada esta ruta: se deja constancia aqui
+            log.warning("buffer vacio; no se escribio el clip %s", ruta)
+            return False
 
-        seguro = "".join(c if c.isalnum() or c in "-_" else "_" for c in identificador)
-        nombre = f"evento_{time.strftime('%Y%m%d-%H%M%S')}_{seguro}.h264"
-        ruta = os.path.join(cfg.directorio, nombre)
-        escribir_clip_anexo(ruta, cuadros)
-        return ruta
+        try:
+            escribir_clip_mp4(ruta, cuadros, self._cfg.codec.fps)
+        except Exception as exc:                     # noqa: BLE001
+            # Respaldo: no perder la evidencia. Se guarda el flujo crudo con
+            # el mismo nombre base; la bitacora apunta al .mp4, por eso el
+            # log deja claro donde quedo.
+            if os.path.exists(ruta):
+                os.remove(ruta)                      # MP4 a medias: inservible
+            respaldo = os.path.splitext(ruta)[0] + ".h264"
+            log.error("no se pudo empaquetar el clip en MP4 (%s); "
+                      "se guarda crudo en %s", exc, respaldo)
+            escribir_clip_anexo(respaldo, cuadros)
+        return True
 
     # ------------------------------------------------------------------ #
     # E3: reconexion ante falla de la camara
@@ -258,6 +358,8 @@ class ServicioAcceso:
     def _apagar(self) -> None:
         log.info("apagando el servicio")
         self._parar.set()
+        if self._red is not None:
+            self._red.detener()
         self._pipeline.detener()          # E4: EOS antes de NULL
         self._indicadores.cerrar()
         log.info("buffer circular al cierre: %s", self._buffer.estado())
