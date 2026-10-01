@@ -1,6 +1,6 @@
-# Especificación de Requerimientos - Proyecto 1: Sistema de Control de Acceso
-**Curso:** Taller de Sistemas Embebidos (EL-5841)
-**Estándar usado como Referencia:** ISO/IEC/IEEE 29148:2018
+# Especificación de Requerimientos Funcionales - Proyecto 1: Sistema de Control de Acceso
+**Curso:** Taller de Sistemas Embebidos (EL-5841)  
+**Estándar usado como Referencia:** ISO/IEC/IEEE 29148:2018 
 
 ---
 
@@ -8,49 +8,49 @@
 
 ### **Requisito funcional 1: Transmisión de video en tiempo real**
 
-* **Enunciado:** Durante la operación normal, el sistema deberá transmitir un flujo de video comprimido por red mediante el protocolo RTP/UDP hacia la dirección IP del puesto de vigilancia.
+* **Enunciado:** Durante la operación normal, el sistema deberá transmitir un flujo de video comprimido por red mediante el protocolo RTP/UDP hacia la dirección IP del puesto de vigilancia a una tasa mínima de 15 FPS.
 * **Trazabilidad:** Caso de uso 1.
-* **Método de Verificación:** Recepción y visualización del flujo en una computadora remota distinta de la Raspberry Pi 4.
+* **Método de Verificación:** Medición cuantitativa de tasa de cuadros en computadora remota.
 
 ---
 
-### **Requisito funcional 2: Bifurcación y retención de video en disco**
+### **Requisito funcional 2: Bifurcación y extracción de video en disco**
 
-* **Enunciado:** El sistema deberá duplicar internamente el flujo de video comprimido para guardar una copia en el disco local de la Raspberry Pi 4 en formato MP4, en segmentos cerrados e independientes, y permitir su extracción posterior.
+* **Enunciado:** El sistema deberá duplicar internamente el flujo de video capturado desde la cámara para guardar una copia en el disco local de la Raspberry Pi 4 en formato MP4 y permitir su extracción posterior.
 * **Trazabilidad:** Caso de uso 2.
-* **Método de Verificación:** Verificación de la creación, reproducibilidad y transferencia del archivo de video almacenado.
+* **Método de Verificación:** Verificación de la creación, reproducibilidad y transferencia del archivo de video almacenado en la Raspberry Pi 4.
 
 ---
 
 ### **Requisito funcional 3: Captura de evento de identificación**
 
-* **Enunciado:** La aplicación deberá detectar la recepción de una solicitud de ingreso y de la resolución del vigilante, e iniciar el procesamiento correspondiente.
+* **Enunciado:** La aplicación en Python en la Raspberry Pi 4 deberá detectar la recepción de cada comando del puesto de vigilancia (inicio de solicitud, permitir o denegar), enviado por la red desde la computadora remota, en un tiempo máximo de 100 ms desde su envío.
 * **Trazabilidad:** Caso de uso 3.
-* **Método de Verificación:** Medición del tiempo de respuesta mediante marcas de tiempo registradas por la aplicación.
+* **Método de Verificación:** Medición del tiempo de ida y vuelta (RTT) entre el envío del comando y la confirmación de la Raspberry Pi 4. Un RTT ≤ 100 ms acota el tiempo de detección.
 
 ---
 
 ### **Requisito funcional 4: Registro de eventos en bitácora local**
 
-* **Enunciado:** Al procesar un evento, la aplicación deberá registrar en un archivo de bitácora local la fecha y hora en formato ISO-8601, el identificador de la solicitud, el resultado y la latencia de decisión.
-* **Trazabilidad:** Casos de uso 3, 5 y 10.
-* **Método de Verificación:** Inspección del contenido del archivo de bitácora generado en la Raspberry Pi 4.
+* **Enunciado:** Al procesar un evento, la aplicación deberá registrar en un archivo de bitácora local en el almacenamiento de la Raspberry Pi 4 la fecha y hora exacta (timestamp) del instante de la decisión, en formato ISO-8601, junto con el resultado de la solicitud (permitido, denegado o denegado por vencimiento).
+* **Trazabilidad:** Caso de uso 3, Caso de uso 10.
+* **Método de Verificación:** Inspección del contenido del archivo `accesos.log` generado en la Raspberry Pi 4.
 
 ---
 
-### **Requisito funcional 5: Conmutación de indicadores de estado**
+### **Requisito funcional 5: Indicación acústica del resultado**
 
-* **Enunciado:** Al resolverse una solicitud de ingreso, el sistema deberá activar la línea GPIO correspondiente al resultado durante un intervalo configurable, retornando posteriormente al estado de reposo de forma automática.
+* **Enunciado:** Al procesarse una solicitud de ingreso, el sistema deberá emitir por un buzzer pasivo conectado a la Raspberry Pi 4 un tono distinto para acceso permitido y para acceso denegado, con frecuencias y duraciones configurables, retornando posteriormente al silencio, y mostrar el resultado en la consola de la Raspberry Pi 4.
 * **Trazabilidad:** Caso de uso 4.
-* **Método de Verificación:** Inspección visual de los indicadores y medición del intervalo de activación.
+* **Método de Verificación:** Inspección auditiva y medición de la frecuencia y la duración de la señal en la línea GPIO 18 por medio de osciloscopio.
 
 ---
 
 ### **Requisito funcional 6: Denegación por vencimiento de tiempo**
 
-* **Enunciado:** El sistema deberá resolver como denegada toda solicitud cuya decisión no se reciba dentro de un plazo máximo configurable. La decisión por vencimiento deberá ser definitiva: una resolución posterior sobre la misma solicitud no deberá surtir efecto.
+* **Enunciado:** El sistema deberá resolver como denegado toda solicitud cuya decisión no se reciba dentro de un plazo máximo configurable, y notificarlo al puesto de vigilancia.
 * **Trazabilidad:** Caso de uso 5.
-* **Método de Verificación:** Prueba temporizada sin emitir respuesta, y prueba de resolución tardía verificando su rechazo.
+* **Método de Verificación:** Prueba temporizada (esperar expiración del plazo y verificar estado denegado).
 
 ---
 
@@ -58,31 +58,31 @@
 
 * **Enunciado:** El sistema deberá mantener el almacenamiento de evidencia por debajo de un umbral configurable, eliminando los segmentos más antiguos.
 * **Trazabilidad:** Caso de uso 8.
-* **Método de Verificación:** Prueba de llenado intencional del almacenamiento y verificación de la liberación de espacio.
+* **Método de Verificación:** Prueba de llenado intencional (ej. con `fallocate`) y verificación de liberación de espacio.
 
 ---
 
 ### **Requisito funcional 8: Persistencia del registro de eventos**
 
-* **Enunciado:** El registro de eventos deberá persistir entre reinicios del sistema y ante cortes de energía.
+* **Enunciado:** El registro de eventos (`accesos.log`) deberá persistir entre reinicios del sistema.
 * **Trazabilidad:** Caso de uso 10.
-* **Método de Verificación:** Reinicio del sistema operativo y validación de la existencia e integridad de la bitácora.
+* **Método de Verificación:** Prueba de reinicio del sistema operativo y validación de existencia e integridad del archivo de bitácora.
 
 ---
 
 ### **Requisito funcional 9: Estado de actuadores desde el arranque**
 
-* **Enunciado:** Las líneas GPIO de los indicadores deberán tener un estado seguro definido desde el arranque del núcleo, antes de que inicie la aplicación.
+* **Enunciado:** La línea GPIO del actuador (GPIO 18, buzzer) deberá tener un estado definido (nivel bajo, en silencio) desde el arranque del kernel, antes de que inicie la aplicación en Python.
 * **Trazabilidad:** Caso de uso 7.
-* **Método de Verificación:** Consulta del estado de las líneas GPIO inmediatamente después de energizar la placa, antes de iniciar el servicio.
+* **Método de Verificación:** Inspección del estado del pin con `pinctrl get 18` y medición eléctrica inmediatamente después de energizar la placa.
 
 ---
 
 ### **Requisito funcional 10: Reinicio automático del servicio**
 
-* **Enunciado:** El servicio deberá reiniciarse automáticamente ante una terminación anormal, tras un intervalo configurable.
+* **Enunciado:** El servicio deberá reiniciarse automáticamente ante una terminación anormal.
 * **Trazabilidad:** Caso de uso 6.
-* **Método de Verificación:** Terminación forzada del proceso y verificación de que el gestor de servicios lo levanta nuevamente.
+* **Método de Verificación:** Prueba de terminación forzada del proceso (`kill`) y verificación de que el administrador de servicios lo levante de nuevo.
 
 ---
 
@@ -90,23 +90,7 @@
 
 * **Enunciado:** Al detenerse, el sistema deberá cerrar ordenadamente el archivo de video en curso de modo que resulte reproducible.
 * **Trazabilidad:** Caso de uso 9.
-* **Método de Verificación:** Detención del servicio y validación de la integridad del último archivo generado.
-
----
-
-### **Requisito funcional 12: Reconexión ante falla de la fuente de video**
-
-* **Enunciado:** Ante la pérdida de la fuente de video, el sistema deberá registrar una alerta y reintentar la reconstrucción de la tubería de forma periódica hasta restablecer la operación.
-* **Trazabilidad:** Caso de uso 6.
-* **Método de Verificación:** Desconexión física de la cámara durante la operación y verificación de la alerta y del restablecimiento al reconectarla.
-
----
-
-### **Requisito funcional 13: Configurabilidad sin recompilación**
-
-* **Enunciado:** Los parámetros de operación del sistema deberán ser configurables mediante un archivo de texto en el destino, sin requerir recompilación de la imagen.
-* **Trazabilidad:** Casos de uso 1, 4, 5 y 8.
-* **Método de Verificación:** Modificación del archivo de configuración en la Raspberry Pi 4 y verificación del cambio de comportamiento tras reiniciar el servicio.
+* **Método de Verificación:** Prueba de detención del servicio y validación de la integridad del último archivo `.mp4` (ej. usando `ffprobe`).
 
 ---
 
@@ -116,60 +100,36 @@
 
 * **Enunciado:** La latencia extremo a extremo deberá mantenerse dentro de un presupuesto escrito por etapa, verificado por medición independiente.
 * **Trazabilidad:** Arquitectura de video.
-* **Método de Verificación:** Medición de latencia desde la captura hasta la visualización con marca de tiempo o reloj filmado.
+* **Método de Verificación:** Medición de latencia desde la captura hasta la visualización con reloj o marca de tiempo.
 
 ---
 
-### **Requisito no funcional 2: Intervalo de cuadros clave**
+### **Requisito no funcional 2: Intervalo de keyframes**
 
-* **Enunciado:** El intervalo de cuadros clave deberá declararse justificando la espera máxima del cliente que se conecta a la transmisión.
-* **Trazabilidad:** Arquitectura de video, Caso de uso 1.
-* **Método de Verificación:** Inspección de los parámetros del codificador y medición del tiempo hasta la primera imagen en el receptor.
+* **Enunciado:** El codificador deberá generar un cuadro clave al menos cada 1 s, de modo que el puesto de vigilancia pueda mostrar imagen en un máximo de 1 s al conectarse al stream o tras una pérdida de paquetes.
+* **Trazabilidad:** Arquitectura de video.
+* **Método de Verificación:** Inspección del parámetro `h264_i_frame_period` en la configuración y medición del intervalo entre cuadros clave en un video grabado (por ejemplo, con `ffprobe`).
 
 ---
 
 ### **Requisito no funcional 3: Estabilidad y uso de recursos**
 
-* **Enunciado:** El sistema deberá operar de forma continua por un periodo de al menos 4 horas sin crecimiento sostenido de memoria residente ni aumento indefinido de descriptores de archivo.
+* **Enunciado:** El sistema deberá operar de forma continua por un periodo de $\ge 4$ h sin crecimiento sostenido de memoria RAM (RSS) ni aumento indefinido de descriptores de archivo.
 * **Trazabilidad:** Confiabilidad del sistema.
-* **Método de Verificación:** Ejecución continua con monitoreo periódico de recursos.
+* **Método de Verificación:** Prueba de esfuerzo mediante ejecución continua y monitoreo de recursos del sistema.
 
 ---
 
 ### **Requisito no funcional 4: Desacople de hilos de ejecución**
 
-* **Enunciado:** La decisión de acceso y el manejo de eventos de entrada deberán ejecutarse fuera del hilo de streaming de GStreamer, de modo que la tubería nunca quede a la espera de una resolución.
-* **Trazabilidad:** Diseño de software, Casos de uso 3 y 5.
-* **Método de Verificación:** Inspección del código fuente y verificación de que la transmisión continúa mientras una solicitud está pendiente.
+* **Enunciado:** La decisión de acceso y el manejo de eventos de entrada deberán ejecutarse fuera del hilo de streaming de GStreamer.
+* **Trazabilidad:** Diseño de software.
+* **Método de Verificación:** Inspección del código fuente para asegurar la separación de hilos o procesos.
 
 ---
 
-### **Requisito no funcional 5: Aprovechamiento del codificador por hardware**
+### **Requisito no funcional 5: Reconstrucción desde cero**
 
-* **Enunciado:** La compresión de video deberá realizarse mediante el codificador H.264 por hardware del sistema en chip, y no por software, dentro de los límites del bloque.
-* **Trazabilidad:** Arquitectura de video, Caso de uso 1.
-* **Método de Verificación:** Inspección del perfil del archivo generado y comparación del consumo de procesador entre ambas rutas.
-
----
-
-### **Requisito no funcional 6: Compresión única del flujo**
-
-* **Enunciado:** El video deberá comprimirse una sola vez y el flujo resultante deberá distribuirse a los distintos destinos, evitando codificaciones redundantes.
-* **Trazabilidad:** Arquitectura de video, Casos de uso 1 y 2.
-* **Método de Verificación:** Inspección del grafo de la tubería en ejecución.
-
----
-
-### **Requisito no funcional 7: Selección explícita de dependencias**
-
-* **Enumerado:** La imagen del sistema deberá declarar sus dependencias a nivel de subpaquete, incluyendo únicamente los componentes que la aplicación utiliza.
-* **Trazabilidad:** Portabilidad, tamaño de la imagen.
-* **Método de Verificación:** Inspección de las recetas y del manifiesto de paquetes de la imagen generada.
-
----
-
-### **Requisito no funcional 8: Reconstrucción desde cero**
-
-* **Enunciado:** La imagen del sistema deberá reconstruirse desde cero en una máquina limpia siguiendo únicamente el documento de instalación entregado.
+* **Enunciado:** La imagen del sistema (Yocto) deberá reconstruirse desde cero en una máquina limpia siguiendo únicamente el documento de instalación entregado.
 * **Trazabilidad:** Portabilidad y documentación.
-* **Método de Verificación:** Ejecución de la guía de instalación en un entorno independiente sin caché de compilación.
+* **Método de Verificación:** Prueba de ejecución de la guía de instalación en un entorno virgen independiente.
