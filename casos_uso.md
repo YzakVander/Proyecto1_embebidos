@@ -23,11 +23,14 @@
 * **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
 * **Propósito:** Recuperar los archivos de video grabados localmente en la tarjeta de la placa.
 * **Precondiciones:** El sistema ha estado grabando y reteniendo evidencia en el almacenamiento local de la Raspberry Pi 4.
-* **Flujo Principal:**
-  1. La persona de mantenimiento solicita la extracción o consulta del archivo de video almacenado en la Raspberry Pi 4.
-  2. La aplicación ubica el archivo de video registrado en el sistema de archivos local.
-  3. El sistema transfiere o entrega la evidencia en video al usuario de mantenimiento.
-* **Postcondiciones:** La evidencia en video queda extraída y disponible fuera del sistema para su revisión.
+* **Flujo Principal (extracción remota):**
+  1. La persona de mantenimiento ejecuta, en la computadora de observación, un script que se conecta por SSH a la Raspberry Pi 4.
+  2. El script copia los segmentos de la grabación continua (`evidencia/`) y los clips de las solicitudes (`eventos/`) a la computadora de observación.
+  3. La persona de mantenimiento reproduce los videos en la computadora de observación.
+* **Flujo Alterno (consulta local):**
+  1. La persona de mantenimiento conecta un monitor y un teclado a la Raspberry Pi 4.
+  2. La persona de mantenimiento ubica el clip o segmento en el almacenamiento local (la ruta de cada clip está registrada en la bitácora) y lo reproduce directamente en la placa.
+* **Postcondiciones:** La evidencia en video queda disponible para su revisión, en la computadora de observación o en el monitor de la placa.
 
 ---
 
@@ -35,25 +38,27 @@
 
 * **Actor Principal:** Persona en el puesto de vigilancia.
 * **Propósito:** Evaluar visualmente la presencia de un sujeto en la puerta y resolver una solicitud de ingreso.
-* **Precondiciones:** La aplicación se encuentra en ejecución transmitiendo video en vivo y monitoreando las entradas de control (teclado/consola en la computadora remota).
+* **Precondiciones:** La aplicación se encuentra en ejecución transmitiendo video en vivo y la computadora del puesto de vigilancia está conectada a la Raspberry Pi 4 por la red (canal TCP de decisiones).
 * **Flujo Principal:**
-  1. Una persona se presenta en el punto de acceso y es observada por la persona en el puesto de vigilancia.
-  2. La persona en el puesto de vigilancia presiona un botón/tecla para permitir el acceso (u otro botón para denegarlo).
-  3. La aplicación de Python captura el evento de decisión, lo asocia con la marca de tiempo de la evidencia y procesa la autorización o denegación.
-* **Postcondiciones:** Se registra el resultado de la solicitud y se dispara la respuesta en el lado del sujeto.
+  1. Una persona se presenta en el punto de acceso y es observada por la persona en el puesto de vigilancia a través del video en vivo.
+  2. La persona en el puesto de vigilancia envía a la placa un mensaje de inicio de solicitud desde la computadora del puesto de vigilancia.
+  3. La Raspberry Pi 4 abre la solicitud, le asigna un identificador con la fecha y hora de apertura, inicia la cuenta regresiva del plazo de decisión y lo notifica al puesto de vigilancia.
+  4. Dentro del plazo, la persona en el puesto de vigilancia envía a la placa un mensaje para permitir o denegar el acceso.
+  5. La Raspberry Pi 4 recibe la decisión, confirma su recepción al puesto de vigilancia, la registra en la bitácora con la marca de tiempo de la decisión y guarda un clip MP4 del evento (segundos configurables antes y después de la decisión, 5 s y 5 s por defecto), cuya ruta queda asociada al registro.
+* **Postcondiciones:** Se registra el resultado de la solicitud, se notifica al puesto de vigilancia y se dispara la respuesta en el lado del sujeto (caso de uso 4). La Raspberry Pi 4 queda lista para una nueva solicitud.
 
 ---
 
 ### **Caso de uso 4: Actuación y Control de Salida Eléctrica**
 
 * **Actor Principal:** Sujeto que solicita acceso.
-* **Propósito:** Percibir el resultado de la solicitud de ingreso mediante los LEDS de la placa.
-* **Precondiciones:** El Caso de Uso 3 fue ejecutado exitosamente y los LEDS de la Raspberry 4 están disponibles.
+* **Propósito:** Percibir el resultado de la solicitud de ingreso mediante una señal acústica.
+* **Precondiciones:** El Caso de Uso 3 o el Caso de Uso 5 fue ejecutado y el buzzer pasivo está conectado a la línea GPIO 18 de la Raspberry Pi 4, con el PWM de hardware habilitado.
 * **Flujo Principal:**
-  1. La aplicación en Python dentro de la Raspberry envía la señal de activación a la línea GPIO correspondiente según el resultado procesado.
-  2. El sujeto en la puerta observa la conmutación del estado de los LEDS en la placa durante un tiempo determinado.
-  3. Transcurrido el intervalo, la aplicación restablece la los LEDS a su estado de reposo.
-* **Postcondiciones:** El sujeto recibe la retroalimentación visual de su solicitud.
+  1. La aplicación en Python dentro de la Raspberry genera, mediante el PWM de hardware, una señal cuadrada en la línea GPIO 18 con un tono distinto según el resultado: un tono agudo continuo si se permite el acceso, o una serie de pitidos graves si se deniega.
+  2. El sujeto en la puerta escucha el tono y reconoce el resultado. Simultáneamente, la aplicación muestra un mensaje con el resultado en la consola de la Raspberry Pi 4.
+  3. Al terminar el tono, la aplicación restablece la salida a su estado de reposo (silencio).
+* **Postcondiciones:** El sujeto recibe la retroalimentación acústica de su solicitud.
 
 ---
 
@@ -61,12 +66,12 @@
 
 * **Actor Principal:** Sujeto que solicita acceso.
 * **Propósito:** Denegar el acceso por defecto (estado seguro) cuando no hay respuesta desde el puesto de vigilancia en el tiempo límite.
-* **Precondiciones:** Una persona se encuentra en el punto de acceso y el sistema está a la espera de la decisión del vigilante.
+* **Precondiciones:** La persona en el puesto de vigilancia inició una solicitud (caso de uso 3) y el sistema está a la espera de su decisión.
 * **Flujo Principal:**
-  1. El sistema inicia un temporizador de espera de decisión al presentarse la solicitud de acceso.
+  1. El sistema inicia un temporizador de espera de decisión al abrirse la solicitud de acceso.
   2. El vigilante no emite una respuesta dentro del plazo máximo definido.
-  3. El sistema aplica la política por defecto, deniega el acceso y lo registra en la bitácora.
-  4. El sistema desencadena la indicación de acceso denegado (LEDS) para informar al sujeto.
+  3. El sistema aplica la política por defecto, deniega el acceso, lo registra en la bitácora como denegado por vencimiento y lo notifica al puesto de vigilancia.
+  4. El sistema desencadena la indicación de acceso denegado (buzzer) para informar al sujeto.
 * **Postcondiciones:** La solicitud es rechazada automáticamente por omisión, priorizando la seguridad.
 
 ---
@@ -91,7 +96,7 @@
 * **Precondiciones:** La Raspberry Pi 4 sufrió un corte de energía y se restablece el suministro eléctrico.
 * **Flujo Principal:**
   1. El hardware recibe energía y arranca el núcleo (kernel) de Linux.
-  2. Durante el arranque, los LEDS/pines GPIO se mantienen en un estado inicial definido y seguro (denegado/apagado).
+  2. Durante el arranque, la línea GPIO del buzzer (GPIO 18) se mantiene en un estado inicial definido y seguro (nivel bajo, en silencio).
   3. El gestor de servicios (systemd) inicia automáticamente el servicio de la aplicación en Python.
   4. La aplicación inicializa la cámara, levanta la tubería de GStreamer y comienza a monitorear eventos.
 * **Postcondiciones:** El sistema queda operando normalmente sin necesidad de intervención manual.
@@ -131,7 +136,7 @@
 * **Propósito:** Consultar el historial local de decisiones (permitidas o denegadas) que ha tomado el sistema.
 * **Precondiciones:** Se ha ejecutado el sistema previamente, registrando decisiones, y ha sobrevivido a reinicios o cortes de energía.
 * **Flujo Principal:**
-  1. La persona de mantenimiento solicita la revisión del registro local (`access.log`).
+  1. La persona de mantenimiento solicita la revisión del registro local (`accesos.log`).
   2. El sistema accede al medio de almacenamiento no volátil.
   3. El usuario lee y revisa las entradas con marcas de tiempo y el estado final de cada acceso.
 * **Postcondiciones:** La bitácora se consulta exitosamente demostrando la persistencia de los eventos en el tiempo.

@@ -24,31 +24,31 @@
 
 ### **Requisito funcional 3: Captura de evento de identificación**
 
-* **Enunciado:** La aplicación en Python en la Raspberry deberá detectar la recepción de una señal de entrada (pulsación de tecla en consola) en un tiempo máximo de 100 ms desde su generación.
+* **Enunciado:** La aplicación en Python en la Raspberry Pi 4 deberá detectar la recepción de cada comando del puesto de vigilancia (inicio de solicitud, permitir o denegar), enviado por la red desde la computadora remota, en un tiempo máximo de 100 ms desde su envío.
 * **Trazabilidad:** Caso de uso 3.
-* **Método de Verificación:** Medición del tiempo de respuesta mediante marcas de tiempo en la aplicación de Python.
+* **Método de Verificación:** Medición del tiempo de ida y vuelta (RTT) entre el envío del comando y la confirmación de la Raspberry Pi 4. Un RTT ≤ 100 ms acota el tiempo de detección.
 
 ---
 
 ### **Requisito funcional 4: Registro de eventos en bitácora local**
 
-* **Enunciado:** Al procesar un evento, la aplicación deberá registrar en un archivo de bitácora local en el almacenamiento de la Raspberry Pi 4 la fecha y hora exacta (timestamp) en formato ISO-8601 junto con el resultado de la solicitud (permitido o denegado).
+* **Enunciado:** Al procesar un evento, la aplicación deberá registrar en un archivo de bitácora local en el almacenamiento de la Raspberry Pi 4 la fecha y hora exacta (timestamp) del instante de la decisión, en formato ISO-8601, junto con el resultado de la solicitud (permitido, denegado o denegado por vencimiento).
 * **Trazabilidad:** Caso de uso 3, Caso de uso 10.
-* **Método de Verificación:** Inspección del contenido del archivo de texto `.log` generado en la Raspberry Pi 4.
+* **Método de Verificación:** Inspección del contenido del archivo `accesos.log` generado en la Raspberry Pi 4.
 
 ---
 
-### **Requisito funcional 5: Conmutación de LEDS de estado**
+### **Requisito funcional 5: Indicación acústica del resultado**
 
-* **Enunciado:** Al procesarse una solicitud de ingreso, el sistema deberá conmutar el estado de los LEDS en la Raspberry Pi 4 para indicar el resultado durante un intervalo configurable, retornando posteriormente al estado original.
+* **Enunciado:** Al procesarse una solicitud de ingreso, el sistema deberá emitir por un buzzer pasivo conectado a la Raspberry Pi 4 un tono distinto para acceso permitido y para acceso denegado, con frecuencias y duraciones configurables, retornando posteriormente al silencio, y mostrar el resultado en la consola de la Raspberry Pi 4.
 * **Trazabilidad:** Caso de uso 4.
-* **Método de Verificación:** Inspección visual de los LEDS y medición del tiempo de encendido por medio de osciloscopio.
+* **Método de Verificación:** Inspección auditiva y medición de la frecuencia y la duración de la señal en la línea GPIO 18 por medio de osciloscopio.
 
 ---
 
 ### **Requisito funcional 6: Denegación por vencimiento de tiempo**
 
-* **Enunciado:** El sistema deberá resolver como denegado toda solicitud cuya decisión no se reciba dentro de un plazo máximo configurable.
+* **Enunciado:** El sistema deberá resolver como denegado toda solicitud cuya decisión no se reciba dentro de un plazo máximo configurable, y notificarlo al puesto de vigilancia.
 * **Trazabilidad:** Caso de uso 5.
 * **Método de Verificación:** Prueba temporizada (esperar expiración del plazo y verificar estado denegado).
 
@@ -64,7 +64,7 @@
 
 ### **Requisito funcional 8: Persistencia del registro de eventos**
 
-* **Enunciado:** El registro de eventos (`access.log`) deberá persistir entre reinicios del sistema.
+* **Enunciado:** El registro de eventos (`accesos.log`) deberá persistir entre reinicios del sistema.
 * **Trazabilidad:** Caso de uso 10.
 * **Método de Verificación:** Prueba de reinicio del sistema operativo y validación de existencia e integridad del archivo de bitácora.
 
@@ -72,9 +72,9 @@
 
 ### **Requisito funcional 9: Estado de actuadores desde el arranque**
 
-* **Enunciado:** Las líneas GPIO del actuador (LEDS) deberán tener un estado definido (seguro/apagado) desde el arranque del kernel, antes de que inicie la aplicación en Python.
+* **Enunciado:** La línea GPIO del actuador (GPIO 18, buzzer) deberá tener un estado definido (nivel bajo, en silencio) desde el arranque del kernel, antes de que inicie la aplicación en Python.
 * **Trazabilidad:** Caso de uso 7.
-* **Método de Verificación:** Inspección visual y eléctrica de los pines GPIO inmediatamente después de energizar la placa.
+* **Método de Verificación:** Inspección del estado del pin con `pinctrl get 18` y medición eléctrica inmediatamente después de energizar la placa.
 
 ---
 
@@ -106,9 +106,9 @@
 
 ### **Requisito no funcional 2: Intervalo de keyframes**
 
-* **Enunciado:** El intervalo de keyframes deberá declararse justificando la espera máxima del cliente.
+* **Enunciado:** El codificador deberá generar un cuadro clave al menos cada 1 s, de modo que el puesto de vigilancia pueda mostrar imagen en un máximo de 1 s al conectarse al stream o tras una pérdida de paquetes.
 * **Trazabilidad:** Arquitectura de video.
-* **Método de Verificación:** Inspección de los parámetros del pipeline de codificación de video en GStreamer.
+* **Método de Verificación:** Inspección del parámetro `h264_i_frame_period` en la configuración y medición del intervalo entre cuadros clave en un video grabado (por ejemplo, con `ffprobe`).
 
 ---
 
