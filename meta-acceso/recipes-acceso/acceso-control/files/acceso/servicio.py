@@ -30,9 +30,6 @@ from gi.repository import GLib
 from .actuador import IndicadoresAcceso
 from .buffer_circular import BufferCircular, escribir_clip_anexo, escribir_clip_mp4
 from .config import Config
-from .credencial import generar_credencial, verificar
-from .lector_qr import LectorQR
-from .registro import RegistroCredenciales, Rol
 from .decision import Bitacora, RegistroAcceso, Resultado, SolicitudAcceso, ahora_iso
 from .pipeline import PipelineAcceso
 from .red import ServidorDecisiones
@@ -54,24 +51,9 @@ class ServicioAcceso:
             fps=cfg.codec.fps,
             max_buffers=cfg.clips.max_buffers,
         )
-        # CU-11/CU-12: credenciales registradas
-        self._registro = RegistroCredenciales(cfg.credenciales.ruta)
-
-        # CU-13: el lector se construye ANTES que el pipeline, que
-        # consulta si debe agregar la rama de cuadros crudos.
-        self._lector: LectorQR | None = None
-        if cfg.qr.habilitado:
-            self._lector = LectorQR(
-                self._al_detectar_qr,
-                enfriamiento_s=cfg.qr.enfriamiento_s,
-                periodo_s=1.0 / max(cfg.qr.analisis_por_s, 0.1),
-                ancho_analisis=cfg.qr.ancho_analisis,
-            )
-
-        self._pipeline = PipelineAcceso(cfg, self._buffer, self._lector)
+        self._pipeline = PipelineAcceso(cfg, self._buffer)
         self._indicadores = IndicadoresAcceso(cfg.actuador)
         self._bitacora = Bitacora(cfg.bitacora.ruta)
-
         self._bucle = GLib.MainLoop()
 
         self._pendiente: SolicitudAcceso | None = None
@@ -96,9 +78,6 @@ class ServicioAcceso:
         self._pipeline.al_fallar(self._al_fallar_pipeline)
         self._pipeline.construir()
         self._pipeline.iniciar()
-
-        if self._lector is not None:
-            self._lector.iniciar()
 
         if dot_dir:
             GLib.timeout_add_seconds(3, self._volcar_dot, dot_dir)
@@ -176,12 +155,6 @@ class ServicioAcceso:
             return self._nueva_solicitud(ident)
         if verbo in ("PERMITIR", "DENEGAR"):
             return self._resolver(verbo == "PERMITIR")
-        if verbo == "ALTA":
-            return self._alta(partes[1] if len(partes) > 1 else "")
-        if verbo == "BAJA":
-            return self._baja(partes[1] if len(partes) > 1 else "")
-        if verbo == "LISTAR":
-            return True, self._registro.resumen()
         if verbo == "ESTADO":
             return True, self._estado()
         if verbo == "PING":
@@ -337,108 +310,6 @@ class ServicioAcceso:
             escribir_clip_anexo(respaldo, cuadros)
         return True
 
-
-    # ------------------------------------------------------------------ #
-    # CU-11 / CU-12: gestion de credenciales por el vigilante
-    # ------------------------------------------------------------------ #
-    def _alta(self, argumentos: str) -> tuple[bool, str]:
-        """ALTA <rol> <nombre completo>
-
-        El rol va primero porque es una sola palabra: asi el nombre puede
-        tener los espacios que haga falta sin necesitar comillas.
-        """
-        partes = argumentos.split(maxsplit=1)
-        if len(partes) < 2:
-            return False, ("uso: ALTA <rol> <nombre>   roles: "
-                           + ", ".join(r.value for r in Rol))
-        rol, nombre = partes[0], partes[1]
-
-        try:
-            cred = self._registro.alta(nombre, rol)
-        except ValueError as exc:
-            return False, str(exc)
-
-        # La credencial se genera y se VERIFICA: una que no se puede leer es
-        # peor que no tenerla, porque el fallo aparece recien cuando la
-        # persona esta en la puerta.
-        ruta = os.path.join(self._cfg.credenciales.directorio,
-                            f"{cred.identificador}.png")
-        try:
-            generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
-            if not verificar(ruta, cred.identificador):
-                return False, (f"{cred.identificador} registrado, pero la "
-                               "credencial generada no se decodifica")
-        except Exception as exc:                      # noqa: BLE001
-            log.error("no se pudo generar la credencial: %s", exc)
-            return True, (f"{cred.identificador} registrado, pero fallo la "
-                          f"generacion del PNG: {exc}")
-
-        self._difundir(f"ALTA {cred.identificador} {cred.rol} {cred.nombre}")
-        return True, (f"{cred.identificador} | {cred.nombre} | {cred.rol} | "
-                      f"credencial en {ruta}")
-
-    def _baja(self, argumentos: str) -> tuple[bool, str]:
-        """BAJA <identificador> [motivo]"""
-        partes = argumentos.split(maxsplit=1)
-        if not partes:
-            return False, "uso: BAJA <identificador> [motivo]"
-        ident = partes[0]
-        motivo = partes[1] if len(partes) > 1 else None
-
-        try:
-            cred = self._registro.baja(ident, motivo)
-        except ValueError as exc:
-            return False, str(exc)
-
-        self._difundir(f"BAJA {cred.identificador} {cred.nombre}")
-        return True, f"acceso revocado: {cred.identificador} | {cred.nombre}"
-
-    # ------------------------------------------------------------------ #
-    # CU-13: llega una lectura de QR
-    # ------------------------------------------------------------------ #
-    def _al_detectar_qr(self, identificador: str, instante: float) -> None:
-        """Lo llama el hilo del lector, nunca el de GStreamer (RNF-4).
-
-        Tres caminos:
-          * credencial activa con rol de acceso automatico -> se resuelve sola
-          * credencial activa de visitante                 -> escala al vigilante
-          * identificador desconocido o dado de baja       -> escala al vigilante
-
-        Los dos ultimos usan el flujo de CU-3 que ya existe: si el vigilante
-        no responde dentro del plazo, vence y se deniega (CU-5).
-        """
-        cred = self._registro.buscar(identificador)
-
-        if cred is None:
-            log.warning("QR no registrado o revocado: %s", identificador)
-            ok, _ = self._nueva_solicitud(f"QR-{identificador}")
-            if ok:
-                self._difundir(f"QR-DESCONOCIDO {identificador} "
-                               "requiere decision del vigilante")
-            return
-
-        rol = cred.rol_enum()
-        etiqueta = f"{cred.identificador}-{cred.nombre.replace(' ', '_')}"
-
-        if rol.acceso_automatico():
-            log.info("QR AUTORIZADO: %s | %s | %s",
-                     cred.identificador, cred.nombre, cred.rol)
-            ok, _ = self._nueva_solicitud(etiqueta)
-            if ok:
-                self._difundir(f"QR-AUTORIZADO {cred.identificador} "
-                               f"{cred.rol} {cred.nombre}")
-                # La solicitud ya esta abierta: resolverla de inmediato pasa
-                # por el mismo camino que una decision del vigilante, asi el
-                # clip, la bitacora y el buzzer funcionan igual.
-                self._resolver(True)
-            return
-
-        log.info("QR de visitante: %s | %s (requiere confirmacion)",
-                 cred.identificador, cred.nombre)
-        ok, _ = self._nueva_solicitud(etiqueta)
-        if ok:
-            self._difundir(f"QR-VISITANTE {cred.identificador} {cred.nombre} "
-                           "requiere decision del vigilante")
     # ------------------------------------------------------------------ #
     # E3: reconexion ante falla de la camara
     # ------------------------------------------------------------------ #
@@ -487,8 +358,6 @@ class ServicioAcceso:
     def _apagar(self) -> None:
         log.info("apagando el servicio")
         self._parar.set()
-        if self._lector is not None:
-            self._lector.detener()
         if self._red is not None:
             self._red.detener()
         self._pipeline.detener()          # E4: EOS antes de NULL
