@@ -32,3 +32,6 @@ venv/
 
 *.zip
 *.7z
+
+app/credenciales/
+*.png
