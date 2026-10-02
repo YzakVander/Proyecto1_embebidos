@@ -1,0 +1,22 @@
+# G3 - registro de plugins regenerado desde cero
+# cache borrado en /root/.cache/gstreamer-1.0 | 2026-10-02T22:46:52+0000
+
+== Elementos que la aplicacion usa realmente ==
+v4l2src          OK
+v4l2jpegdec      OK
+v4l2convert      OK
+v4l2h264enc      OK
+h264parse        OK
+tee              OK
+queue            OK
+splitmuxsink     OK
+mp4mux           OK
+rtph264pay       OK
+udpsink          OK
+appsink          OK
+videotestsrc     OK
+
+== Total de plugins y elementos ==
+xvimagesink:  xvimagesink: Video sink
+
+Total count: 41 plugins, 447 features

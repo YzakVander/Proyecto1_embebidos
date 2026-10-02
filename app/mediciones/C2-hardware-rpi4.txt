@@ -1,0 +1,21 @@
+# C2 hardware-rpi4 | servicio real, cadena v4l2 completa
+# v4l2src ! v4l2jpegdec ! v4l2convert ! v4l2h264enc | 1280x720@30
+# 2026-10-02T22:10:49+0000
+
+ticks=254  segundos=60  CPU=4.2%
+
+== Por hilo ==
+python3              384
+queue1:src           33
+v4l2src0:src         32
+queue5:src           30
+queue0:src           14
+lector-qr            4
+v4l2jpegdec0:sr      2
+v4l2jpegdec1:sr      1
+retencion            0
+red-decisiones       0
+queue_video:src      0
+queue4:src           0
+
+== nproc: 4 nucleos ==

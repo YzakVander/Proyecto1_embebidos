@@ -26,6 +26,7 @@ import logging
 import os
 
 import gi
+import numpy as np
 
 gi.require_version("Gst", "1.0")
 gi.require_version("GstApp", "1.0")
@@ -40,7 +41,8 @@ log = logging.getLogger(__name__)
 class PipelineAcceso:
     #Constructor de la clase.
     #cfg y buffer son punteros a objetos de las clases Config y BufferCircular respectivamente
-    def __init__(self, cfg: Config, buffer: BufferCircular) -> None: #Esa flecha indica lo que retorna el metodo. Este caso es equivalente void
+    def __init__(self, cfg: Config, buffer: BufferCircular,
+                 lector_qr=None) -> None: #Esa flecha indica lo que retorna el metodo. Este caso es equivalente void
         #Se declaran e inicializan los atributos de la clase. 
         #Se usa el guion bajo para indicar que son privados.
         self._cfg = cfg
@@ -49,6 +51,10 @@ class PipelineAcceso:
         self._pipeline: Gst.Pipeline | None = None
         self._appsink: Gst.Element | None = None
         self._grabador: Gst.Element | None = None
+
+        self._lector_qr = lector_qr
+        self._appsink_qr: Gst.Element | None = None
+        self._udpsink: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
 
     #Funcin que va leyendo el objeto de configuracion y va armando la tuberia en forma de cadena de texto
@@ -103,6 +109,29 @@ class PipelineAcceso:
                 f"max-buffers={c.clips.max_buffers} drop=true"
             )
 
+
+        if c.qr.habilitado and self._lector_qr is not None:
+            # Cuelga de t_raw, que reparte lo que entrega la camara: con una
+            # webcam UVC eso es MJPEG, no video crudo. Por eso la rama lleva
+            # el mismo convertidor que la de codificacion. OpenCV necesita
+            # imagenes,
+            # no H.264. Se pide BGR, el formato nativo de OpenCV, para evitar
+            # una conversion en Python por cada cuadro.
+            #
+            # SIN videorate y SIN ancho/alto en el capsfilter: ambos propagan
+            # su restriccion hacia arriba a traves del tee y chocan con la
+            # rama del codificador. El lector descarta cuadros por tiempo y
+            # reduce la resolucion con cv2.resize, que es mas barato que
+            # arriesgar un not-negotiated.
+            #
+            # leaky=downstream con un solo buffer: si el detector se atrasa,
+            # interesa el presente. Un QR de hace dos segundos ya no sirve.
+            partes.append(
+                f"t_raw. ! queue max-size-buffers=1 leaky=downstream "
+                f"! {c.camara.convertidor} ! video/x-raw,format=BGR "
+                "! appsink name=qr emit-signals=true sync=false "
+                "max-buffers=1 drop=true"
+            )
         return " ".join(partes) #Une todos los elementos de la lista partes en un solo string. Entre cada elemento coloca un espacio vacio. Este es el comando a ejecutar por GStreamer para crear la tuberia.
 
     def construir(self) -> None:
@@ -117,6 +146,11 @@ class PipelineAcceso:
 
         if self._appsink is not None:
             self._appsink.connect("new-sample", self._al_llegar_muestra)
+
+        self._udpsink = self._pipeline.get_by_name("tx")
+        self._appsink_qr = self._pipeline.get_by_name("qr")
+        if self._appsink_qr is not None and self._lector_qr is not None:
+            self._appsink_qr.connect("new-sample", self._al_llegar_cuadro_qr)
 
         bus = self._pipeline.get_bus() #Se obtiene puntero al bus de comunicacion entre el pipeline y python
         bus.add_signal_watch() #Convierte los mensajes del bus en señales de Python.
@@ -143,6 +177,72 @@ class PipelineAcceso:
 
         return Gst.FlowReturn.OK
 
+
+    def _al_llegar_cuadro_qr(self, sink: Gst.Element) -> Gst.FlowReturn:
+        """Entrega el cuadro al lector de QR. B5: copiar y retornar.
+
+        La deteccion NO ocurre aqui. Este callback corre en el hilo de
+        GStreamer: analizar la imagen dentro frenaria la tuberia entera,
+        incluidas la transmision y la grabacion. El lector tiene su propio
+        hilo y toma el ultimo cuadro cuando esta libre.
+        """
+        muestra = sink.emit("pull-sample")
+        if muestra is None:
+            return Gst.FlowReturn.OK
+
+        buf = muestra.get_buffer()
+        estructura = muestra.get_caps().get_structure(0)
+        ancho = estructura.get_value("width")
+        alto = estructura.get_value("height")
+
+        ok, info = buf.map(Gst.MapFlags.READ)
+        if not ok:
+            return Gst.FlowReturn.OK
+        try:
+            # np.frombuffer NO copia: apunta a memoria de GStreamer, que se
+            # libera en el unmap de abajo. El .copy() es obligatorio, no una
+            # precaucion: sin el, el hilo del lector leeria memoria liberada.
+            cuadro = np.frombuffer(info.data, dtype=np.uint8)
+            cuadro = cuadro.reshape((alto, ancho, 3)).copy()
+            self._lector_qr.entregar_cuadro(cuadro)
+        except ValueError as exc:
+            log.warning("cuadro QR con forma inesperada: %s", exc)
+        finally:
+            buf.unmap(info)
+
+        return Gst.FlowReturn.OK
+
+    def cambiar_destino(self, host: str, puerto: int | None = None) -> bool:
+        """Redirige la transmision a otra direccion SIN reconstruir la tuberia.
+
+        udpsink acepta cambios de `host` en caliente, en estado PLAYING. No
+        hace falta parar nada: la grabacion, el buffer circular y el lector de
+        QR siguen sin enterarse. Reconstruir la tuberia para esto cortaria el
+        video varios segundos y perderia el contenido del buffer.
+
+        Devuelve False si no hay rama de streaming o si el destino no cambio.
+        """
+        if self._udpsink is None:
+            return False
+
+        actual = self._udpsink.get_property("host")
+        if actual == host and (puerto is None or
+                               self._udpsink.get_property("port") == puerto):
+            return False
+
+        self._udpsink.set_property("host", host)
+        if puerto is not None:
+            self._udpsink.set_property("port", puerto)
+
+        log.info("destino de transmision: %s -> %s:%d", actual, host,
+                 self._udpsink.get_property("port"))
+        return True
+
+    def destino_actual(self) -> str | None:
+        if self._udpsink is None:
+            return None
+        return (f"{self._udpsink.get_property('host')}:"
+                f"{self._udpsink.get_property('port')}")
     # ------------------------------------------------------------------ #
     # Ciclo de vida
     # ------------------------------------------------------------------ #

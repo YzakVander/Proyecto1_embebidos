@@ -35,3 +35,6 @@ venv/
 
 app/credenciales/
 *.png
+
+# Respaldos de los scripts de parcheo
+*.bak

@@ -1,0 +1,13 @@
+# G5 - plataforma, tomado en la RPi 4 | 2026-10-02T21:55:39+0000
+Linux raspberrypi4-64 6.18.33-v8 #1 SMP PREEMPT Thu May 28 02:31:14 UTC 2026 aarch64 GNU/Linux
+ID=poky
+NAME="Poky (Yocto Project Reference Distro)"
+VERSION="6.0.3 (wrynose)"
+VERSION_ID=6.0.3
+VERSION_CODENAME="wrynose"
+PRETTY_NAME="Poky (Yocto Project Reference Distro) 6.0.3 (wrynose)"
+CPE_NAME="cpe:/o:openembedded:poky:6.0.3"
+gst-inspect-1.0 version 1.28.5
+GStreamer 1.28.5
+Unknown package origin
+Python 3.14.7

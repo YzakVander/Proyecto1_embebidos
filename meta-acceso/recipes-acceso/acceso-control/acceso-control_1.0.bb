@@ -24,8 +24,8 @@ inherit systemd python3-dir
 SYSTEMD_SERVICE:${PN} = "acceso-control.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
-# Instalacion manual en lugar de setuptools3: el paquete son ocho modulos
-# sin dependencias de compilacion. Un pyproject.toml agregaria
+# Instalacion manual en lugar de setuptools3: el paquete son doce modulos
+# Python sin dependencias de compilacion. Un pyproject.toml agregaria
 # python3-setuptools-native al build sin aportar nada.
 do_install() {
     # Paquete Python

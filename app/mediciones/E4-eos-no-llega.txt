@@ -1,0 +1,24 @@
+2026-10-02 23:07:30,746 INFO    acceso.buffer_circular buffer circular: 10 s a 30 fps -> capacidad 450 cuadros
+2026-10-02 23:07:30,747 INFO    acceso.registro        registro de credenciales: /var/lib/acceso/credenciales.json (0 activas de 0)
+2026-10-02 23:07:30,749 INFO    acceso.actuador        buzzer por PWM de hardware: /sys/class/pwm/pwmchip0/pwm0
+2026-10-02 23:07:30,750 INFO    acceso.decision        bitacora de accesos: /var/lib/acceso/accesos.log
+2026-10-02 23:07:30,760 WARNING acceso.retencion       verificacion: borrado clip corrupto /var/lib/acceso/evidencia/evidencia_00132.mp4
+2026-10-02 23:07:30,763 INFO    acceso.retencion       verificacion de clips: 30 revisados, 1 corruptos borrados
+2026-10-02 23:07:30,763 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ con tope de 5500 MB
+2026-10-02 23:07:30,763 INFO    acceso.retencion       retencion: /var/lib/acceso/eventos/ con tope de 1000 MB
+2026-10-02 23:07:30,777 INFO    acceso.pipeline        tuberia: v4l2src device=/dev/video0 extra-controls="c,auto_exposure=1,exposure_time_absolute=2000,gain=5,brightness=0,contrast=300,saturation=200,gamma=10,sharpness=64,backlight_compensation=0,white_balance_temperature=4500,power_line_frequency=2" ! image/jpeg,width=1280,height=720,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! tee name=t_raw t_raw. ! queue max-size-buffers=8 leaky=downstream ! v4l2jpegdec ! v4l2convert ! v4l2h264enc extra-controls="controls,video_bitrate=2500000,h264_i_frame_period=30,repeat_sequence_header=1" ! video/x-h264,level=(string)4 ! h264parse config-interval=-1 ! tee name=t_h264 t_h264. ! queue ! splitmuxsink name=grabador location=/var/lib/acceso/evidencia/evidencia_%05d.mp4 max-size-time=60000000000 muxer-factory=mp4mux send-keyframe-requests=true t_h264. ! queue max-size-buffers=8 leaky=downstream ! rtph264pay config-interval=1 pt=96 aggregate-mode=zero-latency ! udpsink name=tx host=172.21.255.137 port=5000 sync=false async=false t_h264. ! queue max-size-buffers=8 leaky=downstream ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au ! appsink name=captura emit-signals=true sync=false max-buffers=600 drop=true t_raw. ! queue max-size-buffers=1 leaky=downstream ! v4l2jpegdec ! v4l2convert ! video/x-raw,format=BGR ! appsink name=qr emit-signals=true sync=false max-buffers=1 drop=true
+2026-10-02 23:07:30,845 INFO    acceso.pipeline        grabacion continua: primer segmento con numero 132
+2026-10-02 23:07:30,940 INFO    acceso.pipeline        tuberia en PLAYING
+2026-10-02 23:07:30,941 INFO    acceso.lector_qr       lector de QR activo (5 analisis/s, enfriamiento 5 s)
+2026-10-02 23:07:30,943 INFO    acceso.servicio        eventos por FIFO: /tmp/acceso-eventos
+2026-10-02 23:07:30,944 INFO    acceso.servicio          solicitud : echo 'SOLICITUD ID-001' > /tmp/acceso-eventos
+2026-10-02 23:07:30,944 INFO    acceso.servicio          permitir  : echo 'PERMITIR'        > /tmp/acceso-eventos
+2026-10-02 23:07:30,944 INFO    acceso.servicio          denegar   : echo 'DENEGAR'         > /tmp/acceso-eventos
+2026-10-02 23:07:30,945 INFO    acceso.red             canal de decisiones escuchando en TCP 5001
+2026-10-02 23:07:30,946 INFO    acceso.servicio        servicio de control de acceso en operacion
+2026-10-02 23:08:09,656 INFO    acceso.servicio        senal de terminacion recibida
+2026-10-02 23:08:09,662 INFO    acceso.servicio        apagando el servicio
+2026-10-02 23:08:10,005 INFO    acceso.pipeline        enviando EOS para cerrar los contenedores
+2026-10-02 23:08:20,018 WARNING acceso.pipeline        no llego EOS en 10.0 s; se cierra de todos modos
+2026-10-02 23:08:20,079 INFO    acceso.pipeline        tuberia en NULL
+2026-10-02 23:08:20,081 INFO    acceso.servicio        buffer circular al cierre: {'cuadros': 450, 'capacidad': 450, 'bytes': 4687504, 'total_recibidos': 1158, 'cuadros_desde_idr': 17}

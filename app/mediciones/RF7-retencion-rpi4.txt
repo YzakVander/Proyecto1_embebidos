@@ -1,0 +1,31 @@
+# RF-7 - verificacion de retencion con topes reducidos
+# topes: evidencia=60 MB, eventos=15 MB | segmento ~17.5 MB/min
+# 2026-10-02T21:48:48+0000
+
+2026-10-02 21:39:05,696 INFO    acceso.retencion       retencion: borrado evidencia_00096.mp4 (17.7 MB)
+2026-10-02 21:39:05,698 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.7 MB liberados, quedan 52.6 MB
+2026-10-02 21:40:04,701 INFO    acceso.retencion       retencion: borrado evidencia_00097.mp4 (17.4 MB)
+2026-10-02 21:40:04,701 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.4 MB
+2026-10-02 21:41:03,693 INFO    acceso.retencion       retencion: borrado evidencia_00098.mp4 (17.4 MB)
+2026-10-02 21:41:03,694 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.3 MB
+2026-10-02 21:42:02,691 INFO    acceso.retencion       retencion: borrado evidencia_00099.mp4 (17.4 MB)
+2026-10-02 21:42:02,691 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.5 MB
+2026-10-02 21:43:01,688 INFO    acceso.retencion       retencion: borrado evidencia_00100.mp4 (17.4 MB)
+2026-10-02 21:43:01,691 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.3 MB
+2026-10-02 21:44:00,671 INFO    acceso.retencion       retencion: borrado evidencia_00101.mp4 (17.4 MB)
+2026-10-02 21:44:00,671 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.3 MB
+2026-10-02 21:44:59,672 INFO    acceso.retencion       retencion: borrado evidencia_00102.mp4 (17.4 MB)
+2026-10-02 21:44:59,672 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.6 MB
+2026-10-02 21:45:58,658 INFO    acceso.retencion       retencion: borrado evidencia_00103.mp4 (17.4 MB)
+2026-10-02 21:45:58,659 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.4 MB
+2026-10-02 21:46:57,665 INFO    acceso.retencion       retencion: borrado evidencia_00104.mp4 (17.4 MB)
+2026-10-02 21:46:57,665 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.3 MB
+2026-10-02 21:47:56,677 INFO    acceso.retencion       retencion: borrado evidencia_00105.mp4 (17.4 MB)
+2026-10-02 21:47:56,677 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ -> 1 archivos borrados, 17.4 MB liberados, quedan 52.3 MB
+
+== Estado de la carpeta ==
+-rw-r--r--    1 root     root       17.4M Oct  2 21:45 evidencia_00106.mp4
+-rw-r--r--    1 root     root       17.4M Oct  2 21:46 evidencia_00107.mp4
+-rw-r--r--    1 root     root       17.4M Oct  2 21:47 evidencia_00108.mp4
+-rw-r--r--    1 root     root       15.6M Oct  2 21:48 evidencia_00109.mp4
+68	/var/lib/acceso/evidencia/
