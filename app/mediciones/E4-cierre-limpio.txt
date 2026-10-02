@@ -1,0 +1,22 @@
+# E4 - cierre limpio: el ultimo archivo queda reproducible
+# 2026-10-02T23:00:16+0000
+# systemctl stop -> SIGTERM -> EOS -> espera en bus -> NULL
+
+== Ultimo segmento ==
+-rw-r--r--    1 root     root       11.4M Oct  2 23:00 /var/lib/acceso/evidencia/evidencia_00131.mp4
+
+== Cajas MP4 de primer nivel ==
+  ftyp  32 bytes  @0
+  free  8 bytes  @32
+  mdat  0 bytes  @40
+CORRUPTO: suman 40, archivo 11987831
+
+== Journal del cierre ==
+2026-10-02 23:00:02,613 INFO    acceso.servicio        apagando el servicio
+2026-10-02 23:00:02,911 INFO    acceso.pipeline        enviando EOS para cerrar los contenedores
+2026-10-02 23:00:12,923 WARNING acceso.pipeline        no llego EOS en 10.0 s; se cierra de todos modos
+2026-10-02 23:00:12,986 INFO    acceso.pipeline        tuberia en NULL
+2026-10-02 23:00:12,988 INFO    acceso.servicio        buffer circular al cierre: {'cuadros': 450, 'capacidad': 450, 'bytes': 4689232, 'total_recibidos': 2943, 'cuadros_desde_idr': 20}
+acceso-control.service: Deactivated successfully.
+Stopped Sistema de control de acceso (GStreamer).
+acceso-control.service: Consumed 2min 17.338s CPU time over 1min 50.753s wall clock time.

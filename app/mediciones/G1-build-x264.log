@@ -1,0 +1,150 @@
+Loading cache...done.
+Loaded 5355 entries from dependency cache.
+Parsing recipes...done.
+Parsing of 3092 .bb files complete (3091 cached, 1 parsed). 5355 targets, 139 skipped, 0 masked, 0 errors.
+NOTE: Resolving any missing task queue dependencies
+NOTE: Multiple providers are available for ffmpeg (ffmpeg, rpidistro-ffmpeg)
+Consider defining a PREFERRED_PROVIDER entry to match ffmpeg
+NOTE: Multiple providers are available for runtime libnss-mdns (avahi-libnss-mdns, mdns)
+Consider defining a PREFERRED_RPROVIDER entry to match libnss-mdns
+
+Build Configuration:
+BB_VERSION           = "2.18.0"
+BUILD_SYS            = "x86_64-linux"
+NATIVELSBSTRING      = "universal"
+TARGET_SYS           = "aarch64-poky-linux"
+MACHINE              = "raspberrypi4-64"
+SDKMACHINE           = "x86_64"
+DISTRO               = "poky"
+DISTRO_VERSION       = "6.0.3"
+TUNE_FEATURES        = "aarch64 crc cortexa72 nocrypto"
+meta                 = "wrynose:cc4695f65beb6e5069fbecc16475fa5a27c768e9"
+meta-poky            = "wrynose:ddeeba423ff0565b8f1192f16072b5993d5ea6a0"
+meta-raspberrypi     = "wrynose:f62c67921474370829d24a4fa01ef88543f3906b"
+meta-oe              
+meta-python          
+meta-multimedia      
+meta-networking      = "wrynose:47d7dbdd10890bbd429bc0cccbe14435c37e5af1"
+meta-acceso          = "Daniel:ec0299be16d7e88d881de367c8f4d83092e929b9"
+
+Initialising tasks...Sstate summary: Wanted 231 Local 124 Mirrors 0 Missed 107 Current 3928 (53% match, 97% complete)
+done.
+Removing 37 stale sstate objects for arch cortexa72...done.
+Removing 5 stale sstate objects for arch allarch...done.
+Removing 13 stale sstate objects for arch raspberrypi4_64...done.
+NOTE: Executing Tasks
+NOTE: Running setscene task 4088 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/vulkan/vulkan-loader_1.4.341.0.bb:do_package_setscene)
+NOTE: Running setscene task 4113 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/mpg123/mpg123_1.33.4.bb:do_populate_sysroot_setscene)
+NOTE: recipe mpg123-1.33.4-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe vulkan-loader-1.4.341.0-r0: task do_package_setscene: Started
+NOTE: recipe mpg123-1.33.4-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4118 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-devtools/python/python3-pygobject_3.56.1.bb:do_populate_sysroot_setscene)
+NOTE: recipe vulkan-loader-1.4.341.0-r0: task do_package_setscene: Succeeded
+NOTE: Running setscene task 4120 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/pulseaudio/pulseaudio_17.0.bb:do_populate_sysroot_setscene)
+NOTE: recipe python3-pygobject-3.56.1-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe pulseaudio-17.0-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe python3-pygobject-3.56.1-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4125 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/vulkan/vulkan-loader_1.4.341.0.bb:do_deploy_source_date_epoch_setscene)
+NOTE: recipe vulkan-loader-1.4.341.0-r0: task do_deploy_source_date_epoch_setscene: Started
+NOTE: recipe vulkan-loader-1.4.341.0-r0: task do_deploy_source_date_epoch_setscene: Succeeded
+NOTE: Running setscene task 4128 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-gnome/libgudev/libgudev_238.bb:do_populate_sysroot_setscene)
+NOTE: recipe pulseaudio-17.0-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4129 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/xorg-lib/libxtst_1.2.5.bb:do_populate_sysroot_setscene)
+NOTE: recipe libgudev-238-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe libxtst-1_1.2.5-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe libgudev-238-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4131 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-connectivity/ofono/ofono_2.19.bb:do_populate_sysroot_setscene)
+NOTE: recipe libxtst-1_1.2.5-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4137 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-connectivity/avahi/avahi_0.8.bb:do_populate_sysroot_setscene)
+NOTE: recipe ofono-2.19-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe avahi-0.8-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe ofono-2.19-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4141 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-connectivity/bluez5/bluez5_5.86.bb:do_populate_sysroot_setscene)
+NOTE: recipe avahi-0.8-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4142 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/xorg-lib/libxi_1.8.2.bb:do_populate_sysroot_setscene)
+NOTE: recipe bluez5-5.86-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe bluez5-5.86-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4144 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-gnome/librsvg/librsvg_2.61.3.bb:do_populate_sysroot_setscene)
+NOTE: recipe libxi-1_1.8.2-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe libxi-1_1.8.2-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4148 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-core/ell/ell_0.83.bb:do_populate_sysroot_setscene)
+NOTE: recipe ell-0.83-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe librsvg-2.61.3-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe ell-0.83-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4149 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-core/dbus/dbus_1.16.2.bb:do_populate_sysroot_setscene)
+NOTE: recipe librsvg-2.61.3-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4150 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_deploy_source_date_epoch_setscene)
+NOTE: recipe dbus-1.16.2-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_deploy_source_date_epoch_setscene: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_deploy_source_date_epoch_setscene: Succeeded
+NOTE: Running setscene task 4154 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-devtools/rust/libstd-rs_1.94.1.bb:do_populate_sysroot_setscene)
+NOTE: recipe dbus-1.16.2-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: recipe libstd-rs-1.94.1-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe libstd-rs-1.94.1-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running task 2584 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_fetch)
+NOTE: recipe mesa-2_26.0.5-r0: task do_fetch: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_fetch: Succeeded
+NOTE: Running task 2773 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_unpack)
+NOTE: recipe mesa-2_26.0.5-r0: task do_unpack: Started
+NOTE: Running task 3042 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_prepare_recipe_sysroot)
+NOTE: recipe mesa-2_26.0.5-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 3234 of 7567 (/home/daniel/proyecto-acceso/layers/meta-openembedded/meta-oe/recipes-multimedia/faad2/faad2_2.11.2.bb:do_recipe_qa)
+NOTE: recipe faad2-2.11.2+git-r0: task do_recipe_qa: Started
+NOTE: recipe faad2-2.11.2+git-r0: task do_recipe_qa: Succeeded
+NOTE: Running task 3237 of 7567 (/home/daniel/proyecto-acceso/layers/meta-openembedded/meta-oe/recipes-multimedia/faad2/faad2_2.11.2.bb:do_fetch)
+NOTE: recipe faad2-2.11.2+git-r0: task do_fetch: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_unpack: Succeeded
+NOTE: Running task 3238 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_patch)
+NOTE: recipe mesa-2_26.0.5-r0: task do_patch: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_patch: Succeeded
+NOTE: Running task 3250 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_rust_create_wrappers)
+NOTE: recipe mesa-2_26.0.5-r0: task do_rust_create_wrappers: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_rust_create_wrappers: Succeeded
+NOTE: Running task 3251 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_rust_gen_targets)
+NOTE: recipe mesa-2_26.0.5-r0: task do_rust_gen_targets: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_rust_gen_targets: Succeeded
+NOTE: Running task 3252 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_write_config)
+NOTE: recipe mesa-2_26.0.5-r0: task do_write_config: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_write_config: Succeeded
+NOTE: Running task 3253 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_configure)
+NOTE: recipe mesa-2_26.0.5-r0: task do_configure: Started
+NOTE: recipe faad2-2.11.2+git-r0: task do_fetch: Succeeded
+NOTE: Running task 3276 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_recipe_qa)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_recipe_qa: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_recipe_qa: Succeeded
+NOTE: Running task 3279 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_fetch)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_fetch: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_configure: Succeeded
+NOTE: Running task 3280 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_compile)
+NOTE: recipe mesa-2_26.0.5-r0: task do_compile: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_fetch: Succeeded
+NOTE: Running task 3364 of 7567 (/home/daniel/proyecto-acceso/layers/meta-openembedded/meta-oe/recipes-multimedia/faad2/faad2_2.11.2.bb:do_unpack)
+NOTE: recipe faad2-2.11.2+git-r0: task do_unpack: Started
+NOTE: recipe faad2-2.11.2+git-r0: task do_unpack: Succeeded
+NOTE: Running task 3365 of 7567 (/home/daniel/proyecto-acceso/layers/meta-openembedded/meta-oe/recipes-multimedia/faad2/faad2_2.11.2.bb:do_patch)
+NOTE: recipe faad2-2.11.2+git-r0: task do_patch: Started
+NOTE: recipe faad2-2.11.2+git-r0: task do_patch: Succeeded
+NOTE: Running task 3440 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_unpack)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_unpack: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_unpack: Succeeded
+NOTE: Running task 3443 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_patch)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_patch: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_patch: Succeeded
+NOTE: Running task 3639 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/x264/x264_git.bb:do_recipe_qa)
+NOTE: recipe x264-r3039+git-r0: task do_recipe_qa: Started
+NOTE: recipe x264-r3039+git-r0: task do_recipe_qa: Succeeded
+NOTE: Running task 3653 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/x264/x264_git.bb:do_fetch)
+NOTE: recipe x264-r3039+git-r0: task do_fetch: Started
+NOTE: recipe x264-r3039+git-r0: task do_fetch: Succeeded
+NOTE: Running task 3713 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_deploy_source_date_epoch)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_deploy_source_date_epoch: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_deploy_source_date_epoch: Succeeded
+NOTE: Running task 3737 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_prepare_recipe_sysroot)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 3738 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_configure)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_configure: Started
+NOTE: recipe ffmpeg-8.0.3-r0: task do_configure: Succeeded
+NOTE: Running task 3739 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_compile)
+NOTE: recipe ffmpeg-8.0.3-r0: task do_compile: Started

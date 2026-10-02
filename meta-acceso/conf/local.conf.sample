@@ -35,3 +35,9 @@ PARALLEL_MAKE = "-j 2"
 # Sin esto el firmware ignora el dtoverlay=pwm de config.txt en silencio
 # y /sys/class/pwm/ queda vacio.
 RPI_KERNEL_DEVICETREE_OVERLAYS:append = " overlays/pwm.dtbo overlays/pwm-2chan.dtbo"
+
+# C2: encoder H.264 por software, para comparar contra el de hardware.
+# x264 esta bajo GPL y la receta lo marca con LICENSE_FLAGS "commercial":
+# sin aceptarlo, el PACKAGECONFIG se ignora en silencio y el plugin no existe.
+LICENSE_FLAGS_ACCEPTED += "commercial"
+PACKAGECONFIG:append:pn-gstreamer1.0-plugins-ugly = " x264"

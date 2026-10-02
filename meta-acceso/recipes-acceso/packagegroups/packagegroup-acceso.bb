@@ -65,4 +65,5 @@ SUMMARY:${PN}-diagnostico = "Herramientas de prototipado y verificacion"
 RDEPENDS:${PN}-diagnostico = "\
     gstreamer1.0-plugins-base-videotestsrc \
     v4l-utils \
+    gstreamer1.0-plugins-ugly \
 "
