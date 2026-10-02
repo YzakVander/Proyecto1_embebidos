@@ -62,9 +62,13 @@ class ServidorDecisiones:
     """Servidor TCP de comandos del vigilante. Un hilo por cliente conectado."""
 
     def __init__(self, puerto: int, procesar: Procesador,
-                 clientes_permitidos: str = "") -> None:
+                 clientes_permitidos: str = "", al_conectar=None) -> None:
         self._puerto = puerto
         self._procesar = procesar
+        # Se invoca con la IP del vigilante al conectarse. El servicio la usa
+        # para redirigir la transmision hacia el, sin que nadie configure una
+        # direccion a mano.
+        self._al_conectar = al_conectar
         # Lista blanca de IPs. Cualquiera en la red podria abrir la puerta,
         # asi que en la demo conviene restringirla a la IP del vigilante.
         self._permitidos = {ip.strip() for ip in clientes_permitidos.split(",") if ip.strip()}
@@ -112,6 +116,18 @@ class ServidorDecisiones:
             self._clientes.add(h.wfile)
         log.info("puesto de vigilancia conectado: %s", ip)
         self._enviar(h.wfile, "OK conectado al sistema de control de acceso")
+
+        # La direccion sale del socket aceptado, asi que es la real del
+        # vigilante. Con esto el udpsink redirige la transmision sin que nadie
+        # configure una IP: resuelve el caso de las direcciones que rotan por
+        # DHCP y dejan el video sin llegar, en silencio.
+        # El try no es decorativo: si el callback lanza, no debe tumbar el
+        # hilo que atiende a este cliente.
+        if self._al_conectar is not None:
+            try:
+                self._al_conectar(ip)
+            except Exception as exc:          # noqa: BLE001
+                log.warning("fallo al notificar la conexion de %s: %s", ip, exc)
 
         try:
             while True:

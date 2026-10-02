@@ -11,6 +11,8 @@ DESTINO="$RAIZ/meta-acceso/recipes-acceso/acceso-control/files"
 mkdir -p "$DESTINO"
 rm -rf "$DESTINO/acceso"
 cp -r "$RAIZ/app/acceso" "$DESTINO/acceso"
+# Los .bak de los scripts de parcheo no deben llegar a la imagen
+find "$DESTINO/acceso" -name "*.bak" -delete
 cp "$RAIZ/app/config/acceso.conf" "$DESTINO/acceso.conf"
 find "$DESTINO" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 

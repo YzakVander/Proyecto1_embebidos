@@ -55,6 +55,7 @@ class PipelineAcceso:
 
         self._lector_qr = lector_qr
         self._appsink_qr: Gst.Element | None = None
+        self._udpsink: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
         self._al_cerrar_segmento = None # callback que fija el servicio (RF-7: retencion)
         # Segmento MP4 que se esta grabando: la retencion no lo puede borrar
@@ -158,6 +159,7 @@ class PipelineAcceso:
         if self._appsink is not None:
             self._appsink.connect("new-sample", self._al_llegar_muestra)
 
+        self._udpsink = self._pipeline.get_by_name("tx")
         self._appsink_qr = self._pipeline.get_by_name("qr")
         if self._appsink_qr is not None and self._lector_qr is not None:
             self._appsink_qr.connect("new-sample", self._al_llegar_cuadro_qr)
@@ -221,6 +223,38 @@ class PipelineAcceso:
             buf.unmap(info)
 
         return Gst.FlowReturn.OK
+
+    def cambiar_destino(self, host: str, puerto: int | None = None) -> bool:
+        """Redirige la transmision a otra direccion SIN reconstruir la tuberia.
+
+        udpsink acepta cambios de `host` en caliente, en estado PLAYING. No
+        hace falta parar nada: la grabacion, el buffer circular y el lector de
+        QR siguen sin enterarse. Reconstruir la tuberia para esto cortaria el
+        video varios segundos y perderia el contenido del buffer.
+
+        Devuelve False si no hay rama de streaming o si el destino no cambio.
+        """
+        if self._udpsink is None:
+            return False
+
+        actual = self._udpsink.get_property("host")
+        if actual == host and (puerto is None or
+                               self._udpsink.get_property("port") == puerto):
+            return False
+
+        self._udpsink.set_property("host", host)
+        if puerto is not None:
+            self._udpsink.set_property("port", puerto)
+
+        log.info("destino de transmision: %s -> %s:%d", actual, host,
+                 self._udpsink.get_property("port"))
+        return True
+
+    def destino_actual(self) -> str | None:
+        if self._udpsink is None:
+            return None
+        return (f"{self._udpsink.get_property('host')}:"
+                f"{self._udpsink.get_property('port')}")
     # ------------------------------------------------------------------ #
     # Ciclo de vida
     # ------------------------------------------------------------------ #

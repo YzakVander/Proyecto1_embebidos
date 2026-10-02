@@ -24,10 +24,14 @@ RDEPENDS:${PN} = "\
 # Trazabilidad elemento -> biblioteca -> subpaquete en
 # app/mediciones/G1-plugins.txt
 SUMMARY:${PN}-gstreamer = "Plugins de GStreamer estrictamente necesarios"
+# pango aporta clockoverlay y timeoverlay, para sobreimprimir la fecha y hora
+# en el video. No se usa todavia; incluirlo ahora evita recompilar la imagen
+# entera cuando se quiera activar.
 RDEPENDS:${PN}-gstreamer = "\
     gstreamer1.0 \
     gstreamer1.0-plugins-base-app \
     gstreamer1.0-plugins-base-videoconvertscale \
+    gstreamer1.0-plugins-base-pango \
     gstreamer1.0-plugins-good-video4linux2 \
     gstreamer1.0-plugins-good-isomp4 \
     gstreamer1.0-plugins-good-rtp \

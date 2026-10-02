@@ -106,6 +106,7 @@ class ServicioAcceso:
                 cfg.eventos.red_puerto,
                 lambda texto: self._procesar_comando(texto, origen="red"),
                 cfg.eventos.red_clientes,
+                al_conectar=self._al_conectar_vigilante,
             )
 
     # ------------------------------------------------------------------ #
@@ -464,6 +465,23 @@ class ServicioAcceso:
         if ok:
             self._difundir(f"QR-VISITANTE {cred.identificador} {cred.nombre} "
                            "requiere decision del vigilante")
+
+    # ------------------------------------------------------------------ #
+    # Destino de transmision automatico
+    # ------------------------------------------------------------------ #
+    def _al_conectar_vigilante(self, direccion: str) -> None:
+        """Lo llama red.py cuando un cliente se conecta al canal de decisiones.
+
+        La direccion sale del socket aceptado, asi que es la real del
+        vigilante sin que nadie la configure. Resuelve el caso de las IP que
+        rotan por DHCP: hasta ahora `host` era fijo en acceso.conf y quedaba
+        vieja en minutos, con el video dejando de llegar en silencio.
+        """
+        if not self._cfg.streaming.seguir_cliente:
+            return
+        if self._pipeline.cambiar_destino(direccion):
+            self._difundir(f"STREAMING hacia {direccion}:"
+                           f"{self._cfg.streaming.puerto}")
     # ------------------------------------------------------------------ #
     # E3: reconexion ante falla de la camara
     # ------------------------------------------------------------------ #
