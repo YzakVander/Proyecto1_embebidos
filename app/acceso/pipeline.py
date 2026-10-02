@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 
 import gi
 import numpy as np
@@ -55,6 +56,9 @@ class PipelineAcceso:
         self._lector_qr = lector_qr
         self._appsink_qr: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
+        self._al_cerrar_segmento = None # callback que fija el servicio (RF-7: retencion)
+        # Segmento MP4 que se esta grabando: la retencion no lo puede borrar
+        self.segmento_actual: str | None = None
 
     #Funcin que va leyendo el objeto de configuracion y va armando la tuberia en forma de cadena de texto
     def descripcion(self) -> str: #Devuelve la cadena que describe el pipeline
@@ -142,6 +146,14 @@ class PipelineAcceso:
         self._pipeline = Gst.parse_launch(desc)
         self._grabador = self._pipeline.get_by_name("grabador") #Puntero del sink de grabacion.
         self._appsink = self._pipeline.get_by_name("captura") #Investigar...
+
+        # Numeracion continua: el primer segmento de esta tuberia sigue al de
+        # numero mas alto que ya exista, asi un reinicio de la app (o una
+        # reconexion E3, que reconstruye la tuberia) nunca sobrescribe nada.
+        if self._grabador is not None:
+            indice = self._siguiente_indice()
+            self._grabador.set_property("start-index", indice)
+            log.info("grabacion continua: primer segmento con numero %d", indice)
 
         if self._appsink is not None:
             self._appsink.connect("new-sample", self._al_llegar_muestra)
@@ -251,6 +263,28 @@ class PipelineAcceso:
         Gst.debug_bin_to_dot_file(self._pipeline, Gst.DebugGraphDetails.ALL, nombre)
         log.info("grafo exportado a %s/%s.dot", directorio, nombre)
 
+    def al_cerrar_segmento(self, callback) -> None:
+        """RF-7: el servicio registra aqui la solicitud de limpieza."""
+        self._al_cerrar_segmento = callback
+
+    def _siguiente_indice(self) -> int:
+        """Numero mas alto de los segmentos existentes + 1 (0 si no hay ninguno).
+
+        Se deduce del patron del acceso.conf (p. ej. evidencia_%05d.mp4): lo
+        que va antes y despues del %...d.
+        """
+        g = self._cfg.grabacion
+        m = re.match(r"(.*)%0?\d*d(.*)$", g.patron)
+        if m is None:
+            return 0
+        patron = re.compile(re.escape(m.group(1)) + r"(\d+)" + re.escape(m.group(2)) + "$")
+        try:
+            nombres = os.listdir(g.directorio)
+        except FileNotFoundError:
+            return 0
+        numeros = [int(x.group(1)) for x in map(patron.match, nombres) if x]
+        return max(numeros) + 1 if numeros else 0
+
     def al_fallar(self, callback) -> None:
         """E3: el servicio registra aqui su rutina de reconexion."""
         self._al_fallar = callback
@@ -271,5 +305,9 @@ class PipelineAcceso:
             log.info("GStreamer: fin de flujo")
         elif t == Gst.MessageType.ELEMENT:
             st = msg.get_structure()
+            if st and st.get_name() == "splitmuxsink-fragment-opened":
+                self.segmento_actual = st.get_string("location")
             if st and st.get_name() == "splitmuxsink-fragment-closed":
                 log.info("segmento cerrado: %s", st.get_string("location"))
+                if self._al_cerrar_segmento is not None:
+                    self._al_cerrar_segmento()

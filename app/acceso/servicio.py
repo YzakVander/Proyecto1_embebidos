@@ -36,6 +36,7 @@ from .registro import RegistroCredenciales, Rol
 from .decision import Bitacora, RegistroAcceso, Resultado, SolicitudAcceso, ahora_iso
 from .pipeline import PipelineAcceso
 from .red import ServidorDecisiones
+from .retencion import Carpeta, Retencion, clave_evento, clave_segmento, verificar_corruptos
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +70,22 @@ class ServicioAcceso:
             )
 
         self._pipeline = PipelineAcceso(cfg, self._buffer, self._lector)
+
+        # RF-7: retencion con un tope independiente por carpeta
+        self._carpetas_evidencia: list[str] = []
+        carpetas: list[Carpeta] = []
+        g, c = cfg.grabacion, cfg.clips
+        if g.habilitada:
+            self._carpetas_evidencia.append(g.directorio)
+            carpetas.append(Carpeta("evidencia", g.directorio, g.max_megabytes * 1024 * 1024,
+                                    clave_segmento(g.patron.split("%")[0])))
+        if c.habilitados:
+            self._carpetas_evidencia.append(c.directorio)
+            carpetas.append(Carpeta("eventos", c.directorio, c.max_megabytes * 1024 * 1024,
+                                    clave_evento))
+        self._retencion = Retencion(
+            carpetas, en_uso=lambda: {self._pipeline.segmento_actual})
+
         self._indicadores = IndicadoresAcceso(cfg.actuador)
         self._bitacora = Bitacora(cfg.bitacora.ruta)
 
@@ -93,7 +110,14 @@ class ServicioAcceso:
 
     # ------------------------------------------------------------------ #
     def ejecutar(self, dot_dir: str | None = None) -> int:
+        # Antes de montar la tuberia: borrar los clips que quedaron corruptos
+        # (sin indice) por un corte de energia, un cierre forzado o una falla
+        # de la camara. Aun no hay ningun archivo abierto, asi que es seguro.
+        verificar_corruptos(self._carpetas_evidencia)
+
         self._pipeline.al_fallar(self._al_fallar_pipeline)
+        self._pipeline.al_cerrar_segmento(self._retencion.solicitar)
+        self._retencion.iniciar()
         self._pipeline.construir()
         self._pipeline.iniciar()
 
@@ -335,6 +359,7 @@ class ServicioAcceso:
             log.error("no se pudo empaquetar el clip en MP4 (%s); "
                       "se guarda crudo en %s", exc, respaldo)
             escribir_clip_anexo(respaldo, cuadros)
+        self._retencion.solicitar()     # RF-7: el clip nuevo puede exceder el tope
         return True
 
 
@@ -362,7 +387,7 @@ class ServicioAcceso:
         # peor que no tenerla, porque el fallo aparece recien cuando la
         # persona esta en la puerta.
         ruta = os.path.join(self._cfg.credenciales.directorio,
-                            f"{cred.identificador}.png")
+                            f"{cred.identificador}.bmp")
         try:
             generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
             if not verificar(ruta, cred.identificador):
@@ -371,7 +396,7 @@ class ServicioAcceso:
         except Exception as exc:                      # noqa: BLE001
             log.error("no se pudo generar la credencial: %s", exc)
             return True, (f"{cred.identificador} registrado, pero fallo la "
-                          f"generacion del PNG: {exc}")
+                          f"generacion de la imagen: {exc}")
 
         self._difundir(f"ALTA {cred.identificador} {cred.rol} {cred.nombre}")
         return True, (f"{cred.identificador} | {cred.nombre} | {cred.rol} | "
@@ -492,5 +517,6 @@ class ServicioAcceso:
         if self._red is not None:
             self._red.detener()
         self._pipeline.detener()          # E4: EOS antes de NULL
+        self._retencion.detener()
         self._indicadores.cerrar()
         log.info("buffer circular al cierre: %s", self._buffer.estado())

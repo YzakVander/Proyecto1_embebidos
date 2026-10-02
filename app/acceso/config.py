@@ -43,7 +43,7 @@ class GrabacionCfg:
     directorio: str = "evidencia"
     patron: str = "evidencia_%05d.mp4"
     segundos_por_segmento: int = 60
-    max_megabytes: int = 2048      # RF-7: politica de retencion
+    max_megabytes: int = 500       # RF-7: tope de evidencia/ (ver acceso.conf)
 
 
 @dataclass
@@ -61,6 +61,7 @@ class ClipsCfg:
     segundos_antes: int = 5
     segundos_despues: int = 5
     max_buffers: int = 600         # B4: tope duro del appsink
+    max_megabytes: int = 150       # RF-7: tope de eventos/ (ver acceso.conf)
 
 
 @dataclass

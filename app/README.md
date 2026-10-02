@@ -29,6 +29,7 @@ Cuatro hilos (H1):
 | `decision.py` | plazo de decisión y bitácora persistente | H2, H6, RF-4 |
 | `actuador.py` | LED de estado por GPIO con pulso | RF-5, CU-4 |
 | `servicio.py` | orquestación e hilos | H1, E3 |
+| `retencion.py` | clips corruptos al arrancar y topes por carpeta | RF-7, CU-8 |
 
 ## Uso
 

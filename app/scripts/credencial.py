@@ -16,7 +16,7 @@ if len(sys.argv) < 4:
     sys.exit(1)
 
 ident, nombre, rol = sys.argv[1], sys.argv[2], sys.argv[3]
-salida = sys.argv[4] if len(sys.argv) > 4 else f"{ident}.png"
+salida = sys.argv[4] if len(sys.argv) > 4 else f"{ident}.bmp"
 
 generar_credencial(salida, ident, nombre, rol)
 if verificar(salida, ident):
