@@ -108,6 +108,10 @@ class ServicioAcceso:
         self._pendiente: SolicitudAcceso | None = None
         self._lock_pendiente = threading.Lock()
         self._parar = threading.Event()
+        # B6: clips en escritura. _apagar() espera a que lleguen a cero para
+        # no cortar un clip que la bitacora ya anoto.
+        self._clips_en_curso = 0
+        self._cond_clips = threading.Condition()
         self._contador = 0
         self._reconectando = threading.Event()
 
@@ -333,6 +337,10 @@ class ServicioAcceso:
         clip = None
         if self._cfg.clips.habilitados:
             clip = self._ruta_clip(solicitud.identificador)
+            # Se registra ANTES de anotar la bitacora: desde que la ruta queda
+            # escrita, el apagado tiene que esperar a que el archivo exista.
+            with self._cond_clips:
+                self._clips_en_curso += 1
 
         self._bitacora.anotar(RegistroAcceso(
             timestamp=instante,
@@ -345,7 +353,12 @@ class ServicioAcceso:
         ))
 
         if clip is not None:
-            self._escribir_clip(clip)
+            try:
+                self._escribir_clip(clip)
+            finally:
+                with self._cond_clips:
+                    self._clips_en_curso -= 1
+                    self._cond_clips.notify_all()
 
     def _ruta_clip(self, identificador: str) -> str:
         """Ruta del clip de un evento, con la hora actual en el nombre."""
@@ -357,7 +370,12 @@ class ServicioAcceso:
         """Clip de pre-evento + post-evento desde el buffer circular."""
         cfg = self._cfg.clips
         # Esperar los segundos posteriores para que el buffer los acumule.
-        time.sleep(cfg.segundos_despues)
+        # B6: si el servicio se detiene en ese lapso, no se espera mas: el
+        # clip se escribe con lo que haya. Mas corto, pero existe, y la ruta
+        # que la bitacora ya anoto no queda apuntando a un archivo inexistente.
+        if self._parar.wait(cfg.segundos_despues):
+            log.warning("servicio deteniendose: el clip %s se escribe sin "
+                        "completar los %d s posteriores", ruta, cfg.segundos_despues)
 
         ventana = cfg.segundos_antes + cfg.segundos_despues
         cuadros = self._buffer.instantanea(ventana)
@@ -619,12 +637,28 @@ class ServicioAcceso:
 
     def _apagar(self) -> None:
         log.info("apagando el servicio")
-        self._parar.set()
+        self._parar.set()                 # B6: despierta a los clips en espera
         if self._lector is not None:
             self._lector.detener()
         if self._red is not None:
             self._red.detener()
         self._pipeline.detener()          # E4: EOS antes de NULL
+        self._esperar_clips()             # B6: los clips se escriben desde memoria
         self._retencion.detener()
         self._indicadores.cerrar()
         log.info("buffer circular al cierre: %s", self._buffer.estado())
+
+    def _esperar_clips(self, tiempo_s: float = 5.0) -> None:
+        """B6: espera a que terminen de escribirse los clips pendientes.
+
+        Los hilos de solicitud son daemon: si el proceso sale antes, el clip se
+        pierde. Se escriben desde el buffer circular, que esta en memoria, asi
+        que no dependen de la tuberia y pueden terminar despues de que pase a
+        NULL. El plazo, sumado al de pipeline.detener() y al del lector, cabe
+        en TimeoutStopSec=20.
+        """
+        with self._cond_clips:
+            if not self._cond_clips.wait_for(lambda: self._clips_en_curso == 0,
+                                             timeout=tiempo_s):
+                log.error("%d clip(s) sin terminar de escribir tras %.1f s",
+                          self._clips_en_curso, tiempo_s)

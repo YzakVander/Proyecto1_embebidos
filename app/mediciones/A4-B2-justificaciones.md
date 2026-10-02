@@ -1,4 +1,4 @@
-# A4 / B2 / B3 / C3 / D3 — Justificación de la tubería vigente
+# A2 / A4 / B2 / B3 / C3 / D3 — Justificación de la tubería vigente
 
 Tubería de `app/acceso/pipeline.py` con `app/config/acceso.conf` (cámara USB
 UVC en MJPEG, codificador por hardware del BCM2711). Para regenerar la
@@ -18,6 +18,31 @@ v4l2src ─ image/jpeg ─ queue(8,leaky) ─ t_raw ─┬─ queue(8,leaky) ─
 > tubería de desarrollo con `videotestsrc` y `x264enc`. Esa tubería ya no
 > existe; las mediciones `A1-*.txt` siguen siendo válidas como evidencia del
 > hallazgo de negociación, pero no describen el sistema actual.
+
+---
+
+## A2 — Formato que entrega la cadena y formato que acepta el codificador
+
+El acta advierte que el codificador de la RPi 4 "solo acepta NV12" y que,
+si la fuente entrega otra cosa, hay un `videoconvert` escondido consumiendo
+CPU. **En este bloque esa premisa no se cumple.** El codificador
+`bcm2835-codec` (`/dev/video11`) acepta 14 formatos de entrada, medido por el
+Rol B con `v4l2-ctl --list-formats-out` (`C1-hardware-rpi4.txt`):
+
+    YU12 (I420)  YV12  NV12  NV21  RGBP  RGB3  BGR3  AB24  BGR4
+    YUYV  YVYU  UYVY  VYUY  NC12
+
+La cadena real es `v4l2jpegdec ! v4l2convert ! v4l2h264enc`: la conversión de
+formato, si hace falta, la hace `v4l2convert` sobre el ISP de hardware
+(`bcm2835-isp`), no un `videoconvert` por software. Por construcción no hay
+conversión por CPU en la rama del codificador; A5 lo verifica sobre el grafo
+real.
+
+**Pendiente (placa):** leer en el `.dot` de la aplicación (`--dot`) qué
+formato negocian efectivamente `v4l2jpegdec → v4l2convert` y
+`v4l2convert → v4l2h264enc`. Si `v4l2jpegdec` ya entrega un formato que el
+codificador acepta (I420 o NV12), `v4l2convert` en esa rama podría ser
+prescindible: un contexto menos del bloque (ver C4).
 
 ---
 
@@ -42,13 +67,17 @@ impedir la negociación si un reemplazo de la cámara reporta otro valor.
 
 | Campo | Razón |
 |---|---|
-| `level=(string)4` | El nivel 4 de H.264 cubre hasta 1920×1080 a 30 fps, así que 720p30 está holgado. Se fija para que `v4l2h264enc` no tenga que deducirlo en la negociación con `h264parse`, un punto donde este codificador falla en la RPi. **Pendiente (placa):** quitarlo una vez y anotar qué pasa, para que esta razón quede medida y no supuesta. |
+| `level=(string)4` | El nivel 4 de H.264 cubre hasta 1920×1080 a 30 fps, así que 720p30 está holgado. El filtro **coincide con el hardware**: el nivel por omisión del codificador ya es 4 (`h264_level default=11 (4)`, `C1-hardware-rpi4.txt`), y los segmentos grabados en la placa salen con nivel 4.0 (`A3-fps-rpi4.txt`). Declararlo deja escrito el nivel con que el flujo se anuncia a `h264parse`, `mp4mux` y al receptor, en vez de depender de lo que cada lado deduzca en la negociación. **Opcional (placa):** quitarlo una vez y anotar qué pasa. |
 
-**Por qué no se fija el perfil:** el perfil lo elige el codificador por
-hardware. Lo que importa para los consumidores (VLC, `avdec_h264` en el puesto
-de vigilancia, `mp4mux`) es que sea un perfil estándar de 8 bits 4:2:0, y la
-entrada en NV12/I420 lo garantiza. Fijar `profile=high` o `main` sin
-necesidad solo agrega una forma de fallar.
+**Por qué no se fija el perfil:** el perfil que importa a los consumidores
+(VLC, `avdec_h264` en el puesto de vigilancia, `mp4mux`) es cualquiera
+estándar de 8 bits 4:2:0. **Medido:** los segmentos grabados salen en perfil
+**Baseline**, aunque el perfil por omisión del control del codificador es
+High (`C1-hardware-rpi4.txt`). El perfil efectivo lo fija la negociación de
+caps de `v4l2h264enc`, no el valor por omisión del control. Baseline es el
+más compatible y no usa cuadros B, lo que conviene a la latencia; a cambio
+comprime algo peor que High a igual calidad. No se fija `profile=` porque el
+resultado actual ya sirve, y restringirlo solo agrega una forma de fallar.
 
 ### 3. Antes del appsink de clips: `video/x-h264,stream-format=byte-stream,alignment=au`
 
@@ -172,9 +201,30 @@ necesita, además del cuadro clave, los parámetros SPS/PPS para decodificarlo.
 `h264parse`) los reinsertan en cada cuadro clave. Sin ellos, el GOP corto no
 serviría: el cliente recibiría cuadros clave que no puede decodificar.
 
-**Pendiente (placa):** verificar que el codificador aplica el valor
-configurado (`v4l2-ctl -d /dev/video11 --get-ctrl=h264_i_frame_period`) y
-medir el intervalo real en un segmento grabado:
+**Medido en la placa** (3 segmentos de 59 s grabados el 2026-10-02 y
+extraídos con `recolectar-evidencia.sh`; detalle en `A3-fps-rpi4.txt`):
 
-    ffprobe -v error -select_streams v -show_frames -show_entries frame=pict_type,pts_time \
-        -of csv evidencia_00000.mp4 | grep ',I' | head
+| Intervalo entre cuadros clave | Veces |
+|---|---|
+| 1.012 s | 29 |
+| 1.008 s | 28 |
+| ~0.40 s (irregular) | 1 por segmento |
+
+Cuadro clave cada 30 cuadros, a la tasa real de 29.70 fps → **1.01 s**: el
+codificador aplica el valor configurado. Cumple RNF-2 (≤ 1 s de espera, con
+la tolerancia que impone la tasa real de la cámara).
+
+**El cuadro clave irregular.** Aparece uno por segmento, y su posición se
+corre ~1 s de un segmento al siguiente (t = 2.42 s, 3.44 s, 4.48 s). Es
+consistente con un cuadro clave forzado por `splitmuxsink`
+(`send-keyframe-requests=true`), que lo pide en una grilla de 60 s mientras
+los segmentos se cortan cada ~59 s. Es inofensivo: un IDR extra por minuto.
+No está verificado.
+
+**Por qué no sirve `v4l2-ctl --get-ctrl`.** Cada apertura de `/dev/video11`
+es un contexto independiente del bloque: consultarlo desde otro proceso
+muestra los valores por omisión (60), no los que fijó la aplicación. La
+verificación válida es la del archivo grabado:
+
+    ffprobe -v error -select_streams v -show_entries packet=pts_time,flags \
+        -of csv=p=0 evidencia_00027.mp4 | grep K | head
