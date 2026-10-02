@@ -57,6 +57,9 @@ class ServicioAcceso:
         )
         # CU-11/CU-12: credenciales registradas
         self._registro = RegistroCredenciales(cfg.credenciales.ruta)
+        # Serializa la escritura de imagenes de credenciales: un ALTA no puede
+        # generar su imagen mientras REGENERAR_QR esta vaciando la carpeta.
+        self._lock_imagenes = threading.Lock()
 
         # CU-13: el lector se construye ANTES que el pipeline, que
         # consulta si debe agregar la rama de cuadros crudos.
@@ -106,6 +109,7 @@ class ServicioAcceso:
                 cfg.eventos.red_puerto,
                 lambda texto: self._procesar_comando(texto, origen="red"),
                 cfg.eventos.red_clientes,
+                al_conectar=self._al_conectar_vigilante,
             )
 
     # ------------------------------------------------------------------ #
@@ -206,6 +210,8 @@ class ServicioAcceso:
             return self._baja(partes[1] if len(partes) > 1 else "")
         if verbo == "LISTAR":
             return True, self._registro.resumen()
+        if verbo == "REGENERAR_QR":
+            return self._regenerar_qr()
         if verbo == "ESTADO":
             return True, self._estado()
         if verbo == "PING":
@@ -386,11 +392,12 @@ class ServicioAcceso:
         # La credencial se genera y se VERIFICA: una que no se puede leer es
         # peor que no tenerla, porque el fallo aparece recien cuando la
         # persona esta en la puerta.
-        ruta = os.path.join(self._cfg.credenciales.directorio,
-                            f"{cred.identificador}.bmp")
+        ruta = self._ruta_imagen(cred.identificador)
         try:
-            generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
-            if not verificar(ruta, cred.identificador):
+            with self._lock_imagenes:
+                generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
+                legible = verificar(ruta, cred.identificador)
+            if not legible:
                 return False, (f"{cred.identificador} registrado, pero la "
                                "credencial generada no se decodifica")
         except Exception as exc:                      # noqa: BLE001
@@ -417,6 +424,56 @@ class ServicioAcceso:
 
         self._difundir(f"BAJA {cred.identificador} {cred.nombre}")
         return True, f"acceso revocado: {cred.identificador} | {cred.nombre}"
+
+    _EXT_IMAGEN = (".bmp", ".png", ".jpg", ".jpeg")
+
+    def _ruta_imagen(self, identificador: str) -> str:
+        return os.path.join(self._cfg.credenciales.directorio, f"{identificador}.bmp")
+
+    def _regenerar_qr(self) -> tuple[bool, str]:
+        """REGENERAR_QR: rehace las imagenes de las credenciales activas.
+
+        Borra TODAS las imagenes de la carpeta (incluidas las de credenciales
+        revocadas, que quedaban ahi sin servir) y genera de nuevo la de cada
+        credencial activa, con el MISMO identificador. El registro no cambia:
+        nadie gana ni pierde acceso, y un QR impreso antes sigue valiendo.
+        Para invalidar una credencial esta BAJA (+ ALTA con identificador nuevo).
+        """
+        directorio = self._cfg.credenciales.directorio
+        activas = self._registro.activas()
+        borradas = 0
+        fallidas: list[str] = []
+
+        with self._lock_imagenes:
+            os.makedirs(directorio, exist_ok=True)
+            for nombre in os.listdir(directorio):
+                ruta = os.path.join(directorio, nombre)
+                if os.path.isfile(ruta) and nombre.lower().endswith(self._EXT_IMAGEN):
+                    try:
+                        os.remove(ruta)
+                        borradas += 1
+                    except OSError as exc:
+                        log.warning("no se pudo borrar %s: %s", ruta, exc)
+
+            for cred in activas:
+                ruta = self._ruta_imagen(cred.identificador)
+                try:
+                    generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
+                    if not verificar(ruta, cred.identificador):
+                        fallidas.append(f"{cred.identificador} (no se decodifica)")
+                except Exception as exc:                  # noqa: BLE001
+                    log.error("no se pudo regenerar %s: %s", cred.identificador, exc)
+                    fallidas.append(f"{cred.identificador} ({exc})")
+
+        regeneradas = len(activas) - len(fallidas)
+        log.info("REGENERAR_QR: %d imagenes borradas, %d de %d credenciales "
+                 "regeneradas", borradas, regeneradas, len(activas))
+        self._difundir(f"QR-REGENERADOS {regeneradas}")
+        mensaje = (f"{regeneradas} credenciales regeneradas, "
+                   f"{borradas} imagenes viejas borradas")
+        if fallidas:
+            return False, mensaje + " | fallaron: " + ", ".join(fallidas)
+        return True, mensaje
 
     # ------------------------------------------------------------------ #
     # CU-13: llega una lectura de QR
@@ -464,6 +521,23 @@ class ServicioAcceso:
         if ok:
             self._difundir(f"QR-VISITANTE {cred.identificador} {cred.nombre} "
                            "requiere decision del vigilante")
+
+    # ------------------------------------------------------------------ #
+    # Destino de transmision automatico
+    # ------------------------------------------------------------------ #
+    def _al_conectar_vigilante(self, direccion: str) -> None:
+        """Lo llama red.py cuando un cliente se conecta al canal de decisiones.
+
+        La direccion sale del socket aceptado, asi que es la real del
+        vigilante sin que nadie la configure. Resuelve el caso de las IP que
+        rotan por DHCP: hasta ahora `host` era fijo en acceso.conf y quedaba
+        vieja en minutos, con el video dejando de llegar en silencio.
+        """
+        if not self._cfg.streaming.seguir_cliente:
+            return
+        if self._pipeline.cambiar_destino(direccion):
+            self._difundir(f"STREAMING hacia {direccion}:"
+                           f"{self._cfg.streaming.puerto}")
     # ------------------------------------------------------------------ #
     # E3: reconexion ante falla de la camara
     # ------------------------------------------------------------------ #

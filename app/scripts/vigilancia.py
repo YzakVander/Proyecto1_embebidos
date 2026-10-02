@@ -67,6 +67,7 @@ COMANDOS_PLACA = {
     "ALTA <rol> <nombre>": "registra una credencial (vigilante, mantenimiento, visitante)",
     "BAJA <id> [motivo]": "revoca una credencial",
     "LISTAR": "credenciales activas",
+    "REGENERAR_QR": "rehace las imagenes de las credenciales activas (mismos QR)",
     "PING": "mide el tiempo de ida y vuelta (RF-3)",
 }
 COMANDOS_LOCALES = {
