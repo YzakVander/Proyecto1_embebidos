@@ -1,0 +1,27 @@
+# G5 - versiones exactas de la plataforma
+# Serie Yocto: wrynose (5.1)
+# Generado: 2026-10-02T14:48:29-06:00
+
+CAPA                     RAMA         COMMIT
+bitbake                  2.18         84a8d046593840df460c1312365031c817eb8918
+meta-openembedded        wrynose      47d7dbdd10890bbd429bc0cccbe14435c37e5af1
+meta-raspberrypi         wrynose      f62c67921474370829d24a4fa01ef88543f3906b
+meta-yocto               wrynose      ddeeba423ff0565b8f1192f16072b5993d5ea6a0
+openembedded-core        wrynose      cc4695f65beb6e5069fbecc16475fa5a27c768e9
+proyecto-acceso          rol-b/plataforma d7f080bb03877ebd2ec086a50aa053c1549bdc88
+
+# Series compatibles declaradas por el core:
+LAYERSERIES_CORENAMES = "wrynose"
+LAYERSERIES_COMPAT_meta-acceso = "wrynose"
+
+# Capas activas en el build:
+BBLAYERS ?= " \
+  /home/daniel/proyecto-acceso/layers/openembedded-core/meta \
+  /home/daniel/proyecto-acceso/layers/meta-yocto/meta-poky \
+  /home/daniel/proyecto-acceso/layers/meta-raspberrypi \
+  /home/daniel/proyecto-acceso/layers/meta-openembedded/meta-oe \
+  /home/daniel/proyecto-acceso/layers/meta-openembedded/meta-python \
+  /home/daniel/proyecto-acceso/layers/meta-openembedded/meta-multimedia \
+  /home/daniel/proyecto-acceso/layers/meta-openembedded/meta-networking \
+  /home/daniel/proyecto-acceso/layers/meta-acceso \
+  "
