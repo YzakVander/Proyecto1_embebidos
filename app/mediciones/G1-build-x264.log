@@ -148,3 +148,30 @@ NOTE: recipe ffmpeg-8.0.3-r0: task do_configure: Started
 NOTE: recipe ffmpeg-8.0.3-r0: task do_configure: Succeeded
 NOTE: Running task 3739 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_compile)
 NOTE: recipe ffmpeg-8.0.3-r0: task do_compile: Started
+Bitbake still alive (no events for 600s). Active tasks:
+/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_compile
+/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_compile
+Bitbake still alive (no events for 1200s). Active tasks:
+/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_compile
+/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/ffmpeg/ffmpeg_8.0.3.bb:do_compile
+NOTE: recipe mesa-2_26.0.5-r0: task do_compile: Succeeded
+NOTE: Running task 3740 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_install)
+NOTE: recipe mesa-2_26.0.5-r0: task do_install: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_install: Succeeded
+NOTE: Running task 3741 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-graphics/mesa/mesa.bb:do_populate_sysroot)
+NOTE: recipe mesa-2_26.0.5-r0: task do_populate_sysroot: Started
+NOTE: recipe mesa-2_26.0.5-r0: task do_populate_sysroot: Succeeded
+NOTE: Running setscene task 4135 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-good_1.28.5.bb:do_populate_sysroot_setscene)
+NOTE: recipe gstreamer1.0-plugins-good-1.28.5-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe gstreamer1.0-plugins-good-1.28.5-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running setscene task 4156 of 4159 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.28.5.bb:do_populate_sysroot_setscene)
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_populate_sysroot_setscene: Started
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_populate_sysroot_setscene: Succeeded
+NOTE: Running task 3742 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.28.5.bb:do_prepare_recipe_sysroot)
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 3743 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.28.5.bb:do_configure)
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_configure: Started
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_configure: Succeeded
+NOTE: Running task 3744 of 7567 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.28.5.bb:do_compile)
+NOTE: recipe gstreamer1.0-plugins-base-1.28.5-r0: task do_compile: Started
