@@ -4,18 +4,18 @@
 # Se corre en la computadora de observacion. Trae por SSH la grabacion
 # continua (evidencia/), los clips de las solicitudes (eventos/) y la
 # bitacora (accesos.log), y fusiona los segmentos de 60 s en un unico MP4.
-# Ademas trae las imagenes QR de las credenciales ACTIVAS a <repo>/QR/.
+# Ademas trae las imagenes QR de las credenciales ACTIVAS.
 #
 # Resultado (se limpia en cada corrida):
 #   ~/recoleccion/evidencia/              segmentos originales
 #   ~/recoleccion/eventos/                clips de las solicitudes
 #   ~/recoleccion/accesos.log             bitacora de decisiones
 #   ~/recoleccion/evidencia_continua.mp4  todos los segmentos en un archivo
-#   <repo>/QR/ACC-XXXXXX.bmp               credenciales activas (mismo nombre
-#                                          que en la placa)
+#   ~/recoleccion/QR/ACC-XXXXXX.bmp       credenciales activas (mismo nombre
+#                                         que en la placa)
 #
 # OJO: un QR de vigilante o mantenimiento abre la puerta sin intervencion
-# del vigilante. No subir la carpeta QR/ a un repositorio publico.
+# del vigilante. No copiar la carpeta QR/ a un repositorio publico.
 #
 # Requisitos en esta computadora: sshpass, ffmpeg y python3
 #   sudo apt install sshpass ffmpeg
@@ -36,12 +36,9 @@ CLAVE="${CLAVE-}"
 REMOTO="/var/lib/acceso"                # StateDirectory del servicio
 DESTINO="${DESTINO:-$HOME/recoleccion}"
 CONTINUA="evidencia_continua.mp4"
-
-# La raiz del repo esta dos niveles arriba de app/scripts/, sin importar
-# desde que carpeta se corra el script.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
-QR_DIR="${QR_DIR:-$REPO/QR}"
+# Los QR van junto con el resto de la recoleccion, fuera del repositorio:
+# asi no se suben a GitHub por accidente con un git add.
+QR_DIR="${QR_DIR:-$DESTINO/QR}"
 
 # Sin verificacion de huella: en el laboratorio la IP cambia de placa y al
 # regrabar la microSD la huella cambia; con verificacion el script se
@@ -77,7 +74,7 @@ rm -rf "$DESTINO/evidencia" "$DESTINO/eventos" \
        "$DESTINO/accesos.log" "$DESTINO/$CONTINUA"
 rm -rf "$QR_DIR"
 mkdir -p "$QR_DIR"
-echo "== Recoleccion limpia en $DESTINO y $QR_DIR"
+echo "== Recoleccion limpia en $DESTINO"
 
 # --- 2. Transferencia ----------------------------------------------------
 echo "== Conectando con $USUARIO@$IP ..."

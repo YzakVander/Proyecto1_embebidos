@@ -11,6 +11,9 @@ Reemplaza a `nc` y a las terminales aparte del receptor y de la recoleccion:
   * Atiende comandos LOCALES que no se envian a la placa:
         RECOLECTAR  trae evidencia, eventos, bitacora y QR activos
                     (corre recolectar-evidencia.sh en segundo plano)
+        BORRAR_VIDEOS_LOG
+                    borra en la placa los videos de evidencia, los clips
+                    de eventos y la bitacora (pide confirmacion)
         VIDEO       vuelve a abrir la ventana del video
         AYUDA       lista de comandos
         SALIR       cierra el cliente (la placa sigue funcionando)
@@ -48,6 +51,14 @@ except ImportError:   # pragma: no cover (Windows)
 AQUI = Path(__file__).resolve().parent
 SCRIPT_RECOLECTAR = AQUI / "recolectar-evidencia.sh"
 
+REMOTO = "/var/lib/acceso"              # StateDirectory del servicio en la placa
+SERVICIO = "acceso-control"
+# Mismas opciones que recolectar-evidencia.sh: sin verificar la huella, que
+# cambia al regrabar la microSD (aceptable en una red de laboratorio).
+SSH_OPC = ["-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+           "-o", "LogLevel=ERROR", "-o", "ConnectTimeout=5",
+           "-o", f"Port={os.environ.get('PUERTO', '22')}"]
+
 COMANDOS_PLACA = {
     "SOLICITUD [id]": "abre una solicitud a mano (persona sin credencial)",
     "PERMITIR": "resuelve la solicitud pendiente como permitida",
@@ -60,6 +71,7 @@ COMANDOS_PLACA = {
 }
 COMANDOS_LOCALES = {
     "RECOLECTAR": "trae evidencia, eventos, bitacora y QR activos a esta computadora",
+    "BORRAR_VIDEOS_LOG": "borra en la placa evidencia, eventos y bitacora (pide confirmacion)",
     "VIDEO": "vuelve a abrir la ventana del video",
     "AYUDA": "esta lista",
     "SALIR": "cierra el cliente (la placa sigue funcionando)",
@@ -303,6 +315,77 @@ class Recolector:
 
 
 # ---------------------------------------------------------------------- #
+# Borrado de evidencia y bitacora en la placa
+# ---------------------------------------------------------------------- #
+class Borrador:
+    """Borra en la placa los videos de evidencia, los clips y la bitacora.
+
+    Se hace por SSH y no por el canal 5001: asi no hace falta cambiar el
+    codigo de la placa, y nadie conectado al canal de decisiones puede borrar
+    la evidencia (por la misma razon el servidor rechaza SALIR por red).
+
+    El servicio se detiene antes de borrar: el segmento en curso se cierra
+    bien y la app no escribe la bitacora mientras se vacia. Se vuelve a
+    arrancar aunque el borrado falle, para no dejar la placa sin servicio.
+    Las credenciales no se tocan.
+    """
+
+    # 10 = no se pudo detener el servicio (no se borro nada)
+    # 11 = se borro, pero el servicio no volvio a arrancar
+    COMANDO = (
+        f"systemctl stop {SERVICIO} || exit 10; "
+        f"rm -f {REMOTO}/evidencia/* {REMOTO}/eventos/* "
+        f"&& : > {REMOTO}/accesos.log; err=$?; "
+        f"systemctl start {SERVICIO} || exit 11; "
+        f"du -sh {REMOTO}/evidencia {REMOTO}/eventos; "
+        f"echo \"$(wc -l < {REMOTO}/accesos.log) entradas en accesos.log\"; "
+        "exit $err"
+    )
+
+    def __init__(self, ip: str, clave: str | None, consola: Consola) -> None:
+        self._ip = ip
+        # Misma contrasena que la recoleccion: vacia por defecto, como la imagen
+        self._clave = clave if clave is not None else os.environ.get("CLAVE", "")
+        self._consola = consola
+        self._hilo: threading.Thread | None = None
+
+    def en_curso(self) -> bool:
+        return self._hilo is not None and self._hilo.is_alive()
+
+    def lanzar(self) -> None:
+        self._hilo = threading.Thread(target=self._correr, name="borrar", daemon=True)
+        self._hilo.start()
+
+    def _correr(self) -> None:
+        self._consola.escribir("borrando en la placa (el servicio se reinicia: "
+                               "la conexion se corta unos segundos) ...", "info")
+        try:
+            proc = subprocess.run(
+                ["sshpass", "-p", self._clave, "ssh", *SSH_OPC,
+                 f"root@{self._ip}", self.COMANDO],
+                stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                errors="replace", timeout=90)
+        except subprocess.TimeoutExpired:
+            self._consola.escribir("el borrado no respondio en 90 s", "error")
+            return
+        for linea in (proc.stdout + proc.stderr).splitlines():
+            if linea.strip():
+                self._consola.escribir(f"[borrar] {linea}", "info")
+        if proc.returncode == 0:
+            self._consola.escribir("evidencia, eventos y bitacora borrados en la placa", "ok")
+        elif proc.returncode == 10:
+            self._consola.escribir("no se pudo detener el servicio: no se borro nada", "error")
+        elif proc.returncode == 11:
+            self._consola.escribir("se borro, pero el servicio NO volvio a arrancar: "
+                                   "revisar la placa (systemctl status acceso-control)", "error")
+        elif proc.returncode == 255:
+            self._consola.escribir(f"no se pudo entrar por SSH a root@{self._ip} "
+                                   "(IP o contrasena)", "error")
+        else:
+            self._consola.escribir(f"el borrado fallo (codigo {proc.returncode})", "error")
+
+
+# ---------------------------------------------------------------------- #
 def ayuda(consola: Consola) -> None:
     consola.escribir("Comandos para la placa:")
     for cmd, desc in COMANDOS_PLACA.items():
@@ -328,6 +411,7 @@ def main() -> int:
     video = Video(args.video_puerto, consola)
     canal = Canal(args.ip, args.puerto, consola)
     recolector = Recolector(args.ip, args.clave, consola)
+    borrador = Borrador(args.ip, args.clave, consola)
 
     print(f"Puesto de vigilancia -> placa {args.ip}:{args.puerto}   (AYUDA para ver comandos)")
     # El video primero: cuando la placa redirija el stream al conectarnos,
@@ -346,15 +430,39 @@ def main() -> int:
                 continue
             verbo = texto.split()[0].upper()
             if verbo == "SALIR":
-                if recolector.en_curso():
-                    consola.escribir("hay una recoleccion en curso: esperar a que "
-                                     "termine antes de SALIR", "error")
+                if recolector.en_curso() or borrador.en_curso():
+                    consola.escribir("hay una recoleccion o un borrado en curso: "
+                                     "esperar a que termine antes de SALIR", "error")
                     continue
                 break
             if verbo == "AYUDA":
                 ayuda(consola)
             elif verbo == "RECOLECTAR":
-                recolector.lanzar()
+                if borrador.en_curso():
+                    consola.escribir("hay un borrado en curso: esperar a que termine", "error")
+                else:
+                    recolector.lanzar()
+            elif verbo == "BORRAR_VIDEOS_LOG":
+                if recolector.en_curso():
+                    # Borraria los archivos que la recoleccion esta copiando
+                    consola.escribir("hay una recoleccion en curso: esperar a que "
+                                     "termine antes de borrar", "error")
+                elif borrador.en_curso():
+                    consola.escribir("ya hay un borrado en curso", "info")
+                elif shutil.which("sshpass") is None:
+                    consola.escribir("falta sshpass (sudo apt install sshpass)", "error")
+                else:
+                    consola.escribir("Se borraran TODOS los videos de evidencia, los clips "
+                                     "de eventos y la bitacora de la placa. Las credenciales "
+                                     "se conservan.", "error")
+                    try:
+                        respuesta = input("Escribir SI para confirmar: ").strip()
+                    except EOFError:
+                        respuesta = ""
+                    if respuesta == "SI":
+                        borrador.lanzar()
+                    else:
+                        consola.escribir("borrado cancelado", "info")
             elif verbo == "VIDEO":
                 video.abrir()
             elif not canal.enviar(texto):
