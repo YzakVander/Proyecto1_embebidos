@@ -56,9 +56,9 @@
 
 ### **Requisito funcional 7: Retención de evidencia por umbral**
 
-* **Enunciado:** El sistema deberá mantener el almacenamiento de evidencia por debajo de un umbral configurable, eliminando los segmentos más antiguos.
+* **Enunciado:** El sistema deberá mantener cada carpeta de evidencia (`evidencia/` y `eventos/`) por debajo de su propio tope configurable en megabytes, eliminando primero sus archivos más antiguos sin borrar el segmento en curso, y al iniciar deberá eliminar los archivos MP4 corruptos (sin índice) de ambas carpetas.
 * **Trazabilidad:** Caso de uso 8.
-* **Método de Verificación:** Prueba de llenado intencional (ej. con `fallocate`) y verificación de liberación de espacio.
+* **Método de Verificación:** Prueba con topes reducidos en `acceso.conf` (pocos MB): verificar en la bitácora del servicio que cada carpeta se mantiene bajo su tope y que se borran los archivos más antiguos. Para los corruptos, truncar un MP4 copiado en la carpeta, reiniciar el servicio y verificar que se elimina.
 
 ---
 
@@ -91,6 +91,30 @@
 * **Enunciado:** Al detenerse, el sistema deberá cerrar ordenadamente el archivo de video en curso de modo que resulte reproducible.
 * **Trazabilidad:** Caso de uso 9.
 * **Método de Verificación:** Prueba de detención del servicio y validación de la integridad del último archivo `.mp4` (ej. usando `ffprobe`).
+
+---
+
+### **Requisito funcional 12: Lectura de credenciales QR**
+
+* **Enunciado:** La aplicación deberá detectar y decodificar el identificador de una credencial QR presentada ante la cámara, analizando el video en vivo a una tasa configurable (5 análisis por segundo por defecto), sin reducir la tasa de transmisión exigida en el requisito funcional 1.
+* **Trazabilidad:** Caso de uso 13.
+* **Método de Verificación:** Presentar una credencial ocupando al menos el 25 % del alto de la imagen y medir en la bitácora del servicio el tiempo hasta su detección; verificar simultáneamente la tasa de cuadros en el puesto de vigilancia.
+
+---
+
+### **Requisito funcional 13: Resolución de acceso según el rol de la credencial**
+
+* **Enunciado:** Al leer una credencial activa con rol de vigilante o mantenimiento, el sistema deberá otorgar el acceso sin intervención del vigilante; ante una credencial de visitante, desconocida o revocada, deberá abrir una solicitud que requiera la decisión del vigilante.
+* **Trazabilidad:** Caso de uso 13, Caso de uso 12.
+* **Método de Verificación:** Prueba con una credencial de cada tipo (mantenimiento, visitante, revocada y no registrada) y verificación del resultado en la bitácora de accesos y en el puesto de vigilancia.
+
+---
+
+### **Requisito funcional 14: Gestión persistente de credenciales**
+
+* **Enunciado:** El sistema deberá permitir registrar, revocar y listar credenciales desde el puesto de vigilancia por el canal de red, conservando las credenciales revocadas como registro histórico y persistiendo el registro entre reinicios.
+* **Trazabilidad:** Caso de uso 11, Caso de uso 12.
+* **Método de Verificación:** Ejecutar los comandos de alta, baja y listado; reiniciar el sistema operativo y verificar que el registro (`credenciales.json`) conserva todas las credenciales con su estado.
 
 ---
 

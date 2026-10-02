@@ -38,6 +38,7 @@
 
 * **Actor Principal:** Persona en el puesto de vigilancia.
 * **Propósito:** Evaluar visualmente la presencia de un sujeto en la puerta y resolver una solicitud de ingreso.
+* **Alcance:** Persona que se presenta sin credencial QR. Si la persona porta credencial, la solicitud se abre al leerla (caso de uso 13).
 * **Precondiciones:** La aplicación se encuentra en ejecución transmitiendo video en vivo y la computadora del puesto de vigilancia está conectada a la Raspberry Pi 4 por la red (canal TCP de decisiones).
 * **Flujo Principal:**
   1. Una persona se presenta en el punto de acceso y es observada por la persona en el puesto de vigilancia a través del video en vivo.
@@ -53,7 +54,7 @@
 
 * **Actor Principal:** Sujeto que solicita acceso.
 * **Propósito:** Percibir el resultado de la solicitud de ingreso mediante una señal acústica.
-* **Precondiciones:** El Caso de Uso 3 o el Caso de Uso 5 fue ejecutado y el buzzer pasivo está conectado a la línea GPIO 18 de la Raspberry Pi 4, con el PWM de hardware habilitado.
+* **Precondiciones:** El Caso de Uso 3, el Caso de Uso 5 o el Caso de Uso 13 fue ejecutado y el buzzer pasivo está conectado a la línea GPIO 18 de la Raspberry Pi 4, con el PWM de hardware habilitado.
 * **Flujo Principal:**
   1. La aplicación en Python dentro de la Raspberry genera, mediante el PWM de hardware, una señal cuadrada en la línea GPIO 18 con un tono distinto según el resultado: un tono agudo continuo si se permite el acceso, o una serie de pitidos graves si se deniega.
   2. El sujeto en la puerta escucha el tono y reconoce el resultado. Simultáneamente, la aplicación muestra un mensaje con el resultado en la consola de la Raspberry Pi 4.
@@ -66,7 +67,7 @@
 
 * **Actor Principal:** Sujeto que solicita acceso.
 * **Propósito:** Denegar el acceso por defecto (estado seguro) cuando no hay respuesta desde el puesto de vigilancia en el tiempo límite.
-* **Precondiciones:** La persona en el puesto de vigilancia inició una solicitud (caso de uso 3) y el sistema está a la espera de su decisión.
+* **Precondiciones:** Hay una solicitud abierta que requiere decisión del vigilante, ya sea iniciada por él (caso de uso 3) o escalada por la lectura de una credencial de visitante, desconocida o revocada (caso de uso 13), y el sistema está a la espera de su decisión.
 * **Flujo Principal:**
   1. El sistema inicia un temporizador de espera de decisión al abrirse la solicitud de acceso.
   2. El vigilante no emite una respuesta dentro del plazo máximo definido.
@@ -107,12 +108,15 @@
 
 * **Actor Principal:** Persona de mantenimiento / Administrador del sistema.
 * **Propósito:** Evitar la caída del sistema por falta de espacio en disco gestionando las grabaciones de video mediante una política de retención.
-* **Precondiciones:** La partición o directorio de almacenamiento de la Raspberry Pi 4 se acerca a su límite máximo de capacidad.
+* **Precondiciones:** La aplicación está en ejecución y cada carpeta de evidencia tiene un tope de ocupación configurado: `evidencia/` (grabación continua) y `eventos/` (clips de las solicitudes).
 * **Flujo Principal:**
   1. La aplicación genera continuamente los archivos de video.
-  2. El sistema detecta que el espacio disponible alcanzó el límite mínimo de almacenamiento permitido.
-  3. La aplicación ejecuta la política de retención para liberar espacio de forma dinámica.
-* **Postcondiciones:** Se libera espacio en el almacenamiento, permitiendo que la grabación de la evidencia continúe de forma ininterrumpida.
+  2. Al cerrarse cada segmento, después de cada clip y de forma periódica, el sistema compara lo que ocupa cada carpeta con su tope.
+  3. Si una carpeta supera su tope, la aplicación borra sus archivos más antiguos hasta quedar por debajo: en `evidencia/` los segmentos de número más bajo y en `eventos/` los clips con la fecha más antigua en su nombre. Nunca borra el segmento en curso ni archivos de la otra carpeta.
+* **Flujo Alterno (arranque tras una interrupción):**
+  1. Al iniciar, antes de comenzar a grabar, la aplicación revisa los MP4 de ambas carpetas y borra los que quedaron corruptos (sin índice) por un corte de energía o un cierre forzado.
+  2. La numeración de los segmentos continúa a partir del más alto existente, de modo que no se sobrescribe evidencia anterior.
+* **Postcondiciones:** Cada carpeta se mantiene por debajo de su tope, permitiendo que la grabación de la evidencia continúe de forma ininterrumpida.
 
 ---
 
@@ -140,3 +144,50 @@
   2. El sistema accede al medio de almacenamiento no volátil.
   3. El usuario lee y revisa las entradas con marcas de tiempo y el estado final de cada acceso.
 * **Postcondiciones:** La bitácora se consulta exitosamente demostrando la persistencia de los eventos en el tiempo.
+
+---
+
+### **Caso de uso 11: Registro de una credencial QR**
+
+* **Actor Principal:** Persona en el puesto de vigilancia.
+* **Propósito:** Autorizar a una persona para identificarse en el punto de acceso mediante una credencial QR.
+* **Precondiciones:** La aplicación está en ejecución y la computadora del puesto de vigilancia está conectada a la Raspberry Pi 4 por el canal TCP de decisiones.
+* **Flujo Principal:**
+  1. La persona en el puesto de vigilancia envía a la placa el comando de alta con el rol (vigilante, mantenimiento o visitante) y el nombre de la persona.
+  2. La Raspberry Pi 4 asigna un identificador aleatorio (ej. `ACC-7F3A91`), registra la credencial en el almacenamiento persistente y genera la imagen de la credencial: el QR contiene solo el identificador, y el nombre y el rol se imprimen fuera del código.
+  3. La Raspberry Pi 4 relee la imagen generada y verifica que el QR se decodifique correctamente.
+  4. La Raspberry Pi 4 confirma el alta al puesto de vigilancia, indicando el identificador y la ruta de la imagen.
+* **Postcondiciones:** La credencial queda activa y su imagen disponible para entregarse a la persona (impresa o en pantalla).
+
+---
+
+### **Caso de uso 12: Revocación de una credencial QR**
+
+* **Actor Principal:** Persona en el puesto de vigilancia.
+* **Propósito:** Retirar el acceso de una persona sin perder el registro histórico de su credencial.
+* **Precondiciones:** La credencial fue registrada previamente (caso de uso 11) y está activa.
+* **Flujo Principal:**
+  1. La persona en el puesto de vigilancia envía a la placa el comando de baja con el identificador de la credencial y, opcionalmente, el motivo.
+  2. La Raspberry Pi 4 marca la credencial como inactiva y registra la fecha de la baja, conservando el registro.
+  3. La Raspberry Pi 4 confirma la revocación al puesto de vigilancia.
+* **Postcondiciones:** Si la credencial revocada se presenta ante la cámara, el sistema no otorga acceso automático y escala la decisión al puesto de vigilancia (caso de uso 13).
+
+---
+
+### **Caso de uso 13: Acceso por lectura de credencial QR**
+
+* **Actor Principal:** Sujeto que solicita acceso.
+* **Propósito:** Identificar al sujeto por su credencial QR y resolver el acceso según su rol, con intervención del vigilante solo cuando hace falta.
+* **Precondiciones:** La aplicación está en ejecución con el lector de QR activo y no hay otra solicitud pendiente.
+* **Flujo Principal (credencial activa de vigilante o mantenimiento):**
+  1. El sujeto muestra su credencial frente a la cámara del punto de acceso.
+  2. La aplicación detecta y decodifica el QR en el video en vivo y busca el identificador en el registro de credenciales.
+  3. La aplicación abre la solicitud y la resuelve de inmediato como permitida, notificándolo al puesto de vigilancia.
+  4. Se registra la decisión en la bitácora, se guarda el clip del evento y se indica el resultado al sujeto (caso de uso 4).
+* **Flujo Alterno (credencial de visitante, desconocida o revocada):**
+  1. La aplicación abre la solicitud y notifica al puesto de vigilancia que requiere su decisión.
+  2. La solicitud continúa como en el caso de uso 3 desde la decisión del vigilante; si no hay respuesta dentro del plazo, se aplica el caso de uso 5.
+* **Flujo Alterno (lectura repetida):**
+  1. Si el mismo identificador se lee de nuevo dentro del tiempo de enfriamiento configurado (5 s por defecto), la lectura se ignora para no abrir solicitudes duplicadas.
+* **Postcondiciones:** La solicitud queda resuelta y registrada con el identificador de la credencial, y la Raspberry Pi 4 queda lista para una nueva solicitud.
+
