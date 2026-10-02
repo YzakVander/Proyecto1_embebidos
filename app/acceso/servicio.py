@@ -1,20 +1,31 @@
 """Orquestador del sistema de control de acceso.
 
-Arquitectura de hilos (H1)
+Arquitectura de hilos (H1) - detalle y diagrama en docs/H1-arquitectura-hilos.md
 --------------------------
-  1. Hilo de GStreamer      - captura, codifica, transmite, graba.
-                              Nunca espera a nadie.
-  2. Hilo de eventos        - lee las decisiones del vigilante desde el FIFO.
-  3. Hilo por solicitud     - espera la decision con su plazo (H2) y escribe
-                              el clip. Al desprenderse del hilo de eventos,
-                              varias solicitudes pueden convivir.
-  4. Hilo de reconexion     - E3: reintenta levantar la tuberia tras una falla.
-  5. Hilos de red           - CU-3: uno por puesto de vigilancia conectado por
+  1. Hilo principal         - bucle de GLib: mensajes del bus (E1) y senales
+                              de apagado. Lanza la reconexion si hay error.
+  2. Hilos de GStreamer     - uno por queue: captura, codifican, transmiten,
+                              graban. Corren los callbacks de los appsink.
+                              Nunca esperan a nadie.
+  3. Hilo de eventos        - lee los comandos locales desde el FIFO.
+  4. Hilos de red           - CU-3: uno por puesto de vigilancia conectado por
                               TCP (red.py). Usan el mismo procesador de
                               comandos que el FIFO.
+  5. Hilo por solicitud     - espera la decision con su plazo (H2), anota la
+                              bitacora y escribe el clip. Al desprenderse del
+                              hilo que la abrio, varias solicitudes pueden
+                              convivir.
+  6. Hilo del lector QR     - CU-13: analiza con OpenCV el ultimo cuadro
+                              (lector_qr.py). Es el clasificador.
+  7. Hilo de retencion      - RF-7: borra los archivos mas viejos
+                              (retencion.py).
+  8. Hilo del buzzer        - RF-5: reproduce el patron de tonos, uno por
+                              indicacion (actuador.py).
+  9. Hilo de reconexion     - E3: reintenta levantar la tuberia tras una falla.
 
-El callback del appsink (hilo 1) solo copia bytes a la deque y retorna: B5.
-Toda escritura a disco ocurre en el hilo 3.
+Los callbacks de los appsink (hilos 2) solo copian bytes y retornan: B5.
+Los hilos de GStreamer solo escriben la grabacion continua (splitmuxsink);
+los clips y la bitacora se escriben en el hilo 5.
 """
 
 from __future__ import annotations
