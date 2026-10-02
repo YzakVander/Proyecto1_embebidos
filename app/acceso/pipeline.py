@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 
 import gi
 import numpy as np
@@ -88,9 +89,10 @@ class PipelineAcceso:
             # tope de 1 s llega antes que el de 200 buffers o 10 MB), pero
             # escritos: 1 s absorbe el jitter de escritura a la microSD y
             # esta rama no es la de baja latencia. Sin leaky: la evidencia
-            # no se descarta (B2).
+            # no se descarta (B2). El nombre lo usa detener() (E4).
             partes.append(
-                f"t_h264. ! queue max-size-buffers=0 max-size-bytes=0 "
+                f"t_h264. ! queue name=queue_grabacion "
+                f"max-size-buffers=0 max-size-bytes=0 "
                 f"max-size-time=1000000000 "
                 f"! splitmuxsink name=grabador location={ruta} "
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
@@ -271,23 +273,78 @@ class PipelineAcceso:
             raise RuntimeError("la tuberia no pudo pasar a PLAYING")
         log.info("tuberia en PLAYING")
 
-    def detener(self, tiempo_eos_s: float = 10.0) -> None:
-        """E4: EOS -> espera -> NULL. Sin esto el ultimo MP4 queda invalido."""
+    def detener(self, tiempo_cierre_s: float = 5.0) -> None:
+        """E4 / B6: cierre ordenado. El ultimo MP4 tiene que quedar reproducible.
+
+        Coordinacion del EOS entre los sinks (B6)
+        -----------------------------------------
+        Solo splitmuxsink escribe un archivo que se corrompe si no recibe EOS
+        (sin la caja moov no se puede reproducir). udpsink y los dos appsink
+        no tienen nada que cerrar. Por eso la grabacion recibe su PROPIO EOS,
+        inyectado directamente en su queue, y se espera a que splitmuxsink
+        confirme el cierre del segmento.
+
+        Por que no basta con el EOS a la fuente: para llegar a splitmuxsink
+        tiene que atravesar v4l2jpegdec, v4l2convert y v4l2h264enc, que al
+        recibirlo vacian el bloque bcm2835-codec. En la RPi 4 ese vaciado no
+        termina nunca: el EOS no llegaba en 10 s y el segmento quedaba con
+        mdat=0 y sin moov (mediciones/E4-cierre-limpio.txt y
+        E4-eos-no-llega.txt). El EOS a la fuente se sigue enviando para que
+        las demas ramas cierren si pueden, pero ya no se espera.
+
+        tiempo_cierre_s debe caber holgado en TimeoutStopSec=20 de la unidad.
+        """
         if self._pipeline is None:
             return
         log.info("enviando EOS para cerrar los contenedores")
         self._pipeline.send_event(Gst.Event.new_eos())
 
         bus = self._pipeline.get_bus()
-        msg = bus.timed_pop_filtered(
-            int(tiempo_eos_s * Gst.SECOND),
-            Gst.MessageType.EOS | Gst.MessageType.ERROR,
-        )
-        if msg is None:
-            log.warning("no llego EOS en %.1f s; se cierra de todos modos", tiempo_eos_s)
+        cola = self._pipeline.get_by_name("queue_grabacion")
+        if cola is None:
+            # Sin rama de grabacion no hay archivo que cerrar: se espera el
+            # EOS general como antes, solo para cerrar ordenadamente.
+            msg = bus.timed_pop_filtered(
+                int(tiempo_cierre_s * Gst.SECOND),
+                Gst.MessageType.EOS | Gst.MessageType.ERROR,
+            )
+            if msg is None:
+                log.warning("no llego EOS en %.1f s; se cierra de todos modos",
+                            tiempo_cierre_s)
+        else:
+            cola.get_static_pad("sink").send_event(Gst.Event.new_eos())
+            self._esperar_cierre_segmento(bus, tiempo_cierre_s)
 
         self._pipeline.set_state(Gst.State.NULL)
         log.info("tuberia en NULL")
+
+    def _esperar_cierre_segmento(self, bus: Gst.Bus, tiempo_s: float) -> bool:
+        """Espera el mensaje splitmuxsink-fragment-closed del ultimo segmento.
+
+        El bucle de GLib ya termino, asi que el watch del bus (_al_mensaje) no
+        consume los mensajes: se leen aqui directamente.
+        """
+        limite = time.monotonic() + tiempo_s
+        while True:
+            restante = limite - time.monotonic()
+            if restante <= 0:
+                log.error("el segmento %s no se cerro en %.1f s: puede quedar "
+                          "irreproducible", self.segmento_actual, tiempo_s)
+                return False
+            msg = bus.timed_pop_filtered(
+                int(restante * Gst.SECOND),
+                Gst.MessageType.ELEMENT | Gst.MessageType.ERROR,
+            )
+            if msg is None:
+                continue
+            if msg.type == Gst.MessageType.ERROR:
+                err, _debug = msg.parse_error()
+                log.error("error al cerrar la grabacion: %s", err.message)
+                return False
+            st = msg.get_structure()
+            if st and st.get_name() == "splitmuxsink-fragment-closed":
+                log.info("segmento cerrado al detener: %s", st.get_string("location"))
+                return True
 
     def liberar(self) -> None:
         if self._pipeline is not None:
