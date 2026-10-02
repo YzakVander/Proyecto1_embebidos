@@ -57,6 +57,9 @@ class ServicioAcceso:
         )
         # CU-11/CU-12: credenciales registradas
         self._registro = RegistroCredenciales(cfg.credenciales.ruta)
+        # Serializa la escritura de imagenes de credenciales: un ALTA no puede
+        # generar su imagen mientras REGENERAR_QR esta vaciando la carpeta.
+        self._lock_imagenes = threading.Lock()
 
         # CU-13: el lector se construye ANTES que el pipeline, que
         # consulta si debe agregar la rama de cuadros crudos.
@@ -207,6 +210,10 @@ class ServicioAcceso:
             return self._baja(partes[1] if len(partes) > 1 else "")
         if verbo == "LISTAR":
             return True, self._registro.resumen()
+        if verbo == "REGENERAR_QR":
+            return self._regenerar_qr()
+        if verbo == "BORRAR_CREDENCIALES":
+            return self._borrar_credenciales(partes[1] if len(partes) > 1 else "")
         if verbo == "ESTADO":
             return True, self._estado()
         if verbo == "PING":
@@ -387,11 +394,12 @@ class ServicioAcceso:
         # La credencial se genera y se VERIFICA: una que no se puede leer es
         # peor que no tenerla, porque el fallo aparece recien cuando la
         # persona esta en la puerta.
-        ruta = os.path.join(self._cfg.credenciales.directorio,
-                            f"{cred.identificador}.bmp")
+        ruta = self._ruta_imagen(cred.identificador)
         try:
-            generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
-            if not verificar(ruta, cred.identificador):
+            with self._lock_imagenes:
+                generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
+                legible = verificar(ruta, cred.identificador)
+            if not legible:
                 return False, (f"{cred.identificador} registrado, pero la "
                                "credencial generada no se decodifica")
         except Exception as exc:                      # noqa: BLE001
@@ -418,6 +426,77 @@ class ServicioAcceso:
 
         self._difundir(f"BAJA {cred.identificador} {cred.nombre}")
         return True, f"acceso revocado: {cred.identificador} | {cred.nombre}"
+
+    _EXT_IMAGEN = (".bmp", ".png", ".jpg", ".jpeg")
+
+    def _ruta_imagen(self, identificador: str) -> str:
+        return os.path.join(self._cfg.credenciales.directorio, f"{identificador}.bmp")
+
+    def _borrar_imagenes(self) -> int:
+        """Borra las imagenes de credenciales. Llamar con _lock_imagenes tomado."""
+        directorio = self._cfg.credenciales.directorio
+        os.makedirs(directorio, exist_ok=True)
+        borradas = 0
+        for nombre in os.listdir(directorio):
+            ruta = os.path.join(directorio, nombre)
+            if os.path.isfile(ruta) and nombre.lower().endswith(self._EXT_IMAGEN):
+                try:
+                    os.remove(ruta)
+                    borradas += 1
+                except OSError as exc:
+                    log.warning("no se pudo borrar %s: %s", ruta, exc)
+        return borradas
+
+    def _borrar_credenciales(self, confirmacion: str) -> tuple[bool, str]:
+        """BORRAR_CREDENCIALES SI: vacia el registro y borra las imagenes.
+
+        Exige la palabra SI como argumento: un comando que deja sin acceso
+        por QR a todo el personal no puede ejecutarse por un error de tipeo.
+        El cliente de vigilancia la pide al usuario antes de enviarlo.
+        """
+        if confirmacion.strip() != "SI":
+            return False, ("comando destructivo: enviar 'BORRAR_CREDENCIALES SI' "
+                           "para confirmar")
+        with self._lock_imagenes:
+            n = self._registro.vaciar()
+            borradas = self._borrar_imagenes()
+        self._difundir(f"CREDENCIALES-BORRADAS {n}")
+        return True, (f"{n} credenciales eliminadas (activas y revocadas), "
+                      f"{borradas} imagenes borradas")
+
+    def _regenerar_qr(self) -> tuple[bool, str]:
+        """REGENERAR_QR: rehace las imagenes de las credenciales activas.
+
+        Borra TODAS las imagenes de la carpeta (incluidas las de credenciales
+        revocadas, que quedaban ahi sin servir) y genera de nuevo la de cada
+        credencial activa, con el MISMO identificador. El registro no cambia:
+        nadie gana ni pierde acceso, y un QR impreso antes sigue valiendo.
+        Para invalidar una credencial esta BAJA (+ ALTA con identificador nuevo).
+        """
+        activas = self._registro.activas()
+        fallidas: list[str] = []
+
+        with self._lock_imagenes:
+            borradas = self._borrar_imagenes()
+            for cred in activas:
+                ruta = self._ruta_imagen(cred.identificador)
+                try:
+                    generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
+                    if not verificar(ruta, cred.identificador):
+                        fallidas.append(f"{cred.identificador} (no se decodifica)")
+                except Exception as exc:                  # noqa: BLE001
+                    log.error("no se pudo regenerar %s: %s", cred.identificador, exc)
+                    fallidas.append(f"{cred.identificador} ({exc})")
+
+        regeneradas = len(activas) - len(fallidas)
+        log.info("REGENERAR_QR: %d imagenes borradas, %d de %d credenciales "
+                 "regeneradas", borradas, regeneradas, len(activas))
+        self._difundir(f"QR-REGENERADOS {regeneradas}")
+        mensaje = (f"{regeneradas} credenciales regeneradas, "
+                   f"{borradas} imagenes viejas borradas")
+        if fallidas:
+            return False, mensaje + " | fallaron: " + ", ".join(fallidas)
+        return True, mensaje
 
     # ------------------------------------------------------------------ #
     # CU-13: llega una lectura de QR
