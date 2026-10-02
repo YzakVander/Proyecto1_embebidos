@@ -21,7 +21,13 @@ IMAGE_INSTALL:append = "\
 "
 
 # Espacio para la evidencia en video
-IMAGE_ROOTFS_EXTRA_SPACE = "1048576"
+# 8 GiB para la evidencia. El tope de retencion de la aplicacion es de
+# 6000 MiB, asi que la particion queda por encima: si fuera al reves el
+# disco se llenaria antes de que la politica de retencion actuara, y el
+# sistema dejaria de grabar sin que nada lo advirtiera.
+# Medido: a 640x480 y 800 kbit/s un segmento de 60 s pesa ~6 MiB, de modo
+# que 6000 MiB son unas 16 horas de grabacion continua.
+IMAGE_ROOTFS_EXTRA_SPACE = "8388608"
 
 export IMAGE_BASENAME = "acceso-image"
 

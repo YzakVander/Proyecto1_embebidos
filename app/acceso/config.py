@@ -51,6 +51,10 @@ class StreamingCfg:
     habilitado: bool = True
     host: str = "127.0.0.1"
     puerto: int = 5000
+    # Si es True, el destino cambia al conectarse un vigilante
+    # por TCP: su direccion sale del socket y no hace falta
+    # configurarla. Resuelve las IP que rotan por DHCP.
+    seguir_cliente: bool = True
 
 
 @dataclass

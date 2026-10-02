@@ -51,6 +51,10 @@ class StreamingCfg:
     habilitado: bool = True
     host: str = "127.0.0.1"
     puerto: int = 5000
+    # Si es True, el destino cambia al conectarse un vigilante
+    # por TCP: su direccion sale del socket y no hace falta
+    # configurarla. Resuelve las IP que rotan por DHCP.
+    seguir_cliente: bool = True
 
 
 @dataclass
@@ -99,6 +103,33 @@ class BitacoraCfg:
     ruta: str = "accesos.log"
 
 #Clase para agrupar la configuracion de los bloques del pipeline. Se usa como contenedor de los dataclass anteriores. Se usa para manejar la configuracion del pipeline de manera centralizada.
+
+@dataclass
+class QrCfg:
+    """CU-13: lectura de credenciales QR con OpenCV."""
+    habilitado: bool = True
+    # Analisis por segundo. NO se reduce la tasa con videorate en la tuberia:
+    # ese elemento propaga su capsfilter hacia arriba a traves del tee y choca
+    # con los 30 fps que necesita la rama del codificador (not-negotiated,
+    # verificado en pruebas). La reduccion se hace en el consumidor: el lector
+    # analiza uno cada 1/analisis_por_s segundos y descarta el resto.
+    analisis_por_s: float = 5.0
+    # El detector trabaja sobre el cuadro reducido a este ancho. Medido:
+    # 1280x720 -> 42 ms por analisis en x86 (~167 ms estimado en Cortex-A72);
+    # 640 de ancho -> 15 ms (~60 ms en la Pi). La deteccion sigue funcionando
+    # con la credencial ocupando el 25 % del alto del cuadro.
+    ancho_analisis: int = 640
+    # Se ignora el MISMO identificador durante este tiempo. Uno distinto pasa
+    # de inmediato, para no bloquear a quien viene detras.
+    enfriamiento_s: float = 5.0
+
+
+@dataclass
+class CredencialesCfg:
+    """Credenciales registradas: quien tiene acceso y con que rol."""
+    ruta: str = "/var/lib/acceso/credenciales.json"
+    directorio: str = "/var/lib/acceso/credenciales"
+
 @dataclass
 class Config:
     #Objetos anidados
@@ -111,6 +142,8 @@ class Config:
     actuador: ActuadorCfg = field(default_factory=ActuadorCfg)
     eventos: EventosCfg = field(default_factory=EventosCfg)
     bitacora: BitacoraCfg = field(default_factory=BitacoraCfg)
+    qr: QrCfg = field(default_factory=QrCfg)
+    credenciales: CredencialesCfg = field(default_factory=CredencialesCfg)
     nivel_log: str = "INFO"
 
 
@@ -148,6 +181,7 @@ def cargar(ruta: str | None = None) -> Config: #Retorna un objeto de la clase Co
         "grabacion": cfg.grabacion, "streaming": cfg.streaming,
         "clips": cfg.clips, "actuador": cfg.actuador,
         "eventos": cfg.eventos, "bitacora": cfg.bitacora,
+        "qr": cfg.qr, "credenciales": cfg.credenciales,
     }
 
     #Recorre cada objeto metido en el objeto de configuracion y le asigna los valores correspondientes
