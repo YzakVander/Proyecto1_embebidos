@@ -1,0 +1,45 @@
+# A3 - framerate CONTADO en la placa (no leido de los caps)
+# Segmentos grabados por acceso-control en la RPi 4 con la imagen Yocto (v4l2h264enc)
+# el 2026-10-02 y extraidos con recolectar-evidencia.sh. Pedido en caps: 30/1.
+# Analizado con: ffprobe version 4.4.2-0ubuntu0.22.04.1
+
+== Cuadros contados / duracion ==
+# ffprobe -v error -select_streams v -count_frames -show_entries stream=nb_read_frames:format=duration
+evidencia_00027.mp4: 1752 cuadros / 58.99 s = 29.70 fps
+evidencia_00028.mp4: 1752 cuadros / 58.99 s = 29.70 fps
+evidencia_00029.mp4: 1753 cuadros / 59.03 s = 29.70 fps
+
+== Flujo (evidencia_00027.mp4) ==
+codec_name=h264
+profile=Baseline
+width=1280
+height=720
+level=40
+avg_frame_rate=262800/8849
+
+== D3: intervalo entre cuadros clave (s), conteo ==
+# ffprobe -show_entries packet=pts_time,flags | cuadros con bandera K
+-- evidencia_00027.mp4
+     29 1.012
+     28 1.008
+      1 0.404
+-- evidencia_00028.mp4
+     29 1.012
+     28 1.008
+      1 0.404
+-- evidencia_00029.mp4
+     29 1.012
+     28 1.008
+      1 0.440
+
+== Segmento sin cerrar (defecto E4, antes de la correccion de detener()) ==
+[mov,mp4,m4a,3gp,3g2,mj2] moov atom not found
+evidencia_00030.mp4: Invalid data found when processing input
+
+RESULTADO
+  Tasa real 29.70 fps, estable en los tres segmentos: 1 % por debajo de lo
+  pedido. Holgado frente a RF-1 (>= 15 fps). Condicion: interior con
+  buena luz; exposure_time_absolute=2000 (acceso.conf).
+PENDIENTE
+  Repetir con poca luz: la camara baja la tasa con exposiciones largas.
+  En las pruebas con buena luz la tasa se mantuvo siempre cerca de 30 fps.
