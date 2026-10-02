@@ -212,6 +212,8 @@ class ServicioAcceso:
             return True, self._registro.resumen()
         if verbo == "REGENERAR_QR":
             return self._regenerar_qr()
+        if verbo == "BORRAR_CREDENCIALES":
+            return self._borrar_credenciales(partes[1] if len(partes) > 1 else "")
         if verbo == "ESTADO":
             return True, self._estado()
         if verbo == "PING":
@@ -430,6 +432,38 @@ class ServicioAcceso:
     def _ruta_imagen(self, identificador: str) -> str:
         return os.path.join(self._cfg.credenciales.directorio, f"{identificador}.bmp")
 
+    def _borrar_imagenes(self) -> int:
+        """Borra las imagenes de credenciales. Llamar con _lock_imagenes tomado."""
+        directorio = self._cfg.credenciales.directorio
+        os.makedirs(directorio, exist_ok=True)
+        borradas = 0
+        for nombre in os.listdir(directorio):
+            ruta = os.path.join(directorio, nombre)
+            if os.path.isfile(ruta) and nombre.lower().endswith(self._EXT_IMAGEN):
+                try:
+                    os.remove(ruta)
+                    borradas += 1
+                except OSError as exc:
+                    log.warning("no se pudo borrar %s: %s", ruta, exc)
+        return borradas
+
+    def _borrar_credenciales(self, confirmacion: str) -> tuple[bool, str]:
+        """BORRAR_CREDENCIALES SI: vacia el registro y borra las imagenes.
+
+        Exige la palabra SI como argumento: un comando que deja sin acceso
+        por QR a todo el personal no puede ejecutarse por un error de tipeo.
+        El cliente de vigilancia la pide al usuario antes de enviarlo.
+        """
+        if confirmacion.strip() != "SI":
+            return False, ("comando destructivo: enviar 'BORRAR_CREDENCIALES SI' "
+                           "para confirmar")
+        with self._lock_imagenes:
+            n = self._registro.vaciar()
+            borradas = self._borrar_imagenes()
+        self._difundir(f"CREDENCIALES-BORRADAS {n}")
+        return True, (f"{n} credenciales eliminadas (activas y revocadas), "
+                      f"{borradas} imagenes borradas")
+
     def _regenerar_qr(self) -> tuple[bool, str]:
         """REGENERAR_QR: rehace las imagenes de las credenciales activas.
 
@@ -439,22 +473,11 @@ class ServicioAcceso:
         nadie gana ni pierde acceso, y un QR impreso antes sigue valiendo.
         Para invalidar una credencial esta BAJA (+ ALTA con identificador nuevo).
         """
-        directorio = self._cfg.credenciales.directorio
         activas = self._registro.activas()
-        borradas = 0
         fallidas: list[str] = []
 
         with self._lock_imagenes:
-            os.makedirs(directorio, exist_ok=True)
-            for nombre in os.listdir(directorio):
-                ruta = os.path.join(directorio, nombre)
-                if os.path.isfile(ruta) and nombre.lower().endswith(self._EXT_IMAGEN):
-                    try:
-                        os.remove(ruta)
-                        borradas += 1
-                    except OSError as exc:
-                        log.warning("no se pudo borrar %s: %s", ruta, exc)
-
+            borradas = self._borrar_imagenes()
             for cred in activas:
                 ruta = self._ruta_imagen(cred.identificador)
                 try:

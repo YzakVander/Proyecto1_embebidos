@@ -68,6 +68,7 @@ COMANDOS_PLACA = {
     "BAJA <id> [motivo]": "revoca una credencial",
     "LISTAR": "credenciales activas",
     "REGENERAR_QR": "rehace las imagenes de las credenciales activas (mismos QR)",
+    "BORRAR_CREDENCIALES": "elimina TODAS las credenciales y sus imagenes (pide confirmacion)",
     "PING": "mide el tiempo de ida y vuelta (RF-3)",
 }
 COMANDOS_LOCALES = {
@@ -464,6 +465,19 @@ def main() -> int:
                         borrador.lanzar()
                     else:
                         consola.escribir("borrado cancelado", "info")
+            elif verbo == "BORRAR_CREDENCIALES":
+                # Se confirma aqui y se envia con el SI que exige la placa
+                consola.escribir("Se eliminaran TODAS las credenciales de la placa (activas "
+                                 "y revocadas) y sus imagenes. Nadie podra entrar por QR "
+                                 "hasta registrar credenciales nuevas.", "error")
+                try:
+                    respuesta = input("Escribir SI para confirmar: ").strip()
+                except EOFError:
+                    respuesta = ""
+                if respuesta != "SI":
+                    consola.escribir("borrado de credenciales cancelado", "info")
+                elif not canal.enviar("BORRAR_CREDENCIALES SI"):
+                    consola.escribir("sin conexion con la placa: el comando no se envio", "error")
             elif verbo == "VIDEO":
                 video.abrir()
             elif not canal.enviar(texto):
