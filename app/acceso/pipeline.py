@@ -82,8 +82,15 @@ class PipelineAcceso:
             os.makedirs(c.grabacion.directorio, exist_ok=True)
             ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron) #Junta directorio y nombre de la grabacion
             ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000 #Convierte los segundos a nanosegundos para el parametro max-size-time del splitmuxsink
+            # B3: profundidad declarada, no heredada. Son los mismos valores
+            # que el queue por omision aplica en la practica (a 30 fps el
+            # tope de 1 s llega antes que el de 200 buffers o 10 MB), pero
+            # escritos: 1 s absorbe el jitter de escritura a la microSD y
+            # esta rama no es la de baja latencia. Sin leaky: la evidencia
+            # no se descarta (B2).
             partes.append(
-                f"t_h264. ! queue "
+                f"t_h264. ! queue max-size-buffers=0 max-size-bytes=0 "
+                f"max-size-time=1000000000 "
                 f"! splitmuxsink name=grabador location={ruta} "
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
             ) #Agrega los bloques de la rama de grabacion. Se pegan al segundo tee (tee_h264)
