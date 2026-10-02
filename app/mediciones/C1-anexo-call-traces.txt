@@ -1,0 +1,333 @@
+# C1/C2 - hallazgo: v4l2h264enc no funciona con bcm2835-codec
+# GStreamer 1.28.5 | kernel 6.18.33-v8 | 2026-10-02T21:32:17+0000
+
+== El HARDWARE SI funciona (v4l2-ctl directo) ==
+>>>>>>>K>><<>><<><><><><><><><><><><><><><><><><><><>
+STOP ENCODER
+<<<<<<
+EOS EVENT
+<<
+
+== El ELEMENTO de GStreamer NO ==
+/usr/src/debug/gstreamer1.0/1.28.5/libs/gst/base/gstbasesrc.c(3187): gst_base_src_loop (): /GstPipeline:pipeline0/GstVideoTestSrc:videotestsrc0:
+streaming stopped, reason error (-5)
+Details:
+details, flow-return=(int)-5;
+ERROR: pipeline doesn't want to preroll.
+Freeing pipeline ...
+
+== Variantes de io-mode descartadas: mmap, dmabuf-import/dmabuf ==
+== gpu_mem=256 descartado: falla igual a 640x480 ==
+== CMA descartado: 512 MiB reservados, 507 libres ==
+
+== Call trace del kernel ==
+[  326.163399] WARNING: CPU: 1 PID: 597 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  326.177763] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  326.231524] CPU: 1 UID: 0 PID: 597 Comm: videotestsrc0:s Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  326.241570] Tainted: [W]=WARN, [C]=CRAP
+[  326.245445] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  326.251351] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  326.258401] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  326.264657] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  326.270915] sp : ffffffc0848abb70
+[  326.274263] x29: ffffffc0848abb70 x28: ffffffc0848abce8 x27: 0000000040045612
+[  326.281489] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  326.288716] x23: ffffff8103e1cf00 x22: 0000000000000000 x21: ffffff8103ebc290
+[  326.295943] x20: ffffff8103ebc1a8 x19: 00000000fffffffd x18: 000000000000000a
+[  326.303169] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  326.310396] x14: 0000000000000278 x13: 0000000000000001 x12: 0000000000000000
+[  326.317622] x11: 00000000000000c0 x10: 0000000000001ac0 x9 : ffffffe6c126efb8
+[  326.324849] x8 : ffffff8102863ca0 x7 : 0000000000000001 x6 : 0000000000000001
+[  326.332075] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  326.339301] x2 : 0000000000000000 x1 : ffffff8102862180 x0 : 0000000000000001
+[  326.346529] Call trace:
+[  326.348997]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  326.355253]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  326.360981]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  326.366004]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  326.371821]  v4l_streamon+0x2c/0x40 [videodev]
+[  326.376316]  __video_do_ioctl+0x348/0x400 [videodev]
+[  326.381338]  video_usercopy+0x2b8/0x758 [videodev]
+[  326.386186]  video_ioctl2+0x20/0x40 [videodev]
+[  326.390680]  v4l2_ioctl+0x48/0x70 [videodev]
+[  326.394999]  __arm64_sys_ioctl+0xac/0x110
+[  326.399052]  invoke_syscall.constprop.0+0x48/0xf0
+[  326.403811]  el0_svc_common.constprop.0+0x40/0xf0
+[  326.408571]  do_el0_svc+0x24/0x40
+[  326.411920]  el0_svc+0x38/0x120
+[  326.415092]  el0t_64_sync_handler+0xa0/0xe8
+[  326.419322]  el0t_64_sync+0x198/0x1a0
+[  326.423023] ---[ end trace 0000000000000000 ]---
+[  502.638334] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[  502.647542] ------------[ cut here ]------------
+[  502.652038] WARNING: CPU: 3 PID: 678 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  502.666404] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  502.720165] CPU: 3 UID: 0 PID: 678 Comm: videotestsrc0:s Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  502.730209] Tainted: [W]=WARN, [C]=CRAP
+[  502.734086] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  502.739991] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  502.747040] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  502.753298] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  502.759554] sp : ffffffc08558bb70
+[  502.762903] x29: ffffffc08558bb70 x28: ffffffc08558bce8 x27: 0000000040045612
+[  502.770129] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  502.777357] x23: ffffff8102b56300 x22: 0000000000000000 x21: ffffff8104df2690
+[  502.784583] x20: ffffff8104df25a8 x19: 00000000fffffffd x18: 000000000000000a
+[  502.791810] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  502.799035] x14: 0000000000000371 x13: 0000000000000001 x12: 0000000000000000
+[  502.806263] x11: 00000000000000c0 x10: 0000000000001ac0 x9 : ffffffe6c126efb8
+[  502.813488] x8 : ffffff810f3bbca0 x7 : 0000000000000001 x6 : 0000000000000001
+[  502.820715] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  502.827941] x2 : 0000000000000000 x1 : ffffff810f3ba180 x0 : 0000000000000001
+[  502.835169] Call trace:
+[  502.837637]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  502.843893]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  502.849621]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  502.854644]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  502.860461]  v4l_streamon+0x2c/0x40 [videodev]
+[  502.864956]  __video_do_ioctl+0x348/0x400 [videodev]
+[  502.869979]  video_usercopy+0x2b8/0x758 [videodev]
+[  502.874826]  video_ioctl2+0x20/0x40 [videodev]
+[  502.879321]  v4l2_ioctl+0x48/0x70 [videodev]
+[  502.883639]  __arm64_sys_ioctl+0xac/0x110
+[  502.887693]  invoke_syscall.constprop.0+0x48/0xf0
+[  502.892451]  el0_svc_common.constprop.0+0x40/0xf0
+[  502.897211]  do_el0_svc+0x24/0x40
+[  502.900559]  el0_svc+0x38/0x120
+[  502.903732]  el0t_64_sync_handler+0xa0/0xe8
+[  502.907962]  el0t_64_sync+0x198/0x1a0
+[  502.911664] ---[ end trace 0000000000000000 ]---
+[  556.400663] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[  556.409800] ------------[ cut here ]------------
+[  556.414377] WARNING: CPU: 3 PID: 748 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  556.428732] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  556.482493] CPU: 3 UID: 0 PID: 748 Comm: videotestsrc0:s Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  556.492538] Tainted: [W]=WARN, [C]=CRAP
+[  556.496415] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  556.502320] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  556.509368] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  556.515626] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  556.521883] sp : ffffffc08653bb70
+[  556.525232] x29: ffffffc08653bb70 x28: ffffffc08653bce8 x27: 0000000040045612
+[  556.532459] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  556.539685] x23: ffffff810f328e40 x22: 0000000000000000 x21: ffffff810f372e90
+[  556.546911] x20: ffffff810f372da8 x19: 00000000fffffffd x18: 000000000000000a
+[  556.554138] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  556.561364] x14: 646f635f35333832 x13: 332d20746572202c x12: 74726f7020702f69
+[  556.568590] x11: 0000000000000058 x10: 0000000000000018 x9 : ffffffe6c126efb8
+[  556.575817] x8 : 0000000000057fa8 x7 : 00000000000002a0 x6 : 0000000000000001
+[  556.583043] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  556.590270] x2 : 0000000000000000 x1 : ffffff81018ca180 x0 : 0000000000000001
+[  556.597497] Call trace:
+[  556.599966]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  556.606222]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  556.611950]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  556.616974]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  556.622789]  v4l_streamon+0x2c/0x40 [videodev]
+[  556.627284]  __video_do_ioctl+0x348/0x400 [videodev]
+[  556.632307]  video_usercopy+0x2b8/0x758 [videodev]
+[  556.637154]  video_ioctl2+0x20/0x40 [videodev]
+[  556.641649]  v4l2_ioctl+0x48/0x70 [videodev]
+[  556.645968]  __arm64_sys_ioctl+0xac/0x110
+[  556.650021]  invoke_syscall.constprop.0+0x48/0xf0
+[  556.654780]  el0_svc_common.constprop.0+0x40/0xf0
+[  556.659539]  do_el0_svc+0x24/0x40
+[  556.662888]  el0_svc+0x38/0x120
+[  556.666060]  el0t_64_sync_handler+0xa0/0xe8
+[  556.670291]  el0t_64_sync+0x198/0x1a0
+[  556.673992] ---[ end trace 0000000000000000 ]---
+[  727.462819] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[  727.472059] ------------[ cut here ]------------
+[  727.476528] WARNING: CPU: 3 PID: 797 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  727.490897] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  727.544663] CPU: 3 UID: 0 PID: 797 Comm: queue0:src Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  727.554262] Tainted: [W]=WARN, [C]=CRAP
+[  727.558138] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  727.564043] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  727.571093] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  727.577350] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  727.583607] sp : ffffffc08749bb70
+[  727.586956] x29: ffffffc08749bb70 x28: ffffffc08749bce8 x27: 0000000040045612
+[  727.594183] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  727.601409] x23: ffffff8102896840 x22: 0000000000000000 x21: ffffff810f373290
+[  727.608636] x20: ffffff810f3731a8 x19: 00000000fffffffd x18: 000000000000000a
+[  727.615862] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  727.623088] x14: 00000000000000a0 x13: 0000000000000001 x12: 0000000000000000
+[  727.630314] x11: 00000000000000c0 x10: 0000000000001ac0 x9 : ffffffe6c126efb8
+[  727.637541] x8 : ffffff8100191b20 x7 : 0000000000000001 x6 : 0000000000000001
+[  727.644767] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  727.651994] x2 : 0000000000000000 x1 : ffffff8100190000 x0 : 0000000000000001
+[  727.659221] Call trace:
+[  727.661689]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  727.667946]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  727.673673]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  727.678697]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  727.684513]  v4l_streamon+0x2c/0x40 [videodev]
+[  727.689008]  __video_do_ioctl+0x348/0x400 [videodev]
+[  727.694032]  video_usercopy+0x2b8/0x758 [videodev]
+[  727.698878]  video_ioctl2+0x20/0x40 [videodev]
+[  727.703372]  v4l2_ioctl+0x48/0x70 [videodev]
+[  727.707690]  __arm64_sys_ioctl+0xac/0x110
+[  727.711744]  invoke_syscall.constprop.0+0x48/0xf0
+[  727.716503]  el0_svc_common.constprop.0+0x40/0xf0
+[  727.721262]  do_el0_svc+0x24/0x40
+[  727.724612]  el0_svc+0x38/0x120
+[  727.727784]  el0t_64_sync_handler+0xa0/0xe8
+[  727.732014]  el0t_64_sync+0x198/0x1a0
+[  727.735716] ---[ end trace 0000000000000000 ]---
+[  728.696571] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[  728.705760] ------------[ cut here ]------------
+[  728.710273] WARNING: CPU: 3 PID: 834 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  728.724637] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  728.778399] CPU: 3 UID: 0 PID: 834 Comm: v4l2jpegdec0:sr Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  728.788445] Tainted: [W]=WARN, [C]=CRAP
+[  728.792320] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  728.798226] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  728.805275] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  728.811532] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  728.817789] sp : ffffffc0890cbb70
+[  728.821138] x29: ffffffc0890cbb70 x28: ffffffc0890cbce8 x27: 0000000040045612
+[  728.828364] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  728.835591] x23: ffffff8102a199c0 x22: 0000000000000000 x21: ffffff810f372a90
+[  728.842818] x20: ffffff810f3729a8 x19: 00000000fffffffd x18: 000000000000000a
+[  728.850044] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  728.857270] x14: 646f635f35333832 x13: 332d20746572202c x12: 74726f7020702f69
+[  728.864496] x11: 0000000000000058 x10: 0000000000000018 x9 : ffffffe6c126efb8
+[  728.871723] x8 : 0000000000057fa8 x7 : 00000000000002ee x6 : 0000000000000001
+[  728.878950] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  728.886177] x2 : 0000000000000000 x1 : ffffff8102860000 x0 : 0000000000000001
+[  728.893403] Call trace:
+[  728.895872]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  728.902128]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  728.907856]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  728.912879]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  728.918695]  v4l_streamon+0x2c/0x40 [videodev]
+[  728.923190]  __video_do_ioctl+0x348/0x400 [videodev]
+[  728.928214]  video_usercopy+0x2b8/0x758 [videodev]
+[  728.933061]  video_ioctl2+0x20/0x40 [videodev]
+[  728.937555]  v4l2_ioctl+0x48/0x70 [videodev]
+[  728.941874]  __arm64_sys_ioctl+0xac/0x110
+[  728.945927]  invoke_syscall.constprop.0+0x48/0xf0
+[  728.950686]  el0_svc_common.constprop.0+0x40/0xf0
+[  728.955445]  do_el0_svc+0x24/0x40
+[  728.958794]  el0_svc+0x38/0x120
+[  728.961966]  el0t_64_sync_handler+0xa0/0xe8
+[  728.966196]  el0t_64_sync+0x198/0x1a0
+[  728.969898] ---[ end trace 0000000000000000 ]---
+[  810.099597] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[  810.108844] ------------[ cut here ]------------
+[  810.113305] WARNING: CPU: 3 PID: 892 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  810.127670] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  810.181431] CPU: 3 UID: 0 PID: 892 Comm: queue0:src Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  810.191035] Tainted: [W]=WARN, [C]=CRAP
+[  810.194911] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  810.200816] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  810.207866] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  810.214122] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  810.220380] sp : ffffffc087d43b70
+[  810.223728] x29: ffffffc087d43b70 x28: ffffffc087d43ce8 x27: 0000000040045612
+[  810.230955] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  810.238181] x23: ffffff8101ab9480 x22: 0000000000000000 x21: ffffff810cdece90
+[  810.245409] x20: ffffff810cdecda8 x19: 00000000fffffffd x18: 000000000000000a
+[  810.252635] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  810.259861] x14: 00000000000001af x13: 0000000000000001 x12: 0000000000000000
+[  810.267087] x11: 00000000000000c0 x10: 0000000000001ac0 x9 : ffffffe6c126efb8
+[  810.274314] x8 : ffffff8102865e20 x7 : 0000000000000001 x6 : 0000000000000001
+[  810.281541] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  810.288767] x2 : 0000000000000000 x1 : ffffff8102864300 x0 : 0000000000000001
+[  810.295994] Call trace:
+[  810.298462]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  810.304719]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  810.310447]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  810.315470]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  810.321286]  v4l_streamon+0x2c/0x40 [videodev]
+[  810.325781]  __video_do_ioctl+0x348/0x400 [videodev]
+[  810.330804]  video_usercopy+0x2b8/0x758 [videodev]
+[  810.335651]  video_ioctl2+0x20/0x40 [videodev]
+[  810.340146]  v4l2_ioctl+0x48/0x70 [videodev]
+[  810.344464]  __arm64_sys_ioctl+0xac/0x110
+[  810.348518]  invoke_syscall.constprop.0+0x48/0xf0
+[  810.353276]  el0_svc_common.constprop.0+0x40/0xf0
+[  810.358035]  do_el0_svc+0x24/0x40
+[  810.361384]  el0_svc+0x38/0x120
+[  810.364557]  el0t_64_sync_handler+0xa0/0xe8
+[  810.368788]  el0t_64_sync+0x198/0x1a0
+[  810.372490] ---[ end trace 0000000000000000 ]---
+[  810.747363] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[  810.756523] ------------[ cut here ]------------
+[  810.761071] WARNING: CPU: 1 PID: 929 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  810.775435] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[  810.829196] CPU: 1 UID: 0 PID: 929 Comm: v4l2jpegdec0:sr Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[  810.839242] Tainted: [W]=WARN, [C]=CRAP
+[  810.843116] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[  810.849022] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  810.856072] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[  810.862328] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[  810.868586] sp : ffffffc086503b70
+[  810.871935] x29: ffffffc086503b70 x28: ffffffc086503ce8 x27: 0000000040045612
+[  810.879161] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[  810.886388] x23: ffffff8102872cc0 x22: 0000000000000000 x21: ffffff810f373690
+[  810.893614] x20: ffffff810f3735a8 x19: 00000000fffffffd x18: 000000000000000a
+[  810.900840] x17: 6c696146203a676e x16: 696d61657274735f x15: 74726174735f6365
+[  810.908067] x14: 0000000000000105 x13: 0000000000000001 x12: 0000000000000000
+[  810.915294] x11: 00000000000000c0 x10: 0000000000001ac0 x9 : ffffffe6c126efb8
+[  810.922520] x8 : ffffff8101765e20 x7 : 0000000000000001 x6 : 0000000000000001
+[  810.929747] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[  810.936973] x2 : 0000000000000000 x1 : ffffff8101764300 x0 : 0000000000000001
+[  810.944201] Call trace:
+[  810.946668]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[  810.952925]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[  810.958653]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[  810.963676]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[  810.969492]  v4l_streamon+0x2c/0x40 [videodev]
+[  810.973987]  __video_do_ioctl+0x348/0x400 [videodev]
+[  810.979010]  video_usercopy+0x2b8/0x758 [videodev]
+[  810.983857]  video_ioctl2+0x20/0x40 [videodev]
+[  810.988352]  v4l2_ioctl+0x48/0x70 [videodev]
+[  810.992670]  __arm64_sys_ioctl+0xac/0x110
+[  810.996724]  invoke_syscall.constprop.0+0x48/0xf0
+[  811.001482]  el0_svc_common.constprop.0+0x40/0xf0
+[  811.006242]  do_el0_svc+0x24/0x40
+[  811.009591]  el0_svc+0x38/0x120
+[  811.012763]  el0t_64_sync_handler+0xa0/0xe8
+[  811.016994]  el0t_64_sync+0x198/0x1a0
+[  811.020695] ---[ end trace 0000000000000000 ]---
+[ 1259.986622] bcm2835-codec bcm2835-codec: bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3
+[ 1259.995885] ------------[ cut here ]------------
+[ 1260.000328] WARNING: CPU: 3 PID: 1007 at /usr/src/kernel/drivers/media/common/videobuf2/videobuf2-core.c:1803 vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[ 1260.014780] Modules linked in: rfcomm cmac algif_hash aes_arm64 algif_skcipher af_alg bnep brcmfmac_cyw raspberrypi_hwmon hci_uart bcm2835_isp(C) v3d bcm2835_codec(C) bcm2835_v4l2(C) btbcm bcm2835_mmal_vchiq(C) snd_usb_audio gpu_sched brcmfmac rpi_hevc_dec snd_hwdep drm_shmem_helper uvcvideo snd_usbmidi_lib snd_rawmidi vc_sm_cma(C) brcmutil snd_seq_device v4l2_mem2mem videobuf2_vmalloc uvc videobuf2_dma_contig bluetooth videobuf2_memops videobuf2_v4l2 ecdh_generic ecc videodev pwm_bcm2835 videobuf2_common snd_bcm2835(C) raspberrypi_gpiomem mc cfg80211 rfkill sch_fq_codel fuse nfnetlink ipv6 libsha1
+[ 1260.068541] CPU: 3 UID: 0 PID: 1007 Comm: videotestsrc0:s Tainted: G        WC          6.18.33-v8 #1 PREEMPT 
+[ 1260.078676] Tainted: [W]=WARN, [C]=CRAP
+[ 1260.082551] Hardware name: Raspberry Pi 4 Model B Rev 1.5 (DT)
+[ 1260.088456] pstate: 60000005 (nZCv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[ 1260.095506] pc : vb2_start_streaming+0xec/0x188 [videobuf2_common]
+[ 1260.101763] lr : vb2_start_streaming+0x74/0x188 [videobuf2_common]
+[ 1260.108020] sp : ffffffc087d3bb70
+[ 1260.111369] x29: ffffffc087d3bb70 x28: ffffffc087d3bce8 x27: 0000000040045612
+[ 1260.118595] x26: ffffffe689a09d18 x25: 0000000000000000 x24: ffffffe689858290
+[ 1260.125822] x23: ffffff810b3e8480 x22: 0000000000000000 x21: ffffff8104cc6a90
+[ 1260.133048] x20: ffffff8104cc69a8 x19: 00000000fffffffd x18: 000000000000000a
+[ 1260.140275] x17: 6c696146203a676e x16: 696d61657274735f x15: 01846e9420e46000
+[ 1260.147501] x14: 00000000000003f1 x13: ffffffe6c1fe4908 x12: 000000000000000d
+[ 1260.154728] x11: 00000000000000c0 x10: 0000000000001ac0 x9 : ffffffe6c126efb8
+[ 1260.161954] x8 : ffffff810158bca0 x7 : 00000000000060ea x6 : 0000000000000001
+[ 1260.169181] x5 : 0000000000000000 x4 : 0000000000000001 x3 : 0000000000000000
+[ 1260.176407] x2 : 0000000000000000 x1 : ffffff810158a180 x0 : 0000000000000001
+[ 1260.183635] Call trace:
+[ 1260.186103]  vb2_start_streaming+0xec/0x188 [videobuf2_common] (P)
+[ 1260.192359]  vb2_core_streamon+0xe0/0x1d8 [videobuf2_common]
+[ 1260.198087]  vb2_streamon+0x20/0x70 [videobuf2_v4l2]
+[ 1260.203110]  v4l2_m2m_ioctl_streamon+0x40/0xa8 [v4l2_mem2mem]
+[ 1260.208927]  v4l_streamon+0x2c/0x40 [videodev]
+[ 1260.213421]  __video_do_ioctl+0x348/0x400 [videodev]
+[ 1260.218444]  video_usercopy+0x2b8/0x758 [videodev]
+[ 1260.223291]  video_ioctl2+0x20/0x40 [videodev]
+[ 1260.227785]  v4l2_ioctl+0x48/0x70 [videodev]
+[ 1260.232104]  __arm64_sys_ioctl+0xac/0x110
+[ 1260.236158]  invoke_syscall.constprop.0+0x48/0xf0
+[ 1260.240916]  el0_svc_common.constprop.0+0x40/0xf0
+[ 1260.245676]  do_el0_svc+0x24/0x40
+[ 1260.249025]  el0_svc+0x38/0x120
+[ 1260.252197]  el0t_64_sync_handler+0xa0/0xe8
+[ 1260.256427]  el0t_64_sync+0x198/0x1a0
+[ 1260.260129] ---[ end trace 0000000000000000 ]---

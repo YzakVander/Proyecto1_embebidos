@@ -1,0 +1,7 @@
+# E4 - verificar_corruptos() en operacion real
+# Disparado por 'systemctl restart' que corto evidencia_00110.mp4
+# 2026-10-02T21:52:52+0000
+
+2026-10-02 21:33:07,580 INFO    acceso.retencion       verificacion de clips: 7 revisados, 0 corruptos borrados
+2026-10-02 21:49:44,316 WARNING acceso.retencion       verificacion: borrado clip corrupto /var/lib/acceso/evidencia/evidencia_00110.mp4
+2026-10-02 21:49:44,319 INFO    acceso.retencion       verificacion de clips: 8 revisados, 1 corruptos borrados

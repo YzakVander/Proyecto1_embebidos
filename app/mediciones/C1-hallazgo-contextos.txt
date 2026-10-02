@@ -1,0 +1,32 @@
+# C1 - El codificador por hardware funciona. Limitacion: contextos del bloque.
+# GStreamer 1.28.5 | kernel 6.18.33-v8 | RPi 4B Rev 1.5 | Poky 6.0.3 wrynose
+
+HALLAZGO
+El bloque bcm2835-codec expone decode/encode/isp/image_fx/encode_image en
+/dev/video10,11,12,18,31 -- todos el MISMO bloque de hardware.
+
+La aplicacion usa CINCO contextos simultaneos de ese bloque:
+  rama de codificacion : v4l2jpegdec + v4l2convert + v4l2h264enc
+  rama de QR           : v4l2jpegdec + v4l2convert
+
+Consecuencia operativa: mientras acceso-control corre, ningun otro proceso
+puede abrir esos elementos. Un gst-launch externo falla con
+"bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3" y el kernel
+emite un WARNING en vb2_start_streaming (ver C1-anexo-call-traces.txt).
+El sintoma simula un driver roto y no lo es.
+
+Para medir manualmente: systemctl stop acceso-control, esperar ~10 s, y
+recien entonces correr la prueba.
+
+HIPOTESIS DESCARTADAS POR MEDICION
+  CMA insuficiente : 512 MiB reservados, 507 libres. Descartado.
+  gpu_mem=128      : subido a 256, falla identica a 640x480. Descartado y revertido.
+  io-mode          : mmap y dmabuf-import/dmabuf, ambos fallan. Descartado.
+  plugin roto      : v4l2-ctl --stream-mmap codifica 30 cuadros sin error, y la
+                     aplicacion graba segmentos validos. Descartado.
+
+VERIFICACION POSITIVA
+  Servicio en operacion con el pipeline completo por hardware.
+  Segmentos MP4 validos de 17.4-17.7 MB por minuto a 1280x720.
+  Caudal medido: ~1050 MB/h (confirma la estimacion de ~1125 MB/h del acceso.conf).
+  Retencion efectiva de evidencia/ con tope de 5500 MB: ~5.2 h.
