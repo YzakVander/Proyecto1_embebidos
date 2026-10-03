@@ -1,0 +1,19 @@
+# G2 - imagen de entrega limpia vs imagen de desarrollo
+# 2026-10-02T19:23:04-06:00
+
+== Paquetes de diagnostico en cada imagen ==
+acceso-image     (entrega)   : 0 paquetes plugins-ugly
+acceso-image-dev (desarrollo): 8 paquetes plugins-ugly
+
+== v4l-utils ==
+0
+0 en entrega
+1
+
+== Total de paquetes ==
+entrega    : 2250
+desarrollo : 2263
+
+== Tamano de imagen ==
+62 build/tmp/deploy/images/raspberrypi4-64/acceso-image-dev-raspberrypi4-64.rootfs.wic.bz2
+58 build/tmp/deploy/images/raspberrypi4-64/acceso-image-raspberrypi4-64.rootfs.wic.bz2

@@ -1,0 +1,4 @@
+{"timestamp": "2026-10-02T19:25:37.365+00:00", "identificador": "ACC-0618EE-DANIEL", "resultado": "permitido", "latencia_decision_ms": 10933.3, "clip": "/var/lib/acceso/eventos/evento_20261002-192537_ACC-0618EE-DANIEL.mp4", "nota": null}
+{"timestamp": "2026-10-02T19:25:42.357+00:00", "identificador": "ACC-C0379D-ISAAC", "resultado": "permitido", "latencia_decision_ms": 5.3, "clip": "/var/lib/acceso/eventos/evento_20261002-192542_ACC-C0379D-ISAAC.mp4", "nota": null}
+{"timestamp": "2026-10-02T19:29:03.705+00:00", "identificador": "ACC-0618EE-DANIEL", "resultado": "denegado", "latencia_decision_ms": 6984.3, "clip": "/var/lib/acceso/eventos/evento_20261002-192903_ACC-0618EE-DANIEL.mp4", "nota": null}
+{"timestamp": "2026-10-02T19:30:20.618+00:00", "identificador": "QR-ACC-0618EE", "resultado": "permitido", "latencia_decision_ms": 8447.0, "clip": "/var/lib/acceso/eventos/evento_20261002-193020_QR-ACC-0618EE.mp4", "nota": null}
