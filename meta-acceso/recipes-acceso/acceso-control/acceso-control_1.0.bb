@@ -62,4 +62,31 @@ FILES:${PN} += "\
 
 CONFFILES:${PN} = "${sysconfdir}/acceso/acceso.conf"
 
-RDEPENDS:${PN} = "packagegroup-acceso"
+# G1: dependencias declaradas a nivel de SUBPAQUETE por quien las usa,
+# no delegadas al metapaquete. Si esta receta se instala en otra imagen sin
+# packagegroup-acceso, con un RDEPENDS al metapaquete el servicio quedaria
+# sin un solo plugin y moriria en el arranque. Cada entrada corresponde a un
+# elemento que la tuberia instancia o a un modulo que los .py importan.
+#
+# Trazabilidad elemento -> subpaquete en mediciones/G3-registro-rpi4.txt
+RDEPENDS:${PN} = "\
+    gstreamer1.0 \
+    gstreamer1.0-plugins-base-app \
+    gstreamer1.0-plugins-base-videoconvertscale \
+    gstreamer1.0-plugins-good-video4linux2 \
+    gstreamer1.0-plugins-good-isomp4 \
+    gstreamer1.0-plugins-good-rtp \
+    gstreamer1.0-plugins-good-udp \
+    gstreamer1.0-plugins-good-jpeg \
+    gstreamer1.0-plugins-bad-videoparsersbad \
+    gstreamer1.0-python \
+    python3-core \
+    python3-logging \
+    python3-threading \
+    python3-json \
+    python3-datetime \
+    python3-pygobject \
+    python3-numpy \
+    python3-opencv \
+    libgpiod \
+"
