@@ -94,6 +94,12 @@ class PipelineAcceso:
         # el objeto y no en la tuberia: sobreviven a una reconexion (E3).
         self._crono_clips = Cronometro("clips")
         self._crono_qr = Cronometro("qr")
+        # C4: la rama de QR entrega 30 cuadros por segundo pero el lector
+        # analiza analisis_por_s (5). Se copia a NumPy solo cada medio periodo
+        # del lector: el doble de lo que consume, para que al despertar
+        # siempre encuentre un cuadro fresco aunque los relojes no coincidan.
+        self._intervalo_copia_qr = 0.5 / max(cfg.qr.analisis_por_s, 0.1)
+        self._ultima_copia_qr = 0.0
         self._udpsink: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
         self._al_cerrar_segmento = None # callback que fija el servicio (RF-7: retencion)
@@ -259,9 +265,18 @@ class PipelineAcceso:
             self._crono_qr.anotar(time.perf_counter_ns() - t0)       # B5
 
     def _copiar_cuadro_qr(self, sink: Gst.Element) -> Gst.FlowReturn:
+        # La muestra se saca siempre, aunque no se use: un appsink con
+        # muestras sin leer retiene el EOS hasta que se consumen.
         muestra = sink.emit("pull-sample")
         if muestra is None:
             return Gst.FlowReturn.OK
+
+        # C4: sin esto se copiaban 30 cuadros BGR por segundo (~83 MB/s en el
+        # hilo de streaming) para analizar 5. Ahora se copian 10 (~28 MB/s).
+        ahora = time.monotonic()
+        if ahora - self._ultima_copia_qr < self._intervalo_copia_qr:
+            return Gst.FlowReturn.OK
+        self._ultima_copia_qr = ahora
 
         buf = muestra.get_buffer()
         estructura = muestra.get_caps().get_structure(0)
@@ -411,13 +426,20 @@ class PipelineAcceso:
 
     # ------------------------------------------------------------------ #
     def exportar_dot(self, directorio: str, nombre: str = "acceso") -> None:
-        """A6: grafo de la tuberia real."""
+        """A6: grafo de la tuberia real.
+
+        Se pide el grafo como texto y se escribe aqui. debug_bin_to_dot_file
+        depende de GST_DEBUG_DUMP_DOT_DIR, que GStreamer lee una sola vez al
+        inicializarse: definirla en este punto no tenia efecto y --dot no
+        generaba ningun archivo.
+        """
         if self._pipeline is None:
             return
         os.makedirs(directorio, exist_ok=True)
-        os.environ["GST_DEBUG_DUMP_DOT_DIR"] = directorio
-        Gst.debug_bin_to_dot_file(self._pipeline, Gst.DebugGraphDetails.ALL, nombre)
-        log.info("grafo exportado a %s/%s.dot", directorio, nombre)
+        ruta = os.path.join(directorio, f"{nombre}.dot")
+        with open(ruta, "w") as f:
+            f.write(Gst.debug_bin_to_dot_data(self._pipeline, Gst.DebugGraphDetails.ALL))
+        log.info("grafo exportado a %s", ruta)
 
     def al_cerrar_segmento(self, callback) -> None:
         """RF-7: el servicio registra aqui la solicitud de limpieza."""
