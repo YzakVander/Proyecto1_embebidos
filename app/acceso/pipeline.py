@@ -26,6 +26,7 @@ import logging
 import os
 import re
 import time
+from collections import deque
 
 import gi
 import numpy as np
@@ -38,6 +39,39 @@ from .buffer_circular import BufferCircular  # noqa: E402
 from .config import Config  # noqa: E402
 
 log = logging.getLogger(__name__)
+
+
+class Cronometro:
+    """B5: duracion de un callback que corre en el hilo de streaming.
+
+    Un callback lento es una queue invisible: bloquea el hilo de GStreamer y
+    no aparece en ningun grafo. Se guardan las ultimas duraciones (memoria
+    acotada) y al detener se reporta el p99, no el promedio, porque lo que
+    frena la tuberia es el peor caso.
+
+    Medir cuesta dos perf_counter_ns (~100 ns), despreciable frente a lo
+    medido. Sin candado: cada cronometro lo escribe un solo hilo, y el
+    resumen se lee con la tuberia ya en NULL.
+    """
+
+    UMBRAL_MS = 3.0     # 10 % del presupuesto de 33 ms por cuadro a 30 fps
+
+    def __init__(self, nombre: str, muestras: int = 3000) -> None:
+        self.nombre = nombre
+        self._ns: deque[int] = deque(maxlen=muestras)   # ~100 s a 30 fps
+
+    def anotar(self, ns: int) -> None:
+        self._ns.append(ns)
+
+    def resumen(self) -> str | None:
+        v = sorted(self._ns)
+        if not v:
+            return None
+        ms = lambda q: v[min(len(v) - 1, int(len(v) * q))] / 1e6   # noqa: E731
+        lentos = sum(1 for x in v if x / 1e6 > self.UMBRAL_MS) / len(v) * 100
+        return (f"B5 callback {self.nombre}: n={len(v)} min={v[0] / 1e6:.3f} "
+                f"p50={ms(0.5):.3f} p99={ms(0.99):.3f} max={v[-1] / 1e6:.3f} ms "
+                f"(>{self.UMBRAL_MS:g} ms: {lentos:.1f} %)")
 
 
 class PipelineAcceso:
@@ -56,6 +90,10 @@ class PipelineAcceso:
 
         self._lector_qr = lector_qr
         self._appsink_qr: Gst.Element | None = None
+        # B5: duracion de los dos callbacks del hilo de streaming. Viven en
+        # el objeto y no en la tuberia: sobreviven a una reconexion (E3).
+        self._crono_clips = Cronometro("clips")
+        self._crono_qr = Cronometro("qr")
         self._udpsink: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
         self._al_cerrar_segmento = None # callback que fija el servicio (RF-7: retencion)
@@ -181,6 +219,13 @@ class PipelineAcceso:
     # B5: el callback solo copia bytes y retorna
     # ------------------------------------------------------------------ #
     def _al_llegar_muestra(self, sink: Gst.Element) -> Gst.FlowReturn:
+        t0 = time.perf_counter_ns()
+        try:
+            return self._copiar_muestra(sink)
+        finally:
+            self._crono_clips.anotar(time.perf_counter_ns() - t0)   # B5
+
+    def _copiar_muestra(self, sink: Gst.Element) -> Gst.FlowReturn:
         muestra = sink.emit("pull-sample")
         if muestra is None:
             return Gst.FlowReturn.OK
@@ -207,6 +252,13 @@ class PipelineAcceso:
         incluidas la transmision y la grabacion. El lector tiene su propio
         hilo y toma el ultimo cuadro cuando esta libre.
         """
+        t0 = time.perf_counter_ns()
+        try:
+            return self._copiar_cuadro_qr(sink)
+        finally:
+            self._crono_qr.anotar(time.perf_counter_ns() - t0)       # B5
+
+    def _copiar_cuadro_qr(self, sink: Gst.Element) -> Gst.FlowReturn:
         muestra = sink.emit("pull-sample")
         if muestra is None:
             return Gst.FlowReturn.OK
@@ -317,6 +369,12 @@ class PipelineAcceso:
 
         self._pipeline.set_state(Gst.State.NULL)
         log.info("tuberia en NULL")
+
+        # B5: con la tuberia en NULL los callbacks ya no corren
+        for crono in (self._crono_clips, self._crono_qr):
+            resumen = crono.resumen()
+            if resumen:
+                log.info("%s", resumen)
 
     def _esperar_cierre_segmento(self, bus: Gst.Bus, tiempo_s: float) -> bool:
         """Espera el mensaje splitmuxsink-fragment-closed del ultimo segmento.
