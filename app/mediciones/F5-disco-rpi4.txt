@@ -1,0 +1,22 @@
+# F5 - tasa de escritura a disco y margen
+# 2026-10-03T01:02:40+0000
+
+Filesystem                Size      Used Available Use% Mounted on
+/dev/root                10.6G      1.0G      9.0G  10% /
+
+inicio: 688128 kB  01:02:40
+fin:    743192 kB  01:07:40
+
+escrito (carpeta)  : 53.8 MB en 5 min
+caudal             : 645 MB/h
+retencion a 5500 MB: 8.5 h
+sectores escritos  : 121200 (59.2 MB al dispositivo)
+
+== Margen ==
+Topes de retencion: 5500 MB evidencia + 1000 MB eventos = 6500 MB
+Libre en la particion: 9175 MB
+
+-rw-r--r--    1 root     root       17.5M Oct  3 01:03 evidencia_00154.mp4
+-rw-r--r--    1 root     root       17.7M Oct  3 01:04 evidencia_00155.mp4
+-rw-r--r--    1 root     root       17.4M Oct  3 01:05 evidencia_00156.mp4
+-rw-r--r--    1 root     root        5.7M Oct  3 01:05 evidencia_00157.mp4
