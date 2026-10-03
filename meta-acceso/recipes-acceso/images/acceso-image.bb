@@ -8,13 +8,12 @@ inherit core-image
 # una compilacion completa.
 IMAGE_FEATURES += "ssh-server-dropbear"
 
-# Estas tres features dejan root sin contrasena y permiten login remoto.
-# PROHIBIDO en la imagen de entrega (G2). Comentar antes de la version final.
-IMAGE_FEATURES += "allow-empty-password allow-root-login empty-root-password"
+# G2: esta es la imagen de ENTREGA. No lleva contrasena vacia ni login de
+# root sin credencial. Para desarrollo y demostracion existe
+# acceso-image-dev.bb, que hereda de esta y agrega esas concesiones.
 
 IMAGE_INSTALL:append = "\
     packagegroup-acceso \
-    packagegroup-acceso-diagnostico \
     acceso-control \
     python3-opencv \
     kernel-modules \
