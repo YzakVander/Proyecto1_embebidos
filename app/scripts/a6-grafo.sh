@@ -45,8 +45,10 @@ trap '[ "$reanudar" = 1 ] && systemctl start "$SERVICIO" && echo "$SERVICIO arra
 mkdir -p "$DIR"
 rm -f "$DIR"/*.dot "$DIR/app.log" "$SALIDA"     # solo lo que genera este script
 
-# GST_DEBUG_DUMP_DOT_DIR tiene que existir ANTES de que arranque GStreamer:
-# lo lee una sola vez al inicializarse.
+# Con la correccion de exportar_dot() la variable ya no hace falta. Se
+# mantiene por si la placa todavia corre una version anterior de
+# pipeline.py, que solo genera el .dot si GST_DEBUG_DUMP_DOT_DIR existe
+# antes de que arranque GStreamer.
 echo "corriendo la aplicacion $SEG s ..."
 GST_DEBUG_DUMP_DOT_DIR="$DIR" $APP -c "$CONF" --dot "$DIR" >"$DIR/app.log" 2>&1 &
 PID=$!

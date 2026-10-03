@@ -96,6 +96,10 @@ def tabla(titulo, datos):
 tabla("== Ruta: fuente -> sink ==", rutas)
 tabla("== Etapa: tiempo dentro de cada elemento (de mayor a menor mediana) ==", etapas)
 EOF
+    # B5: la aplicacion reporta la duracion de sus callbacks al detenerse.
+    # Con el tracer activo son una cota superior.
+    echo "== B5: duracion de los callbacks de los appsink (presupuesto: 33 ms por cuadro) =="
+    grep -o "B5 callback.*" "$DIR/app.log" || echo "  (no aparecio el resumen de B5 en el log)"
 } >"$RESUMEN"
 
 cat "$RESUMEN"
