@@ -8,6 +8,11 @@ una cámara USB en la entrada, lo graba como evidencia, lo transmite en vivo al
 puesto de vigilancia, lee credenciales QR y resuelve cada solicitud de acceso
 con un buzzer por PWM.
 
+**Cámara:** se usa una webcam USB (UVC) con `v4l2src`, no una cámara CSI con
+`libcamerasrc` como menciona el enunciado. La sustitución la autorizó el
+profesor y elimina el riesgo técnico más alto del proyecto (decisión D-05 en
+`../Bitacora/bitacora-daniel.md`).
+
 ## Arquitectura
 
 Tubería (con `config/acceso.conf`, cámara USB en MJPEG y codificador por
@@ -50,6 +55,31 @@ validación del pipeline.
 | `registro.py` | registro persistente de credenciales y sus roles | RF-13, RF-14, CU-11, CU-12 | — |
 | `credencial.py` | generación y verificación de la imagen de la credencial | CU-11 | — |
 | `retencion.py` | topes por carpeta y borrado de MP4 corruptos al arrancar | RF-7, CU-8 | E4, H7 |
+
+## Prototipado con gst-launch-1.0
+
+Las tuberías se diseñaron primero en la consola, con `gst-launch-1.0` en la
+computadora de desarrollo, usando `videotestsrc` y `x264enc` en lugar de la
+cámara y el codificador por hardware. Lo que se aprendió ahí quedó en
+`mediciones/`:
+
+| Prototipo | Hallazgo | Evidencia |
+|---|---|---|
+| Fuente sin formato fijo | `videotestsrc` negocia `Y444_10LE` y `x264enc` sale en perfil 4:4:4, que casi ningún reproductor decodifica: los caps se leen, no se suponen | `A1-sin-formato.txt`, `A1-con-formato.txt` |
+| Tee con y sin queue | sin queue, la rama lenta frena a la rápida: 122 s contra 38 s para 150 cuadros | `B1-tee-queue.txt` (`scripts/b1-tee.sh`) |
+| Latencia con el tracer | 12–21 ms de la fuente al `udpsink`; corrigió un presupuesto estimado en 605 ms | `D1-tracer.txt`, `D4-presupuesto.md` |
+| Rama de clips por appsink | un tee impone las mismas caps a todas sus ramas; sin `byte-stream` el clip no se relee | `B4-B5-buffer-circular.txt` |
+
+**En la placa el prototipado por consola tiene un límite.** El bloque
+`bcm2835-codec` (decodificador JPEG, ISP y codificador H.264) no admite
+instancias externas mientras `acceso-control` lo usa: un `gst-launch-1.0`
+con `v4l2jpegdec`, `v4l2convert` o `v4l2h264enc` falla con
+`bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3`
+(`mediciones/C1-hallazgo-contextos.txt`). Para probar una tubería a mano hay
+que detener el servicio y esperar unos 10 s. Por eso las mediciones en la
+placa se hacen desde la aplicación misma, con su configuración real:
+`scripts/a6-grafo.sh` (grafo y caps negociados) y `scripts/d1-latencia.sh`
+(tracer de latencia), que detienen y vuelven a arrancar el servicio solos.
 
 ## Uso
 

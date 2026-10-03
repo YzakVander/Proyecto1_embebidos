@@ -1,31 +1,77 @@
-#!/bin/bash
-# A6 - genera el grafo .dot del pipeline completo y lo convierte a PNG
+#!/bin/sh
+# A1 / A2 / A5 / A6 / B1 / B3 - grafo de la tuberia REAL, generado por la
+# aplicacion misma, con su configuracion real.
+#
+# Mejor evidencia que un gst-launch armado a mano: incluye lo que GStreamer
+# inserto solo y las caps que de verdad se negociaron. Una sola corrida
+# alimenta seis items del acta (ver analizar-dot.py).
+#
+# En la placa (como root), con este script y analizar-dot.py en la misma
+# carpeta:
+#     ./a6-grafo.sh
+# Luego, en la PC, traer el resultado al repositorio:
+#     scp root@<IP>:/tmp/grafos/acceso.dot app/grafos/
+#     scp root@<IP>:/tmp/grafos/A1-A6-grafo-rpi4.txt app/mediciones/
+#     dot -Tsvg -Grankdir=LR app/grafos/acceso.dot -o app/grafos/pipeline-acceso-rpi4.svg
+#
+# Variables (opcionales):
+#     CONF  configuracion          (/etc/acceso/acceso.conf)
+#     DIR   carpeta de salida      (/tmp/grafos)
+#     SEG   segundos de corrida    (8; el grafo se vuelca a los 3 s)
+#     APP   comando de la app      (acceso-control; en la PC: "python3 -m acceso")
+#
+# El bloque bcm2835-codec no admite un segundo proceso mientras el servicio
+# lo usa (C1-hallazgo-contextos.txt): el script detiene el servicio, espera
+# 10 s, corre la aplicacion a mano y al final lo vuelve a arrancar.
 set -u
-mkdir -p grafos
-export GST_DEBUG_DUMP_DOT_DIR=grafos
-rm -f grafos/*.dot
+AQUI="$(cd "$(dirname "$0")" && pwd)"
+CONF="${CONF:-/etc/acceso/acceso.conf}"
+DIR="${DIR:-/tmp/grafos}"
+SEG="${SEG:-8}"
+APP="${APP:-acceso-control}"
+SERVICIO=acceso-control
+SALIDA="$DIR/A1-A6-grafo-rpi4.txt"
 
-gst-launch-1.0 -q -e videotestsrc num-buffers=90 is-live=true \
-  ! video/x-raw,format=I420,width=1280,height=720,framerate=30/1 \
-  ! queue max-size-buffers=8 leaky=downstream ! tee name=t_raw \
-  t_raw. ! queue max-size-buffers=8 leaky=downstream \
-    ! x264enc tune=zerolatency bitrate=2500 key-int-max=30 \
-    ! h264parse config-interval=-1 ! tee name=t_h264 \
-  t_h264. ! queue \
-    ! splitmuxsink location=evidencia/evidencia_%05d.mp4 \
-      max-size-time=30000000000 muxer-factory=mp4mux \
-  t_h264. ! queue max-size-buffers=8 leaky=downstream \
-    ! rtph264pay config-interval=1 pt=96 \
-    ! udpsink host=127.0.0.1 port=5000 sync=false \
-  t_raw. ! queue max-size-buffers=1 leaky=downstream \
-    ! valve name=valvula_foto drop=false \
-    ! jpegenc quality=85 \
-    ! multifilesink location=evidencia/evento_%05d.jpg
-
-echo "--- .dot generados ---"
-ls grafos/*.dot
-DOT=$(ls grafos/*PLAYING*.dot 2>/dev/null | tail -1)
-if [ -n "${DOT:-}" ]; then
-  dot -Tpng "$DOT" -o grafos/pipeline-acceso.png
-  echo "PNG: grafos/pipeline-acceso.png"
+reanudar=0
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet "$SERVICIO" 2>/dev/null; then
+    echo "deteniendo $SERVICIO (libera los contextos del bloque de hardware) ..."
+    systemctl stop "$SERVICIO"
+    reanudar=1
+    sleep 10
 fi
+# Pase lo que pase, el servicio vuelve a quedar como estaba
+trap '[ "$reanudar" = 1 ] && systemctl start "$SERVICIO" && echo "$SERVICIO arrancado de nuevo"' EXIT
+
+mkdir -p "$DIR"
+rm -f "$DIR"/*.dot "$DIR/app.log" "$SALIDA"     # solo lo que genera este script
+
+# GST_DEBUG_DUMP_DOT_DIR tiene que existir ANTES de que arranque GStreamer:
+# lo lee una sola vez al inicializarse.
+echo "corriendo la aplicacion $SEG s ..."
+GST_DEBUG_DUMP_DOT_DIR="$DIR" $APP -c "$CONF" --dot "$DIR" >"$DIR/app.log" 2>&1 &
+PID=$!
+sleep "$SEG"
+kill -TERM "$PID" 2>/dev/null
+wait "$PID" 2>/dev/null
+
+if [ ! -s "$DIR/acceso.dot" ]; then
+    echo "ERROR: no se genero $DIR/acceso.dot. Ultimas lineas del log:" >&2
+    tail -20 "$DIR/app.log" >&2
+    exit 1
+fi
+
+{
+    echo "# A1/A2/A5/A6/B1/B3 - grafo de la tuberia real, volcado por la aplicacion"
+    echo "# $(date -Iseconds 2>/dev/null || date) | $(uname -n) | $(uname -r)"
+    echo "# $(gst-inspect-1.0 --version 2>/dev/null | sed -n 2p)"
+    echo "# configuracion: $CONF"
+    echo
+    python3 "$AQUI/analizar-dot.py" "$DIR/acceso.dot"
+} >"$SALIDA"
+
+if command -v dot >/dev/null 2>&1; then
+    dot -Tsvg -Grankdir=LR "$DIR/acceso.dot" -o "$DIR/pipeline-acceso.svg"
+    echo "SVG: $DIR/pipeline-acceso.svg"
+fi
+echo "grafo:   $DIR/acceso.dot"
+echo "informe: $SALIDA"
