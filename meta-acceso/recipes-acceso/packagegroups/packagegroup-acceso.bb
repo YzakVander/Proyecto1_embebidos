@@ -67,5 +67,5 @@ RDEPENDS:${PN}-diagnostico = "\
     v4l-utils \
     raspi-utils \
     sysstat \
-    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-plugins-ugly-x264 \
 "
