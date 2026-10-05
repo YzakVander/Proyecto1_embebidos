@@ -1,0 +1,2 @@
+Oct 02 16:23:17 raspberrypi4-64 acceso-control[1011]: 2026-10-02 16:23:17,332 INFO    acceso.red             puesto de vigilancia conectado: 172.21.255.231
+Oct 02 16:23:17 raspberrypi4-64 acceso-control[1011]: 2026-10-02 16:23:17,333 INFO    acceso.pipeline        destino de transmision: 10.0.0.99 -> 172.21.255.231:5000

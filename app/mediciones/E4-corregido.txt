@@ -1,0 +1,21 @@
+# E4 - cierre limpio TRAS LA CORRECCION (commit 089c081)
+# 2026-10-02T23:56:19+0000
+
+-rw-r--r--    1 root     root       11.6M Oct  2 23:56 /var/lib/acceso/evidencia/evidencia_00141.mp4
+
+  ftyp  32 bytes  @0
+  free  8 bytes  @32
+  mdat  12188030 bytes  @40
+  moov  13823 bytes  @12188070
+SANO: cajas suman el total y existe moov
+
+2026-10-02 23:56:16,204 INFO    acceso.servicio        senal de terminacion recibida
+2026-10-02 23:56:16,205 INFO    acceso.servicio        apagando el servicio
+Stopping Sistema de control de acceso (GStreamer)...
+2026-10-02 23:56:16,571 INFO    acceso.pipeline        enviando EOS para cerrar los contenedores
+2026-10-02 23:56:16,581 INFO    acceso.pipeline        segmento cerrado al detener: /var/lib/acceso/evidencia/evidencia_00141.mp4
+2026-10-02 23:56:16,643 INFO    acceso.pipeline        tuberia en NULL
+2026-10-02 23:56:16,645 INFO    acceso.servicio        buffer circular al cierre: {'cuadros': 450, 'capacidad': 450, 'bytes': 4690141, 'total_recibidos': 2940, 'cuadros_desde_idr': 17}
+acceso-control.service: Deactivated successfully.
+Stopped Sistema de control de acceso (GStreamer).
+acceso-control.service: Consumed 2min 17.664s CPU time over 1min 40.777s wall clock time.

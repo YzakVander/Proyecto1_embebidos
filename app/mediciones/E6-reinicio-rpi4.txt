@@ -1,0 +1,37 @@
+# E6 - reinicio automatico tras terminacion anormal
+# 2026-10-03T01:09:08+0000
+
+== Configuracion de la unidad ==
+Restart=on-failure
+TimeoutStopUSec=20s
+KillSignal=15
+
+antes:  PID=442  NRestarts=0
+despues: PID=591  NRestarts=1  activo=active
+OK: systemd reinicio el proceso
+
+== Pero: verificar si GRABA tras el reinicio ==
+-rw-r--r--    1 root     root       17.4M Oct  3 01:05 evidencia_00156.mp4
+-rw-r--r--    1 root     root       17.6M Oct  3 01:10 evidencia_00157.mp4
+-rw-r--r--    1 root     root        5.4M Oct  3 01:10 evidencia_00158.mp4
+
+ocurrencias de 'Failed enabling i/p port' en dmesg: 0
+
+== Contraste: stop ordenado NO reinicia ==
+activo tras stop = inactive
+
+==============================================================
+HALLAZGO: el reinicio NO es funcionalmente completo
+==============================================================
+systemd cumple su parte: Restart=on-failure levanta el proceso en
+menos de 10 s y NRestarts sube. Pero tras un kill -9 el bloque
+bcm2835-codec queda inservible: el servicio arranca, reporta
+'tuberia en PLAYING' y 'active (running)', y NO GRABA. El unico
+sintoma es el call trace del kernel en vb2_start_streaming con
+'bcm2835_codec_start_streaming: Failed enabling i/p port, ret -3'.
+
+Medido: segmentos de 595 B y 100 KB en lugar de 17.4 MB/min.
+RECUPERACION: solo un reboot lo restaura. Verificado.
+
+IMPLICACION: un watchdog que vigile el crecimiento de los segmentos
+y reinicie la placa seria la mitigacion. No implementado.
