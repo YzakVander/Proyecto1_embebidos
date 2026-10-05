@@ -25,3 +25,18 @@ BBLAYERS ?= " \
   /home/daniel/proyecto-acceso/layers/meta-openembedded/meta-networking \
   /home/daniel/proyecto-acceso/layers/meta-acceso \
   "
+
+=====================================================================
+NOTA SOBRE LA SERIE Y LA DESVIACION RESPECTO AL ACTA
+=====================================================================
+"wrynose" y "Poky 6.0.3" no son versiones distintas: 6.0.3 es la version
+de distro de la serie wrynose. Confirmado por LAYERSERIES_CORENAMES del
+core y por las cinco capas en esa rama.
+
+El acta especifica Yocto Scarthgap (5.0). Este proyecto se construyo
+sobre wrynose (5.1). La desviacion es deliberada y tiene consecuencia
+tecnica: la receta acceso-control usa ${UNPACKDIR}, introducido en 5.1.
+Migrar a Scarthgap obligaria a revertirlo a ${WORKDIR}. El comentario
+correspondiente esta en la receta.
+
+GStreamer 1.28.5 supera el minimo de 1.22 que pide el acta.

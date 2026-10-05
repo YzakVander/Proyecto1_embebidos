@@ -20,3 +20,23 @@ Libre en la particion: 9175 MB
 -rw-r--r--    1 root     root       17.7M Oct  3 01:04 evidencia_00155.mp4
 -rw-r--r--    1 root     root       17.4M Oct  3 01:05 evidencia_00156.mp4
 -rw-r--r--    1 root     root        5.7M Oct  3 01:05 evidencia_00157.mp4
+
+=====================================================================
+CORRECCION DE LECTURA
+=====================================================================
+Los 645 MB/h son el crecimiento NETO de la carpeta: la retencion borra
+en paralelo, asi que subestima la escritura real. Las tres cifras:
+
+  crecimiento neto de la carpeta : 645 MB/h
+  escritura al dispositivo       : 710 MB/h (59.2 MB en 5 min, diskstats)
+  tasa bruta por segmento        : ~1050 MB/h (17.4 MB/min x 60)
+
+La retencion efectiva se calcula con la tasa BRUTA, no con la neta:
+  5500 MB / 1050 MB/h = 5.2 h   <-- valor correcto
+(el "8.5 h" de arriba sale de la cifra neta y esta mal)
+
+La diferencia entre 710 y 1050 MB/h es el sobrecosto de journal y
+metadatos frente al dato puro de video.
+
+PENDIENTE: iostat -x, que el acta nombra explicitamente. No esta en la
+imagen (viene en sysstat); agregarlo al subpaquete de diagnostico.

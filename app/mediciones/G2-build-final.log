@@ -1,0 +1,295 @@
+Loading cache...done.
+Loaded 5356 entries from dependency cache.
+Parsing recipes...done.
+Parsing of 3093 .bb files complete (3092 cached, 1 parsed). 5356 targets, 139 skipped, 0 masked, 0 errors.
+NOTE: Resolving any missing task queue dependencies
+NOTE: Multiple providers are available for ffmpeg (ffmpeg, rpidistro-ffmpeg)
+Consider defining a PREFERRED_PROVIDER entry to match ffmpeg
+NOTE: Multiple providers are available for runtime libnss-mdns (avahi-libnss-mdns, mdns)
+Consider defining a PREFERRED_RPROVIDER entry to match libnss-mdns
+
+Build Configuration:
+BB_VERSION           = "2.18.0"
+BUILD_SYS            = "x86_64-linux"
+NATIVELSBSTRING      = "universal"
+TARGET_SYS           = "aarch64-poky-linux"
+MACHINE              = "raspberrypi4-64"
+SDKMACHINE           = "x86_64"
+DISTRO               = "poky"
+DISTRO_VERSION       = "6.0.3"
+TUNE_FEATURES        = "aarch64 crc cortexa72 nocrypto"
+meta                 = "wrynose:cc4695f65beb6e5069fbecc16475fa5a27c768e9"
+meta-poky            = "wrynose:ddeeba423ff0565b8f1192f16072b5993d5ea6a0"
+meta-raspberrypi     = "wrynose:f62c67921474370829d24a4fa01ef88543f3906b"
+meta-oe              
+meta-python          
+meta-multimedia      
+meta-networking      = "wrynose:47d7dbdd10890bbd429bc0cccbe14435c37e5af1"
+meta-acceso          = "main:3e871117ea99f19e6d39e15835913499ba8bfc7c"
+
+Initialising tasks...Sstate summary: Wanted 159 Local 108 Mirrors 0 Missed 51 Current 4043 (67% match, 98% complete)
+done.
+Removing 13 stale sstate objects for arch raspberrypi4_64...done.
+Removing 5 stale sstate objects for arch allarch...done.
+NOTE: Executing Tasks
+NOTE: Running task 3705 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_recipe_qa)
+NOTE: recipe dtc-1.7.2-r0: task do_recipe_qa: Started
+NOTE: recipe dtc-1.7.2-r0: task do_recipe_qa: Succeeded
+NOTE: Running task 3881 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_fetch)
+NOTE: recipe dtc-1.7.2-r0: task do_fetch: Started
+NOTE: Running task 4032 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_recipe_qa)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_recipe_qa: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_recipe_qa: Succeeded
+NOTE: Running task 4048 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_fetch)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_fetch: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_fetch: Succeeded
+NOTE: recipe dtc-1.7.2-r0: task do_fetch: Succeeded
+NOTE: Running task 4051 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_unpack)
+NOTE: recipe dtc-1.7.2-r0: task do_unpack: Started
+NOTE: Running task 4223 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_recipe_qa)
+NOTE: recipe sysstat-12.7.9-r0: task do_recipe_qa: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_recipe_qa: Succeeded
+NOTE: Running task 4274 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_fetch)
+NOTE: recipe sysstat-12.7.9-r0: task do_fetch: Started
+NOTE: recipe dtc-1.7.2-r0: task do_unpack: Succeeded
+NOTE: Running task 4275 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_patch)
+NOTE: recipe dtc-1.7.2-r0: task do_patch: Started
+NOTE: recipe dtc-1.7.2-r0: task do_patch: Succeeded
+NOTE: Running task 4288 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_unpack)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_unpack: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_unpack: Succeeded
+NOTE: Running task 4325 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_patch)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_patch: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_patch: Succeeded
+NOTE: Running task 4336 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_deploy_source_date_epoch)
+NOTE: recipe dtc-1.7.2-r0: task do_deploy_source_date_epoch: Started
+NOTE: recipe dtc-1.7.2-r0: task do_deploy_source_date_epoch: Succeeded
+NOTE: Running task 4369 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_write_config)
+NOTE: recipe dtc-1.7.2-r0: task do_write_config: Started
+NOTE: recipe dtc-1.7.2-r0: task do_write_config: Succeeded
+NOTE: Running task 4370 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_prepare_recipe_sysroot)
+NOTE: recipe dtc-1.7.2-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe dtc-1.7.2-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 4373 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_configure)
+NOTE: recipe dtc-1.7.2-r0: task do_configure: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_fetch: Succeeded
+NOTE: Running task 4476 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_unpack)
+NOTE: recipe sysstat-12.7.9-r0: task do_unpack: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_unpack: Succeeded
+NOTE: Running task 4525 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_patch)
+NOTE: recipe sysstat-12.7.9-r0: task do_patch: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_patch: Succeeded
+NOTE: Running task 4919 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_deploy_source_date_epoch)
+NOTE: recipe sysstat-12.7.9-r0: task do_deploy_source_date_epoch: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_deploy_source_date_epoch: Succeeded
+NOTE: Running task 4921 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_deploy_source_date_epoch)
+NOTE: recipe dtc-1.7.2-r0: task do_configure: Succeeded
+NOTE: Running task 4922 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_compile)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_deploy_source_date_epoch: Started
+NOTE: recipe dtc-1.7.2-r0: task do_compile: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_deploy_source_date_epoch: Succeeded
+NOTE: Running task 5045 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_prepare_recipe_sysroot)
+NOTE: recipe sysstat-12.7.9-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 5048 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_generate_toolchain_file)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_generate_toolchain_file: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_generate_toolchain_file: Succeeded
+NOTE: Running task 5064 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_configure)
+NOTE: recipe sysstat-12.7.9-r0: task do_configure: Started
+NOTE: recipe dtc-1.7.2-r0: task do_compile: Succeeded
+NOTE: Running task 5065 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_install)
+NOTE: recipe dtc-1.7.2-r0: task do_install: Started
+NOTE: recipe dtc-1.7.2-r0: task do_install: Succeeded
+NOTE: Running task 5066 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_package)
+NOTE: recipe dtc-1.7.2-r0: task do_package: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_configure: Succeeded
+NOTE: Running task 5067 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_populate_sysroot)
+NOTE: recipe dtc-1.7.2-r0: task do_populate_sysroot: Started
+NOTE: recipe dtc-1.7.2-r0: task do_populate_sysroot: Succeeded
+NOTE: Running task 5068 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_prepare_recipe_sysroot)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe dtc-1.7.2-r0: task do_package: Succeeded
+NOTE: Running task 5069 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_packagedata)
+NOTE: recipe dtc-1.7.2-r0: task do_packagedata: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 5071 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_configure)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_configure: Started
+NOTE: recipe dtc-1.7.2-r0: task do_packagedata: Succeeded
+NOTE: Running task 5085 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_compile)
+NOTE: recipe sysstat-12.7.9-r0: task do_compile: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_configure: Succeeded
+NOTE: Running task 5087 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_compile)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_compile: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_compile: Succeeded
+NOTE: Running task 5103 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_install)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_install: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_install: Succeeded
+NOTE: Running task 5269 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_package)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_package: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_package: Succeeded
+NOTE: Running task 5393 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/packagegroups/packagegroup-acceso.bb:do_package)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_package: Started
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_package: Succeeded
+NOTE: Running task 5420 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_packagedata)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_packagedata: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_packagedata: Succeeded
+NOTE: Running task 5546 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/packagegroups/packagegroup-acceso.bb:do_packagedata)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_packagedata: Started
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_packagedata: Succeeded
+NOTE: Running task 5627 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_create_recipe_spdx)
+NOTE: recipe dtc-1.7.2-r0: task do_create_recipe_spdx: Started
+NOTE: recipe dtc-1.7.2-r0: task do_create_recipe_spdx: Succeeded
+NOTE: Running task 5752 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_create_spdx)
+NOTE: recipe dtc-1.7.2-r0: task do_create_spdx: Started
+NOTE: recipe dtc-1.7.2-r0: task do_create_spdx: Succeeded
+NOTE: Running task 5929 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_populate_lic)
+NOTE: recipe dtc-1.7.2-r0: task do_populate_lic: Started
+NOTE: recipe dtc-1.7.2-r0: task do_populate_lic: Succeeded
+NOTE: Running task 6032 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_populate_lic)
+NOTE: recipe sysstat-12.7.9-r0: task do_populate_lic: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_populate_lic: Succeeded
+NOTE: Running task 6036 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_populate_lic)
+NOTE: recipe sysstat-12.7.9-r0: task do_compile: Succeeded
+NOTE: Running task 6037 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_install)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_populate_lic: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_populate_lic: Succeeded
+NOTE: recipe sysstat-12.7.9-r0: task do_install: Started
+NOTE: Running task 6284 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_create_recipe_spdx)
+NOTE: recipe sysstat-12.7.9-r0: task do_create_recipe_spdx: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_create_recipe_spdx: Succeeded
+NOTE: Running task 6286 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_create_recipe_spdx)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_create_recipe_spdx: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_install: Succeeded
+NOTE: Running task 6287 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_package)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_create_recipe_spdx: Succeeded
+NOTE: recipe sysstat-12.7.9-r0: task do_package: Started
+NOTE: Running task 6571 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_package_write_rpm)
+NOTE: recipe dtc-1.7.2-r0: task do_package_write_rpm: Started
+NOTE: recipe dtc-1.7.2-r0: task do_package_write_rpm: Succeeded
+NOTE: Running task 6572 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_package_qa)
+NOTE: recipe dtc-1.7.2-r0: task do_package_qa: Started
+NOTE: recipe dtc-1.7.2-r0: task do_package_qa: Succeeded
+NOTE: Running task 6795 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_package_write_rpm)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_package_write_rpm: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_package: Succeeded
+NOTE: Running task 6796 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_packagedata)
+NOTE: recipe sysstat-12.7.9-r0: task do_packagedata: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_package_write_rpm: Succeeded
+NOTE: Running task 6797 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_package_qa)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_package_qa: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_package_qa: Succeeded
+NOTE: Running task 6921 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/packagegroups/packagegroup-acceso.bb:do_create_spdx)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_create_spdx: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_packagedata: Succeeded
+NOTE: Running task 6922 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/packagegroups/packagegroup-acceso.bb:do_package_write_rpm)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_create_spdx: Succeeded
+NOTE: Running task 6923 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/packagegroups/packagegroup-acceso.bb:do_package_qa)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_package_write_rpm: Started
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_package_qa: Started
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_package_qa: Succeeded
+NOTE: Running task 6924 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_package_write_rpm)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_package_write_rpm: Succeeded
+NOTE: Running task 6925 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_package_qa)
+NOTE: recipe sysstat-12.7.9-r0: task do_package_write_rpm: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_package_qa: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_package_qa: Succeeded
+NOTE: Running task 6965 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_populate_sysroot)
+NOTE: recipe sysstat-12.7.9-r0: task do_populate_sysroot: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_populate_sysroot: Succeeded
+NOTE: Running task 6967 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_populate_sysroot)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_populate_sysroot: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_package_write_rpm: Succeeded
+NOTE: recipe raspi-utils-1.0+git-r0: task do_populate_sysroot: Succeeded
+NOTE: Running task 7026 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_create_spdx)
+NOTE: Running task 7028 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_create_spdx)
+NOTE: recipe sysstat-12.7.9-r0: task do_create_spdx: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_create_spdx: Started
+NOTE: recipe raspi-utils-1.0+git-r0: task do_create_spdx: Succeeded
+NOTE: Running task 7081 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_rootfs)
+NOTE: recipe sysstat-12.7.9-r0: task do_create_spdx: Succeeded
+NOTE: Running task 7082 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_rootfs)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_rootfs: Started
+NOTE: recipe acceso-image-1.0-r0: task do_rootfs: Started
+NOTE: recipe acceso-image-1.0-r0: task do_rootfs: Succeeded
+NOTE: recipe acceso-image-dev-1.0-r0: task do_rootfs: Succeeded
+NOTE: Running task 7255 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-kernel/dtc/dtc_1.7.2.bb:do_create_package_spdx)
+NOTE: recipe dtc-1.7.2-r0: task do_create_package_spdx: Started
+NOTE: Running task 7388 of 7644 (/home/daniel/proyecto-acceso/layers/openembedded-core/meta/recipes-extended/sysstat/sysstat_12.7.9.bb:do_create_package_spdx)
+NOTE: recipe sysstat-12.7.9-r0: task do_create_package_spdx: Started
+NOTE: recipe dtc-1.7.2-r0: task do_create_package_spdx: Succeeded
+NOTE: Running task 7392 of 7644 (/home/daniel/proyecto-acceso/layers/meta-raspberrypi/recipes-devtools/raspi-utils/raspi-utils_git.bb:do_create_package_spdx)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_create_package_spdx: Started
+NOTE: recipe sysstat-12.7.9-r0: task do_create_package_spdx: Succeeded
+NOTE: Running task 7526 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/packagegroups/packagegroup-acceso.bb:do_create_package_spdx)
+NOTE: recipe raspi-utils-1.0+git-r0: task do_create_package_spdx: Succeeded
+NOTE: Running task 7558 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_flush_pseudodb)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_create_package_spdx: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_flush_pseudodb: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_flush_pseudodb: Succeeded
+NOTE: Running task 7559 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_flush_pseudodb)
+NOTE: recipe packagegroup-acceso-1.0-r0: task do_create_package_spdx: Succeeded
+NOTE: Running task 7569 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_create_package_spdx)
+NOTE: recipe acceso-image-1.0-r0: task do_flush_pseudodb: Started
+NOTE: recipe acceso-image-1.0-r0: task do_flush_pseudodb: Succeeded
+NOTE: Running task 7570 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_create_package_spdx)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_package_spdx: Started
+NOTE: recipe acceso-image-1.0-r0: task do_create_package_spdx: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_package_spdx: Succeeded
+NOTE: recipe acceso-image-1.0-r0: task do_create_package_spdx: Succeeded
+NOTE: Running task 7579 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_create_rootfs_spdx)
+NOTE: Running task 7580 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_create_rootfs_spdx)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_rootfs_spdx: Started
+NOTE: recipe acceso-image-1.0-r0: task do_create_rootfs_spdx: Started
+NOTE: recipe acceso-image-1.0-r0: task do_create_rootfs_spdx: Succeeded
+NOTE: Running task 7596 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_image_qa)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_rootfs_spdx: Succeeded
+NOTE: Running task 7597 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_image_qa)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image_qa: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image_qa: Succeeded
+NOTE: Running task 7598 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_image)
+NOTE: recipe acceso-image-1.0-r0: task do_image_qa: Started
+NOTE: recipe acceso-image-1.0-r0: task do_image_qa: Succeeded
+NOTE: Running task 7599 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_image)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image: Succeeded
+NOTE: recipe acceso-image-1.0-r0: task do_image: Started
+NOTE: Running task 7617 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_rootfs_wicenv)
+NOTE: recipe acceso-image-1.0-r0: task do_image: Succeeded
+NOTE: Running task 7618 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_rootfs_wicenv)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_rootfs_wicenv: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_rootfs_wicenv: Succeeded
+NOTE: Running task 7619 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_image_wic)
+NOTE: recipe acceso-image-1.0-r0: task do_rootfs_wicenv: Started
+NOTE: recipe acceso-image-1.0-r0: task do_rootfs_wicenv: Succeeded
+NOTE: Running task 7620 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_image_wic)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image_wic: Started
+NOTE: recipe acceso-image-1.0-r0: task do_image_wic: Started
+NOTE: recipe acceso-image-1.0-r0: task do_image_wic: Succeeded
+NOTE: Running task 7621 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_image_complete)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image_wic: Succeeded
+NOTE: Running task 7622 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_image_complete)
+NOTE: recipe acceso-image-1.0-r0: task do_image_complete: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image_complete: Started
+NOTE: recipe acceso-image-1.0-r0: task do_image_complete: Succeeded
+NOTE: Running task 7637 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_create_image_spdx)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_image_complete: Succeeded
+NOTE: Running task 7638 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_create_image_spdx)
+NOTE: recipe acceso-image-1.0-r0: task do_create_image_spdx: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_image_spdx: Started
+NOTE: recipe acceso-image-1.0-r0: task do_create_image_spdx: Succeeded
+NOTE: Running task 7639 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_populate_lic_deploy)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_image_spdx: Succeeded
+NOTE: Running task 7640 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_create_image_sbom_spdx)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_populate_lic_deploy: Started
+NOTE: recipe acceso-image-dev-1.0-r0: task do_populate_lic_deploy: Succeeded
+NOTE: Running task 7641 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_create_image_sbom_spdx)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_image_sbom_spdx: Started
+NOTE: recipe acceso-image-1.0-r0: task do_create_image_sbom_spdx: Started
+NOTE: recipe acceso-image-1.0-r0: task do_create_image_sbom_spdx: Succeeded
+NOTE: Running task 7642 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_populate_lic_deploy)
+NOTE: recipe acceso-image-dev-1.0-r0: task do_create_image_sbom_spdx: Succeeded
+NOTE: Running noexec task 7643 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_build)
+NOTE: recipe acceso-image-1.0-r0: task do_populate_lic_deploy: Started
+NOTE: recipe acceso-image-1.0-r0: task do_populate_lic_deploy: Succeeded
+NOTE: Running noexec task 7644 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_build)
+NOTE: Tasks Summary: Attempted 7644 tasks of which 7556 didn't need to be rerun and all succeeded.
