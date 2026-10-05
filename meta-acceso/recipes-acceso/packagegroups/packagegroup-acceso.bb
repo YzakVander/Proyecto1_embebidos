@@ -55,7 +55,7 @@ RDEPENDS:${PN}-python = "\
     python3-datetime \
     python3-pygobject \
     gstreamer1.0-python \
-    tzdata \
+    tzdata-americas \
 "
 
 # --- GPIO para los LED de estado ---
