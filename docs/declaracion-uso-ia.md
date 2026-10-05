@@ -117,7 +117,7 @@ de todo el proyecto.
 | Modelos | Gemini 3.6 Flash · Claude Opus 5.5 |
 | Interfaz | Gemini: navegador web · Claude: navegador web (claude.ai) y Claude Code (asistente en la terminal, trabajando sobre el repositorio local) |
 | Periodo de uso | setiembre – octubre de 2026 |
-| Sesiones de trabajo | _(completar)_ |
+| Sesiones de trabajo | 7 |
 
 ### 2.2 Nivel de uso por tipo de tarea
 
