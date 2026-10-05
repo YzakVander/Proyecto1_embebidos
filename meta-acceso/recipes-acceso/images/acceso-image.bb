@@ -36,3 +36,10 @@ export IMAGE_BASENAME = "acceso-image"
 # tono irregular y consumiria CPU. dtparam=audio=off libera el PWM, que el
 # audio analogico ocupa. Con el overlay cargado el pin arranca sin senal.
 RPI_EXTRA_CONFIG = "dtoverlay=pwm,pin=18,func=2\ndtparam=audio=off"
+
+# Zona horaria del sitio. Sin tzdata el sistema solo conoce UTC, y el sello
+# de fecha y hora del video quedaria 6 h adelantado respecto a la hora local:
+# un registro de acceso con la hora equivocada no sirve como evidencia.
+# El reloj lo sincroniza systemd-timesyncd por NTP; la placa no tiene RTC,
+# asi que sin red la hora parte del ultimo valor conocido.
+DEFAULT_TIMEZONE = "America/Costa_Rica"
