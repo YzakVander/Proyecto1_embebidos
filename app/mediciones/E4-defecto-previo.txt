@@ -4,6 +4,9 @@
 # SUPERADO: este archivo documenta el defecto ANTES de la correccion.
 # El resultado valido esta en E4-corregido.txt
 
+# SUPERADO: este archivo documenta el defecto ANTES de la correccion.
+# El resultado valido esta en E4-corregido.txt
+
 # E4 - cierre limpio: el ultimo archivo queda reproducible
 # 2026-10-02T23:00:16+0000
 # systemctl stop -> SIGTERM -> EOS -> espera en bus -> NULL
