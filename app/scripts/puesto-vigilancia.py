@@ -510,14 +510,22 @@ class Galeria(ttk.Frame):
         cv2.imwrite(str(png), chica)
 
         def mostrar():
+            # La etiqueta puede haberse destruido mientras se cargaba la
+            # miniatura: al refrescar, _pintar() borra toda la rejilla y los
+            # hilos en vuelo quedan apuntando a widgets que ya no existen.
             try:
+                if not etiqueta.winfo_exists():
+                    return
                 foto = tk.PhotoImage(file=str(png))
                 self._imagenes.append(foto)
                 etiqueta.config(image=foto, text="",
                                 width=chica.shape[1], height=chica.shape[0])
             except tk.TclError:
-                etiqueta.config(text=nombre[:16])
-        self.after(0, mostrar)
+                pass
+        try:
+            self.after(0, mostrar)
+        except tk.TclError:
+            pass
 
     def _abrir(self, nombre: str) -> None:
         def correr():
