@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import collections
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -170,6 +171,8 @@ class Canal:
     REINTENTO_S = 3.0
 
     def __init__(self, ip: str, puerto: int, consola: Consola) -> None:
+        global VISOR
+        VISOR = VisorCredencial(ip, consola)
         self._dir = (ip, puerto)
         self._consola = consola
         self._sock: socket.socket | None = None
@@ -261,9 +264,89 @@ class Canal:
             else:
                 rtt_ms = (t_llegada - enviado[1]) * 1000.0
                 self._consola.escribir(f"{linea}   [{rtt_ms:.1f} ms]", tipo)
+            if VISOR is not None and linea.startswith("OK"):
+                VISOR.quizas_abrir(linea)
             return
         # Continuacion de una respuesta de varias lineas (p. ej. LISTAR)
         self._consola.escribir(linea)
+
+
+
+# ---------------------------------------------------------------------- #
+# Credenciales: traer la imagen a esta computadora y abrirla
+# ---------------------------------------------------------------------- #
+VISOR = None          # lo crea el Canal al construirse
+
+
+class VisorCredencial:
+    """Trae por scp la credencial recien generada y la abre en el visor local.
+
+    La placa no tiene entorno grafico: la imagen se genera alla y se mira
+    aca, que es donde esta el vigilante. El servicio ya devuelve la ruta en
+    la respuesta de ALTA, asi que la placa no necesita ningun cambio.
+    """
+
+    RE_RUTA = re.compile(r"credencial en (\S+\.(?:bmp|png|jpe?g))", re.I)
+
+    def __init__(self, ip, consola, destino=None):
+        self._ip = ip
+        self._consola = consola
+        self._destino = Path(destino or "credenciales-recibidas")
+
+    def quizas_abrir(self, linea):
+        m = self.RE_RUTA.search(linea)
+        if m:
+            threading.Thread(target=self._traer, args=(m.group(1),),
+                             daemon=True).start()
+
+    def abrir_por_id(self, identificador):
+        remoto = f"{REMOTO}/credenciales/{identificador}.bmp"
+        threading.Thread(target=self._traer, args=(remoto,), daemon=True).start()
+
+    def _traer(self, remoto):
+        # Prueba local: el servicio corre en esta misma maquina, la imagen ya
+        # esta en el disco y no hay nada que copiar.
+        if self._ip in ("127.0.0.1", "localhost", "::1"):
+            if Path(remoto).is_file():
+                self._consola.escribir(f"credencial local: {remoto}", "ok")
+                self._abrir(Path(remoto))
+            else:
+                self._consola.escribir(f"no existe {remoto}", "error")
+            return
+        self._destino.mkdir(parents=True, exist_ok=True)
+        local = self._destino / Path(remoto).name
+        clave = os.environ.get("CLAVE") or os.environ.get("PASS")
+        base = ["sshpass", "-p", clave] if clave else []
+        cmd = base + ["scp", *SSH_OPC, f"root@{self._ip}:{remoto}", str(local)]
+        try:
+            r = subprocess.run(cmd, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True, timeout=30)
+        except Exception as exc:                          # noqa: BLE001
+            self._consola.escribir(f"no se pudo traer la credencial: {exc}", "error")
+            return
+        if r.returncode != 0:
+            self._consola.escribir(
+                f"scp fallo ({r.returncode}): {r.stdout.strip()}", "error")
+            return
+        self._consola.escribir(f"credencial guardada en {local}", "ok")
+        self._abrir(local)
+
+    def _abrir(self, ruta):
+        if sys.platform == "darwin":
+            cmd = ["open", str(ruta)]
+        elif os.name == "nt":
+            os.startfile(str(ruta))                       # type: ignore[attr-defined]
+            return
+        else:
+            if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+                self._consola.escribir(f"sin entorno grafico; imagen en {ruta}")
+                return
+            cmd = ["xdg-open", str(ruta)]
+        try:
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+        except FileNotFoundError:
+            self._consola.escribir(f"no hay visor; la imagen esta en {ruta}")
 
 
 # ---------------------------------------------------------------------- #

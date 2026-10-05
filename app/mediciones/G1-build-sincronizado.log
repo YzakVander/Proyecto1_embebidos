@@ -1,0 +1,86 @@
+Loading cache...done.
+Loaded 5356 entries from dependency cache.
+Parsing recipes...done.
+Parsing of 3093 .bb files complete (3092 cached, 1 parsed). 5356 targets, 139 skipped, 0 masked, 0 errors.
+NOTE: Resolving any missing task queue dependencies
+NOTE: Multiple providers are available for ffmpeg (ffmpeg, rpidistro-ffmpeg)
+Consider defining a PREFERRED_PROVIDER entry to match ffmpeg
+NOTE: Multiple providers are available for runtime libnss-mdns (avahi-libnss-mdns, mdns)
+Consider defining a PREFERRED_RPROVIDER entry to match libnss-mdns
+
+Build Configuration:
+BB_VERSION           = "2.18.0"
+BUILD_SYS            = "x86_64-linux"
+NATIVELSBSTRING      = "universal"
+TARGET_SYS           = "aarch64-poky-linux"
+MACHINE              = "raspberrypi4-64"
+SDKMACHINE           = "x86_64"
+DISTRO               = "poky"
+DISTRO_VERSION       = "6.0.3"
+TUNE_FEATURES        = "aarch64 crc cortexa72 nocrypto"
+meta                 = "wrynose:cc4695f65beb6e5069fbecc16475fa5a27c768e9"
+meta-poky            = "wrynose:ddeeba423ff0565b8f1192f16072b5993d5ea6a0"
+meta-raspberrypi     = "wrynose:f62c67921474370829d24a4fa01ef88543f3906b"
+meta-oe              
+meta-python          
+meta-multimedia      
+meta-networking      = "wrynose:47d7dbdd10890bbd429bc0cccbe14435c37e5af1"
+meta-acceso          = "Daniel:3d3dfb91ed84c4384c0eec546b1657c16558eb5d"
+
+Initialising tasks...Sstate summary: Wanted 130 Local 108 Mirrors 0 Missed 22 Current 4072 (83% match, 99% complete)
+done.
+Removing 9 stale sstate objects for arch cortexa72...done.
+Removing 13 stale sstate objects for arch raspberrypi4_64...done.
+NOTE: Executing Tasks
+NOTE: Running task 4417 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_fetch)
+NOTE: recipe acceso-control-1.0-r0: task do_fetch: Started
+NOTE: recipe acceso-control-1.0-r0: task do_fetch: Succeeded
+NOTE: Running task 4619 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_unpack)
+NOTE: recipe acceso-control-1.0-r0: task do_unpack: Started
+NOTE: recipe acceso-control-1.0-r0: task do_unpack: Succeeded
+NOTE: Running task 4754 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_patch)
+NOTE: recipe acceso-control-1.0-r0: task do_patch: Started
+NOTE: recipe acceso-control-1.0-r0: task do_patch: Succeeded
+NOTE: Running task 5254 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_deploy_source_date_epoch)
+NOTE: recipe acceso-control-1.0-r0: task do_deploy_source_date_epoch: Started
+NOTE: Running task 5357 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_prepare_recipe_sysroot)
+NOTE: recipe acceso-control-1.0-r0: task do_deploy_source_date_epoch: Succeeded
+NOTE: recipe acceso-control-1.0-r0: task do_prepare_recipe_sysroot: Started
+NOTE: recipe acceso-control-1.0-r0: task do_prepare_recipe_sysroot: Succeeded
+NOTE: Running task 5369 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_configure)
+NOTE: recipe acceso-control-1.0-r0: task do_configure: Started
+NOTE: recipe acceso-control-1.0-r0: task do_configure: Succeeded
+NOTE: Running task 5503 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_compile)
+NOTE: recipe acceso-control-1.0-r0: task do_compile: Started
+NOTE: recipe acceso-control-1.0-r0: task do_compile: Succeeded
+NOTE: Running task 5599 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_install)
+NOTE: recipe acceso-control-1.0-r0: task do_install: Started
+NOTE: recipe acceso-control-1.0-r0: task do_install: Succeeded
+NOTE: Running task 5843 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_create_recipe_spdx)
+NOTE: Running task 5844 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_package)
+NOTE: recipe acceso-control-1.0-r0: task do_create_recipe_spdx: Started
+NOTE: recipe acceso-control-1.0-r0: task do_package: Started
+NOTE: recipe acceso-control-1.0-r0: task do_create_recipe_spdx: Succeeded
+NOTE: Running task 6170 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_populate_lic)
+NOTE: recipe acceso-control-1.0-r0: task do_populate_lic: Started
+NOTE: recipe acceso-control-1.0-r0: task do_populate_lic: Succeeded
+NOTE: recipe acceso-control-1.0-r0: task do_package: Succeeded
+NOTE: Running task 6177 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_packagedata)
+NOTE: recipe acceso-control-1.0-r0: task do_packagedata: Started
+NOTE: recipe acceso-control-1.0-r0: task do_packagedata: Succeeded
+NOTE: Running task 6328 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_package_write_rpm)
+NOTE: Running task 6329 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_package_qa)
+NOTE: recipe acceso-control-1.0-r0: task do_package_write_rpm: Started
+NOTE: recipe acceso-control-1.0-r0: task do_package_qa: Started
+NOTE: recipe acceso-control-1.0-r0: task do_package_qa: Succeeded
+NOTE: recipe acceso-control-1.0-r0: task do_package_write_rpm: Succeeded
+NOTE: Running task 6921 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_populate_sysroot)
+NOTE: recipe acceso-control-1.0-r0: task do_populate_sysroot: Started
+NOTE: Running task 7080 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image-dev.bb:do_rootfs)
+NOTE: recipe acceso-control-1.0-r0: task do_populate_sysroot: Succeeded
+NOTE: Running task 7081 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/acceso-control/acceso-control_1.0.bb:do_create_spdx)
+NOTE: recipe acceso-control-1.0-r0: task do_create_spdx: Started
+NOTE: recipe acceso-control-1.0-r0: task do_create_spdx: Succeeded
+NOTE: recipe acceso-image-dev-1.0-r0: task do_rootfs: Started
+NOTE: Running task 7082 of 7644 (/home/daniel/proyecto-acceso/layers/meta-acceso/recipes-acceso/images/acceso-image.bb:do_rootfs)
+NOTE: recipe acceso-image-1.0-r0: task do_rootfs: Started
