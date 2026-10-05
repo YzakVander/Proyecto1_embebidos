@@ -24,6 +24,9 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import time
+from collections import deque
 
 import gi
 import numpy as np
@@ -36,6 +39,39 @@ from .buffer_circular import BufferCircular  # noqa: E402
 from .config import Config  # noqa: E402
 
 log = logging.getLogger(__name__)
+
+
+class Cronometro:
+    """B5: duracion de un callback que corre en el hilo de streaming.
+
+    Un callback lento es una queue invisible: bloquea el hilo de GStreamer y
+    no aparece en ningun grafo. Se guardan las ultimas duraciones (memoria
+    acotada) y al detener se reporta el p99, no el promedio, porque lo que
+    frena la tuberia es el peor caso.
+
+    Medir cuesta dos perf_counter_ns (~100 ns), despreciable frente a lo
+    medido. Sin candado: cada cronometro lo escribe un solo hilo, y el
+    resumen se lee con la tuberia ya en NULL.
+    """
+
+    UMBRAL_MS = 3.0     # 10 % del presupuesto de 33 ms por cuadro a 30 fps
+
+    def __init__(self, nombre: str, muestras: int = 3000) -> None:
+        self.nombre = nombre
+        self._ns: deque[int] = deque(maxlen=muestras)   # ~100 s a 30 fps
+
+    def anotar(self, ns: int) -> None:
+        self._ns.append(ns)
+
+    def resumen(self) -> str | None:
+        v = sorted(self._ns)
+        if not v:
+            return None
+        ms = lambda q: v[min(len(v) - 1, int(len(v) * q))] / 1e6   # noqa: E731
+        lentos = sum(1 for x in v if x / 1e6 > self.UMBRAL_MS) / len(v) * 100
+        return (f"B5 callback {self.nombre}: n={len(v)} min={v[0] / 1e6:.3f} "
+                f"p50={ms(0.5):.3f} p99={ms(0.99):.3f} max={v[-1] / 1e6:.3f} ms "
+                f"(>{self.UMBRAL_MS:g} ms: {lentos:.1f} %)")
 
 
 class PipelineAcceso:
@@ -54,8 +90,21 @@ class PipelineAcceso:
 
         self._lector_qr = lector_qr
         self._appsink_qr: Gst.Element | None = None
+        # B5: duracion de los dos callbacks del hilo de streaming. Viven en
+        # el objeto y no en la tuberia: sobreviven a una reconexion (E3).
+        self._crono_clips = Cronometro("clips")
+        self._crono_qr = Cronometro("qr")
+        # C4: la rama de QR entrega 30 cuadros por segundo pero el lector
+        # analiza analisis_por_s (5). Se copia a NumPy solo cada medio periodo
+        # del lector: el doble de lo que consume, para que al despertar
+        # siempre encuentre un cuadro fresco aunque los relojes no coincidan.
+        self._intervalo_copia_qr = 0.5 / max(cfg.qr.analisis_por_s, 0.1)
+        self._ultima_copia_qr = 0.0
         self._udpsink: Gst.Element | None = None
         self._al_fallar = None          # callback que fija el servicio (E3)
+        self._al_cerrar_segmento = None # callback que fija el servicio (RF-7: retencion)
+        # Segmento MP4 que se esta grabando: la retencion no lo puede borrar
+        self.segmento_actual: str | None = None
 
     #Funcin que va leyendo el objeto de configuracion y va armando la tuberia en forma de cadena de texto
     def descripcion(self) -> str: #Devuelve la cadena que describe el pipeline
@@ -79,8 +128,16 @@ class PipelineAcceso:
             os.makedirs(c.grabacion.directorio, exist_ok=True)
             ruta = os.path.join(c.grabacion.directorio, c.grabacion.patron) #Junta directorio y nombre de la grabacion
             ns = int(c.grabacion.segundos_por_segmento) * 1_000_000_000 #Convierte los segundos a nanosegundos para el parametro max-size-time del splitmuxsink
+            # B3: profundidad declarada, no heredada. Son los mismos valores
+            # que el queue por omision aplica en la practica (a 30 fps el
+            # tope de 1 s llega antes que el de 200 buffers o 10 MB), pero
+            # escritos: 1 s absorbe el jitter de escritura a la microSD y
+            # esta rama no es la de baja latencia. Sin leaky: la evidencia
+            # no se descarta (B2). El nombre lo usa detener() (E4).
             partes.append(
-                f"t_h264. ! queue "
+                f"t_h264. ! queue name=queue_grabacion "
+                f"max-size-buffers=0 max-size-bytes=0 "
+                f"max-size-time=1000000000 "
                 f"! splitmuxsink name=grabador location={ruta} "
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
             ) #Agrega los bloques de la rama de grabacion. Se pegan al segundo tee (tee_h264)
@@ -144,6 +201,14 @@ class PipelineAcceso:
         self._grabador = self._pipeline.get_by_name("grabador") #Puntero del sink de grabacion.
         self._appsink = self._pipeline.get_by_name("captura") #Investigar...
 
+        # Numeracion continua: el primer segmento de esta tuberia sigue al de
+        # numero mas alto que ya exista, asi un reinicio de la app (o una
+        # reconexion E3, que reconstruye la tuberia) nunca sobrescribe nada.
+        if self._grabador is not None:
+            indice = self._siguiente_indice()
+            self._grabador.set_property("start-index", indice)
+            log.info("grabacion continua: primer segmento con numero %d", indice)
+
         if self._appsink is not None:
             self._appsink.connect("new-sample", self._al_llegar_muestra)
 
@@ -160,6 +225,13 @@ class PipelineAcceso:
     # B5: el callback solo copia bytes y retorna
     # ------------------------------------------------------------------ #
     def _al_llegar_muestra(self, sink: Gst.Element) -> Gst.FlowReturn:
+        t0 = time.perf_counter_ns()
+        try:
+            return self._copiar_muestra(sink)
+        finally:
+            self._crono_clips.anotar(time.perf_counter_ns() - t0)   # B5
+
+    def _copiar_muestra(self, sink: Gst.Element) -> Gst.FlowReturn:
         muestra = sink.emit("pull-sample")
         if muestra is None:
             return Gst.FlowReturn.OK
@@ -186,9 +258,25 @@ class PipelineAcceso:
         incluidas la transmision y la grabacion. El lector tiene su propio
         hilo y toma el ultimo cuadro cuando esta libre.
         """
+        t0 = time.perf_counter_ns()
+        try:
+            return self._copiar_cuadro_qr(sink)
+        finally:
+            self._crono_qr.anotar(time.perf_counter_ns() - t0)       # B5
+
+    def _copiar_cuadro_qr(self, sink: Gst.Element) -> Gst.FlowReturn:
+        # La muestra se saca siempre, aunque no se use: un appsink con
+        # muestras sin leer retiene el EOS hasta que se consumen.
         muestra = sink.emit("pull-sample")
         if muestra is None:
             return Gst.FlowReturn.OK
+
+        # C4: sin esto se copiaban 30 cuadros BGR por segundo (~83 MB/s en el
+        # hilo de streaming) para analizar 5. Ahora se copian 10 (~28 MB/s).
+        ahora = time.monotonic()
+        if ahora - self._ultima_copia_qr < self._intervalo_copia_qr:
+            return Gst.FlowReturn.OK
+        self._ultima_copia_qr = ahora
 
         buf = muestra.get_buffer()
         estructura = muestra.get_caps().get_structure(0)
@@ -252,23 +340,84 @@ class PipelineAcceso:
             raise RuntimeError("la tuberia no pudo pasar a PLAYING")
         log.info("tuberia en PLAYING")
 
-    def detener(self, tiempo_eos_s: float = 10.0) -> None:
-        """E4: EOS -> espera -> NULL. Sin esto el ultimo MP4 queda invalido."""
+    def detener(self, tiempo_cierre_s: float = 5.0) -> None:
+        """E4 / B6: cierre ordenado. El ultimo MP4 tiene que quedar reproducible.
+
+        Coordinacion del EOS entre los sinks (B6)
+        -----------------------------------------
+        Solo splitmuxsink escribe un archivo que se corrompe si no recibe EOS
+        (sin la caja moov no se puede reproducir). udpsink y los dos appsink
+        no tienen nada que cerrar. Por eso la grabacion recibe su PROPIO EOS,
+        inyectado directamente en su queue, y se espera a que splitmuxsink
+        confirme el cierre del segmento.
+
+        Por que no basta con el EOS a la fuente: para llegar a splitmuxsink
+        tiene que atravesar v4l2jpegdec, v4l2convert y v4l2h264enc, que al
+        recibirlo vacian el bloque bcm2835-codec. En la RPi 4 ese vaciado no
+        termina nunca: el EOS no llegaba en 10 s y el segmento quedaba con
+        mdat=0 y sin moov (mediciones/E4-cierre-limpio.txt y
+        E4-eos-no-llega.txt). El EOS a la fuente se sigue enviando para que
+        las demas ramas cierren si pueden, pero ya no se espera.
+
+        tiempo_cierre_s debe caber holgado en TimeoutStopSec=20 de la unidad.
+        """
         if self._pipeline is None:
             return
         log.info("enviando EOS para cerrar los contenedores")
         self._pipeline.send_event(Gst.Event.new_eos())
 
         bus = self._pipeline.get_bus()
-        msg = bus.timed_pop_filtered(
-            int(tiempo_eos_s * Gst.SECOND),
-            Gst.MessageType.EOS | Gst.MessageType.ERROR,
-        )
-        if msg is None:
-            log.warning("no llego EOS en %.1f s; se cierra de todos modos", tiempo_eos_s)
+        cola = self._pipeline.get_by_name("queue_grabacion")
+        if cola is None:
+            # Sin rama de grabacion no hay archivo que cerrar: se espera el
+            # EOS general como antes, solo para cerrar ordenadamente.
+            msg = bus.timed_pop_filtered(
+                int(tiempo_cierre_s * Gst.SECOND),
+                Gst.MessageType.EOS | Gst.MessageType.ERROR,
+            )
+            if msg is None:
+                log.warning("no llego EOS en %.1f s; se cierra de todos modos",
+                            tiempo_cierre_s)
+        else:
+            cola.get_static_pad("sink").send_event(Gst.Event.new_eos())
+            self._esperar_cierre_segmento(bus, tiempo_cierre_s)
 
         self._pipeline.set_state(Gst.State.NULL)
         log.info("tuberia en NULL")
+
+        # B5: con la tuberia en NULL los callbacks ya no corren
+        for crono in (self._crono_clips, self._crono_qr):
+            resumen = crono.resumen()
+            if resumen:
+                log.info("%s", resumen)
+
+    def _esperar_cierre_segmento(self, bus: Gst.Bus, tiempo_s: float) -> bool:
+        """Espera el mensaje splitmuxsink-fragment-closed del ultimo segmento.
+
+        El bucle de GLib ya termino, asi que el watch del bus (_al_mensaje) no
+        consume los mensajes: se leen aqui directamente.
+        """
+        limite = time.monotonic() + tiempo_s
+        while True:
+            restante = limite - time.monotonic()
+            if restante <= 0:
+                log.error("el segmento %s no se cerro en %.1f s: puede quedar "
+                          "irreproducible", self.segmento_actual, tiempo_s)
+                return False
+            msg = bus.timed_pop_filtered(
+                int(restante * Gst.SECOND),
+                Gst.MessageType.ELEMENT | Gst.MessageType.ERROR,
+            )
+            if msg is None:
+                continue
+            if msg.type == Gst.MessageType.ERROR:
+                err, _debug = msg.parse_error()
+                log.error("error al cerrar la grabacion: %s", err.message)
+                return False
+            st = msg.get_structure()
+            if st and st.get_name() == "splitmuxsink-fragment-closed":
+                log.info("segmento cerrado al detener: %s", st.get_string("location"))
+                return True
 
     def liberar(self) -> None:
         if self._pipeline is not None:
@@ -277,13 +426,42 @@ class PipelineAcceso:
 
     # ------------------------------------------------------------------ #
     def exportar_dot(self, directorio: str, nombre: str = "acceso") -> None:
-        """A6: grafo de la tuberia real."""
+        """A6: grafo de la tuberia real.
+
+        Se pide el grafo como texto y se escribe aqui. debug_bin_to_dot_file
+        depende de GST_DEBUG_DUMP_DOT_DIR, que GStreamer lee una sola vez al
+        inicializarse: definirla en este punto no tenia efecto y --dot no
+        generaba ningun archivo.
+        """
         if self._pipeline is None:
             return
         os.makedirs(directorio, exist_ok=True)
-        os.environ["GST_DEBUG_DUMP_DOT_DIR"] = directorio
-        Gst.debug_bin_to_dot_file(self._pipeline, Gst.DebugGraphDetails.ALL, nombre)
-        log.info("grafo exportado a %s/%s.dot", directorio, nombre)
+        ruta = os.path.join(directorio, f"{nombre}.dot")
+        with open(ruta, "w") as f:
+            f.write(Gst.debug_bin_to_dot_data(self._pipeline, Gst.DebugGraphDetails.ALL))
+        log.info("grafo exportado a %s", ruta)
+
+    def al_cerrar_segmento(self, callback) -> None:
+        """RF-7: el servicio registra aqui la solicitud de limpieza."""
+        self._al_cerrar_segmento = callback
+
+    def _siguiente_indice(self) -> int:
+        """Numero mas alto de los segmentos existentes + 1 (0 si no hay ninguno).
+
+        Se deduce del patron del acceso.conf (p. ej. evidencia_%05d.mp4): lo
+        que va antes y despues del %...d.
+        """
+        g = self._cfg.grabacion
+        m = re.match(r"(.*)%0?\d*d(.*)$", g.patron)
+        if m is None:
+            return 0
+        patron = re.compile(re.escape(m.group(1)) + r"(\d+)" + re.escape(m.group(2)) + "$")
+        try:
+            nombres = os.listdir(g.directorio)
+        except FileNotFoundError:
+            return 0
+        numeros = [int(x.group(1)) for x in map(patron.match, nombres) if x]
+        return max(numeros) + 1 if numeros else 0
 
     def al_fallar(self, callback) -> None:
         """E3: el servicio registra aqui su rutina de reconexion."""
@@ -305,5 +483,9 @@ class PipelineAcceso:
             log.info("GStreamer: fin de flujo")
         elif t == Gst.MessageType.ELEMENT:
             st = msg.get_structure()
+            if st and st.get_name() == "splitmuxsink-fragment-opened":
+                self.segmento_actual = st.get_string("location")
             if st and st.get_name() == "splitmuxsink-fragment-closed":
                 log.info("segmento cerrado: %s", st.get_string("location"))
+                if self._al_cerrar_segmento is not None:
+                    self._al_cerrar_segmento()
