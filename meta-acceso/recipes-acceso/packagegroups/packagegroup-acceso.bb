@@ -24,7 +24,10 @@ RDEPENDS:${PN} = "\
 # Trazabilidad elemento -> biblioteca -> subpaquete en
 # app/mediciones/G1-plugins.txt
 SUMMARY:${PN}-gstreamer = "Plugins de GStreamer estrictamente necesarios"
-# pango aporta clockoverlay y timeoverlay, para sobreimprimir la fecha y hora
+# pango aporta clockoverlay y timeoverlay, para sobreimprimir la fecha y hora.
+# ttf-dejavu va con el: pango dibuja el recuadro pero NO las letras si la
+# imagen no tiene ninguna fuente instalada, y no emite ningun error al
+# hacerlo. Medido en la placa: el sello salia como cuadros vacios.
 # en el video. No se usa todavia; incluirlo ahora evita recompilar la imagen
 # entera cuando se quiera activar.
 RDEPENDS:${PN}-gstreamer = "\
@@ -32,6 +35,7 @@ RDEPENDS:${PN}-gstreamer = "\
     gstreamer1.0-plugins-base-app \
     gstreamer1.0-plugins-base-videoconvertscale \
     gstreamer1.0-plugins-base-pango \
+    ttf-dejavu-sans \
     gstreamer1.0-plugins-good-video4linux2 \
     gstreamer1.0-plugins-good-isomp4 \
     gstreamer1.0-plugins-good-rtp \
@@ -51,6 +55,7 @@ RDEPENDS:${PN}-python = "\
     python3-datetime \
     python3-pygobject \
     gstreamer1.0-python \
+    tzdata-americas \
 "
 
 # --- GPIO para los LED de estado ---

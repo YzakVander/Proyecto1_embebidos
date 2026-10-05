@@ -1,0 +1,9 @@
+[Match]
+Name=wlan*
+
+[Network]
+DHCP=yes
+
+[DHCPv4]
+# El nombre ayuda a identificar la placa en la tabla de clientes del router.
+SendHostname=true

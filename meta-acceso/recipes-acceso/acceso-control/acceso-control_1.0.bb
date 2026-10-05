@@ -89,4 +89,5 @@ RDEPENDS:${PN} = "\
     python3-numpy \
     python3-opencv \
     libgpiod \
+    ttf-dejavu-sans \
 "

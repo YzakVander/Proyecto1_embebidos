@@ -1,0 +1,49 @@
+2026-10-05 23:15:01,514 INFO    acceso.lector_qr       QR detectado: ACC-FBB7DB
+2026-10-05 23:15:01,514 INFO    acceso.servicio        QR AUTORIZADO: ACC-FBB7DB | Sofia | mantenimiento
+2026-10-05 23:15:01,515 INFO    acceso.servicio        === SOLICITUD #6: ACC-FBB7DB-Sofia (plazo 30 s) ===
+2026-10-05 23:15:01,516 INFO    acceso.actuador        >>>>>>>>>>  ACCESO PERMITIDO  |  ACC-FBB7DB-Sofia  <<<<<<<<<<
+2026-10-05 23:15:01,575 INFO    acceso.decision        bitacora: ACC-FBB7DB-Sofia -> permitido
+2026-10-05 23:15:06,577 INFO    acceso.buffer_circular instantanea: 300 cuadros (10.0 s solicitados, inicio IDR)
+2026-10-05 23:15:06,678 INFO    acceso.buffer_circular clip escrito: /var/lib/acceso/eventos/evento_20261005-231501_ACC-FBB7DB-Sofia.mp4 (300 cuadros, 10.1 s, 3051 KiB)
+2026-10-05 23:15:07,828 INFO    acceso.red             red 172.20.10.12: 'LISTAR' procesado en 0.75 ms
+2026-10-05 23:15:16,704 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00032.mp4
+2026-10-05 23:16:15,696 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00033.mp4
+2026-10-05 23:17:14,688 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00034.mp4
+2026-10-05 23:18:13,681 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00035.mp4
+2026-10-05 23:19:13,682 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00036.mp4
+2026-10-05 23:20:12,673 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00037.mp4
+2026-10-05 23:21:11,699 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00038.mp4
+2026-10-05 23:21:37,595 INFO    acceso.servicio        === SOLICITUD #7: S-20261005-232137 (plazo 30 s) ===
+2026-10-05 23:21:37,598 INFO    acceso.red             red 172.20.10.12: 'SOLICITUD' procesado en 2.98 ms
+2026-10-05 23:21:39,344 INFO    acceso.actuador        >>>>>>>>>>  ACCESO PERMITIDO  |  S-20261005-232137  <<<<<<<<<<
+2026-10-05 23:21:39,345 INFO    acceso.red             red 172.20.10.12: 'PERMITIR' procesado en 1.25 ms
+2026-10-05 23:21:39,361 INFO    acceso.decision        bitacora: S-20261005-232137 -> permitido
+2026-10-05 23:21:44,363 INFO    acceso.buffer_circular instantanea: 304 cuadros (10.0 s solicitados, inicio IDR)
+2026-10-05 23:21:44,427 INFO    acceso.buffer_circular clip escrito: /var/lib/acceso/eventos/evento_20261005-232139_S-20261005-232137.mp4 (304 cuadros, 10.2 s, 3123 KiB)
+2026-10-05 23:21:48,244 INFO    acceso.red             red 172.20.10.12: 'ESTADO' procesado en 0.18 ms
+
+=====================================================================
+PRUEBA DEL SISTEMA COMPLETO - 2026-10-05
+=====================================================================
+Verificados en una sola sesion, con el servicio de la imagen (sin parches
+por scp salvo pipeline.py y buffer_circular.py):
+
+  CU-1  transmision en vivo con sello de fecha y hora legible
+  CU-2  RECOLECTAR: evidencia, clips, bitacora, QR activos y MP4 continuo
+  CU-3  solicitud, PERMITIR y DENEGAR desde el puesto de vigilancia
+  CU-11 ALTA de credenciales con rol visitante y mantenimiento
+  CU-12 BAJA, LISTAR y REGENERAR_QR
+
+RF-13 - resolucion por rol, con latencias medidas:
+  mantenimiento      permitido                  0.4 ms   (automatico)
+  visitante          permitido               5344.7 ms   (decide el vigilante)
+  visitante          denegado                5314.0 ms
+  QR no registrado   denegado                5100.8 ms
+  sin respuesta      denegado_por_vencimiento 30001.4 ms
+
+OBSERVACION OPERATIVA
+Durante RECOLECTAR la transmision en vivo se congela en el puesto: el scp
+satura el enlace inalambrico y el flujo RTP, que va por UDP sobre la misma
+red, pierde cuadros. La placa NO se detiene: los segmentos siguieron
+cerrandose cada 60 s durante toda la copia. Para la demostracion conviene
+recolectar al final, como paso aparte, o usar cable Ethernet.

@@ -1,0 +1,35 @@
+# H5 - estado definido del actuador desde el arranque
+# 2026-10-05T22:47:51+0000
+
+== Overlay desplegado ==
+-rwxr-xr-x    1 root     root           948 Apr  5  2011 /boot/overlays/pwm.dtbo
+#dtparam=audio=off
+dtoverlay=pwm,pin=18,func=2
+dtparam=audio=off
+
+== Estado del PWM con el servicio DETENIDO ==
+device
+export
+npwm
+power
+subsystem
+uevent
+unexport
+canal sin exportar: sin señal
+
+== pinctrl ==
+18: a5    pd | lo // GPIO18 = PWM0_0
+
+== Verificacion auditiva ==
+Con el buzzer conectado, no emite ningun sonido entre el encendido de la
+placa y el arranque del servicio. Suena con el patron correcto al resolver
+un acceso (verificado con credencial QR).
+
+== Lectura de pinctrl ==
+"18: a5  pd | lo"  ->  funcion alterna 5 (PWM0_0), pull-down, nivel bajo.
+El pin esta en estado seguro desde el firmware, antes de que exista el
+proceso Python.
+
+CONCLUSION: H5 se cumple por la via equivalente al gpio=<n>=op,dl que pide
+el acta, que no aplica aqui porque el pin lo toma el overlay de PWM y no el
+driver de GPIO. Justificacion completa en docs/H4-H5-actuacion-y-alcance.md

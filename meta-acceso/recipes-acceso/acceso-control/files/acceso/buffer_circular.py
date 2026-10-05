@@ -102,13 +102,25 @@ class BufferCircular:
             log.warning("buffer circular vacio al pedir instantanea")
             return []
 
-        # 1. recortar por tiempo
-        recientes = [c for c in todos if ahora - c.recibido_en <= ventana]
+        # 1. recortar por tiempo DE VIDEO (pts), no por hora de llegada.
+        #
+        # recibido_en es el reloj de pared del momento en que el callback
+        # recibio el cuadro. Con sync=false el appsink entrega en rafagas: si
+        # el pipeline se atrasa y luego se pone al dia, decenas de cuadros
+        # llegan con marcas casi identicas aunque representen varios segundos
+        # de video. Filtrar por recibido_en devolvia entonces una fraccion del
+        # clip (medido en la placa: 19 cuadros de 450, 0.6 s en vez de 10 s).
+        #
+        # pts_ns es la marca de presentacion que fija el codificador: mide
+        # tiempo de video y no depende de cuando llego el buffer.
+        pts_final = todos[-1].pts_ns
+        ventana_ns = int(ventana * 1_000_000_000)
+        recientes = [c for c in todos if pts_final - c.pts_ns <= ventana_ns]
         if not recientes:
             recientes = todos[-1:]
 
         # 2. retroceder hasta el cuadro clave anterior
-        idx_inicio = todos.index(recientes[0])
+        idx_inicio = len(todos) - len(recientes)
         while idx_inicio > 0 and not todos[idx_inicio].es_clave:
             idx_inicio -= 1
 

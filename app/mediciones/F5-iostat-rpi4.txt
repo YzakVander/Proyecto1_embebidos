@@ -1,0 +1,46 @@
+# F5 - tasa de escritura a disco | 2026-10-05T22:35:29+0000
+# Medido con el servicio grabando: 1280x720@30, 2500 kbit/s
+
+Filesystem                Size      Used Available Use% Mounted on
+/dev/root                10.7G    593.7M      9.5G   6% /
+
+== Caudal observado ==
+escrito en 3 min : 30.7 MB
+caudal           : 614 MB/h
+retencion a 5500 MB: 9.0 h
+
+== iostat -x, 4 muestras de 15 s ==
+Linux 6.18.33-v8 (raspberrypi4-64) 	10/05/26 	_aarch64_	(4 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           5.06    0.00    1.16    0.03    0.00   93.75
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+mmcblk0          0.58     26.96     0.11  15.95    2.18    46.26    0.23     43.68     0.24  50.34   87.25   186.85    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.02   0.39
+
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           1.64    0.00    1.24    0.00    0.00   97.11
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+mmcblk0          0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.02    0.00    0.07    0.00    0.00   99.91
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+mmcblk0          0.00      0.00     0.00   0.00    0.00     0.00    0.13      0.80     0.07  33.33    4.00     6.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.03
+
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           1.64    0.00    1.31    0.00    0.00   97.05
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+mmcblk0          0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+
+
+
+== Margen ==
+Topes: 5500 MB evidencia + 1000 MB eventos = 6500 MB
+Libre: 9712 MB

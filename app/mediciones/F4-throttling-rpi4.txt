@@ -1,0 +1,4 @@
+# F4 - throttling termico y por voltaje | 2026-10-05T22:27:44+0000
+22:27:44  throttled=0x0  temp=46.2'C
+22:28:14  throttled=0x0  temp=47.2'C
+22:28:44  throttled=0x0  temp=47.2'C
