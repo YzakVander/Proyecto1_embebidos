@@ -49,6 +49,8 @@ except ImportError:
 PUERTO_RTP = 5000
 PUERTO_TCP = 5001
 REMOTO = "/var/lib/acceso"
+SERVICIO = "acceso-control"
+SCRIPT_RECOLECTAR = Path(__file__).resolve().parent / "recolectar-evidencia.sh"
 SSH_OPC = ["-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
            "-o", "LogLevel=ERROR", "-o", "ConnectTimeout=5"]
 
@@ -159,6 +161,127 @@ class Archivos:
         return local if r.returncode == 0 else None
 
 
+
+# --------------------------------------------------------------------------- #
+# Recoleccion (CU-2) y borrado de evidencia
+# --------------------------------------------------------------------------- #
+class Recolector:
+    """Corre recolectar-evidencia.sh en segundo plano.
+
+    El script trae la grabacion continua, los clips, la bitacora y los QR de
+    las credenciales ACTIVAS, y fusiona los segmentos de 60 s en un unico MP4
+    con ffmpeg. Va en un hilo aparte: mientras copia, el vigilante tiene que
+    poder seguir resolviendo solicitudes.
+    """
+
+    def __init__(self, ip: str, clave: str | None, log):
+        self._ip = ip
+        self._clave = clave
+        self._log = log
+        self._hilo: threading.Thread | None = None
+
+    def en_curso(self) -> bool:
+        return self._hilo is not None and self._hilo.is_alive()
+
+    def lanzar(self) -> None:
+        if self.en_curso():
+            self._log("ya hay una recoleccion en curso")
+            return
+        if not SCRIPT_RECOLECTAR.is_file():
+            self._log(f"no se encontro {SCRIPT_RECOLECTAR}", "error")
+            return
+        self._hilo = threading.Thread(target=self._correr, daemon=True)
+        self._hilo.start()
+
+    def _correr(self) -> None:
+        entorno = dict(os.environ, IP=self._ip)
+        if self._clave is not None:
+            entorno["CLAVE"] = self._clave
+        self._log("recoleccion iniciada (se puede seguir operando)")
+        try:
+            proc = subprocess.Popen(
+                ["bash", str(SCRIPT_RECOLECTAR)], env=entorno,
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, errors="replace")
+        except OSError as exc:
+            self._log(f"no se pudo correr la recoleccion: {exc}", "error")
+            return
+        assert proc.stdout is not None
+        for linea in proc.stdout:
+            linea = linea.rstrip("\n")
+            if linea:
+                self._log(f"[recolectar] {linea}")
+        codigo = proc.wait()
+        if codigo == 0:
+            self._log("recoleccion terminada en ~/recoleccion", "ok")
+        else:
+            self._log(f"la recoleccion fallo (codigo {codigo})", "error")
+
+
+class Borrador:
+    """Borra en la placa evidencia, clips y bitacora. Las credenciales no.
+
+    Se hace por SSH y no por el canal 5001: asi nadie conectado al canal de
+    decisiones puede borrar la evidencia. El servicio se detiene antes, para
+    que el segmento en curso se cierre bien, y se rearranca aunque el borrado
+    falle, para no dejar la placa sin servicio.
+    """
+
+    # 10 = no se pudo detener el servicio (no se borro nada)
+    # 11 = se borro, pero el servicio no volvio a arrancar
+    COMANDO = (
+        f"systemctl stop {SERVICIO} || exit 10; "
+        f"rm -f {REMOTO}/evidencia/* {REMOTO}/eventos/* "
+        f"&& : > {REMOTO}/accesos.log; err=$?; "
+        f"systemctl start {SERVICIO} || exit 11; "
+        f"du -sh {REMOTO}/evidencia {REMOTO}/eventos; "
+        f"echo \"$(wc -l < {REMOTO}/accesos.log) entradas en accesos.log\"; "
+        "exit $err"
+    )
+
+    def __init__(self, ip: str, clave: str | None, log):
+        self._ip = ip
+        self._clave = clave
+        self._log = log
+
+    def lanzar(self) -> None:
+        threading.Thread(target=self._correr, daemon=True).start()
+
+    def _correr(self) -> None:
+        if es_local(self._ip):
+            self._log("borrado remoto no disponible en prueba local", "error")
+            return
+        self._log("borrando en la placa (el servicio se reinicia: la conexion "
+                  "se corta unos segundos) ...")
+        pre = ["sshpass", "-p", self._clave] if self._clave else []
+        try:
+            proc = subprocess.run(
+                pre + ["ssh", *SSH_OPC, f"root@{self._ip}", self.COMANDO],
+                stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                errors="replace", timeout=90)
+        except subprocess.TimeoutExpired:
+            self._log("el borrado no respondio en 90 s", "error")
+            return
+        except FileNotFoundError:
+            self._log("falta sshpass (solo si la placa pide contrasena)", "error")
+            return
+        for linea in (proc.stdout + proc.stderr).splitlines():
+            if linea.strip():
+                self._log(f"[borrar] {linea}")
+        c = proc.returncode
+        if c == 0:
+            self._log("evidencia, eventos y bitacora borrados en la placa", "ok")
+        elif c == 10:
+            self._log("no se pudo detener el servicio: no se borro nada", "error")
+        elif c == 11:
+            self._log("se borro, pero el servicio NO volvio a arrancar: revisar "
+                      "la placa (systemctl status acceso-control)", "error")
+        elif c == 255:
+            self._log(f"no se pudo entrar por SSH a root@{self._ip}", "error")
+        else:
+            self._log(f"el borrado fallo (codigo {c})", "error")
+
+
 # --------------------------------------------------------------------------- #
 # Receptor de video
 # --------------------------------------------------------------------------- #
@@ -187,7 +310,10 @@ class Receptor:
                "!", "videoconvert",
                # fpsdisplaysink cuenta los cuadros REALMENTE recibidos (RF-1)
                "!", "fpsdisplaysink", "video-sink=autovideosink",
-               "sync=false", "text-overlay=true"]
+               # text-overlay=false: el contador de rendered/dropped no va
+               # encima del video. Los fps se siguen contando y se muestran
+               # en la cabecera de la ventana (RF-1).
+               "sync=false", "text-overlay=false"]
         try:
             self._proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                           stderr=subprocess.STDOUT,
@@ -418,6 +544,8 @@ class Aplicacion:
         self.canal = Canal(ip, PUERTO_TCP, self.log, self._estado_conexion)
         self.canal.al_responder = self._quizas_abrir_credencial
         self.receptor = Receptor(PUERTO_RTP, self._mostrar_fps, self.log)
+        self.recolector = Recolector(ip, clave, self.log)
+        self.borrador = Borrador(ip, clave, self.log)
         self._sin_video = sin_video
 
         self._construir()
@@ -450,6 +578,7 @@ class Aplicacion:
                                      (".mp4",), self.log, con_miniatura=False)
         libretas.add(self.galeria_clips, text="  Clips de eventos  ")
 
+        libretas.add(self._pestana_evidencia(libretas), text="  Evidencia  ")
         libretas.add(self._pestana_mediciones(libretas), text="  Mediciones  ")
 
         self.txt = tk.Text(self.raiz, height=9, font=("TkFixedFont", 9),
@@ -527,6 +656,45 @@ class Aplicacion:
         ttk.Button(fila2, text="REGENERAR_QR", width=18,
                    command=self._regenerar).pack(side="left", padx=4)
         return f
+
+
+    def _pestana_evidencia(self, padre) -> ttk.Frame:
+        f = ttk.Frame(padre, padding=16)
+        ttk.Label(f, text="Extracción de evidencia (CU-2)",
+                  font=("TkDefaultFont", 11, "bold")).pack(anchor="w")
+        ttk.Label(f, text="Trae de la placa la grabación continua, los clips de "
+                          "cada evento, la bitácora y los QR de las credenciales "
+                          "activas. Fusiona los segmentos de 60 s en un único MP4 "
+                          "(requiere ffmpeg). Todo queda en ~/recolección.",
+                  foreground=COLOR_TENUE, wraplength=840).pack(anchor="w",
+                                                               pady=(0, 14))
+        ttk.Button(f, text="RECOLECTAR", width=24,
+                   command=self.recolector.lanzar).pack(anchor="w", pady=4)
+
+        ttk.Separator(f, orient="horizontal").pack(fill="x", pady=18)
+        ttk.Label(f, text="Borrado en la placa",
+                  font=("TkDefaultFont", 11, "bold")).pack(anchor="w")
+        ttk.Label(f, text="Borra evidencia, clips y bitácora EN LA PLACA. Las "
+                          "credenciales no se tocan. El servicio se detiene y se "
+                          "rearranca solo, así que el video se corta unos segundos.",
+                  foreground=COLOR_TENUE, wraplength=840).pack(anchor="w",
+                                                               pady=(0, 12))
+        tk.Button(f, text="BORRAR evidencia y bitácora", width=30, bg="#efcccc",
+                  command=self._borrar).pack(anchor="w", pady=4)
+        return f
+
+    def _borrar(self) -> None:
+        if messagebox.askyesno(
+                "Borrar en la placa",
+                "Se borran en la placa:\n"
+                "  • la grabación continua (evidencia/)\n"
+                "  • los clips de eventos (eventos/)\n"
+                "  • la bitácora de accesos\n\n"
+                "Las credenciales NO se tocan.\n"
+                "El servicio se reinicia.\n\n¿Continuar?",
+                icon="warning"):
+            self.borrador.lanzar()
+            self.raiz.after(8000, self.galeria_clips.refrescar)
 
     def _pestana_mediciones(self, padre) -> ttk.Frame:
         f = ttk.Frame(padre, padding=16)

@@ -41,3 +41,6 @@ RPI_KERNEL_DEVICETREE_OVERLAYS:append = " overlays/pwm.dtbo overlays/pwm-2chan.d
 # sin aceptarlo, el PACKAGECONFIG se ignora en silencio y el plugin no existe.
 LICENSE_FLAGS_ACCEPTED += "commercial"
 PACKAGECONFIG:append:pn-gstreamer1.0-plugins-ugly = " x264"
+
+# SBOM y analisis de vulnerabilidades. La primera corrida descarga el indice
+# de CVE del NIST (varios cientos de MB) y puede tardar bastante.
