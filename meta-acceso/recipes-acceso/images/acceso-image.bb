@@ -17,6 +17,7 @@ IMAGE_INSTALL:append = "\
     acceso-control \
     python3-opencv \
     kernel-modules \
+    red-acceso \
 "
 
 # Espacio para la evidencia en video
