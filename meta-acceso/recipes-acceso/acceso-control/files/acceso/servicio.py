@@ -1,20 +1,31 @@
 """Orquestador del sistema de control de acceso.
 
-Arquitectura de hilos (H1)
+Arquitectura de hilos (H1) - detalle y diagrama en docs/H1-arquitectura-hilos.md
 --------------------------
-  1. Hilo de GStreamer      - captura, codifica, transmite, graba.
-                              Nunca espera a nadie.
-  2. Hilo de eventos        - lee las decisiones del vigilante desde el FIFO.
-  3. Hilo por solicitud     - espera la decision con su plazo (H2) y escribe
-                              el clip. Al desprenderse del hilo de eventos,
-                              varias solicitudes pueden convivir.
-  4. Hilo de reconexion     - E3: reintenta levantar la tuberia tras una falla.
-  5. Hilos de red           - CU-3: uno por puesto de vigilancia conectado por
+  1. Hilo principal         - bucle de GLib: mensajes del bus (E1) y senales
+                              de apagado. Lanza la reconexion si hay error.
+  2. Hilos de GStreamer     - uno por queue: captura, codifican, transmiten,
+                              graban. Corren los callbacks de los appsink.
+                              Nunca esperan a nadie.
+  3. Hilo de eventos        - lee los comandos locales desde el FIFO.
+  4. Hilos de red           - CU-3: uno por puesto de vigilancia conectado por
                               TCP (red.py). Usan el mismo procesador de
                               comandos que el FIFO.
+  5. Hilo por solicitud     - espera la decision con su plazo (H2), anota la
+                              bitacora y escribe el clip. Al desprenderse del
+                              hilo que la abrio, varias solicitudes pueden
+                              convivir.
+  6. Hilo del lector QR     - CU-13: analiza con OpenCV el ultimo cuadro
+                              (lector_qr.py). Es el clasificador.
+  7. Hilo de retencion      - RF-7: borra los archivos mas viejos
+                              (retencion.py).
+  8. Hilo del buzzer        - RF-5: reproduce el patron de tonos, uno por
+                              indicacion (actuador.py).
+  9. Hilo de reconexion     - E3: reintenta levantar la tuberia tras una falla.
 
-El callback del appsink (hilo 1) solo copia bytes a la deque y retorna: B5.
-Toda escritura a disco ocurre en el hilo 3.
+Los callbacks de los appsink (hilos 2) solo copian bytes y retornan: B5.
+Los hilos de GStreamer solo escriben la grabacion continua (splitmuxsink);
+los clips y la bitacora se escriben en el hilo 5.
 """
 
 from __future__ import annotations
@@ -36,6 +47,7 @@ from .registro import RegistroCredenciales, Rol
 from .decision import Bitacora, RegistroAcceso, Resultado, SolicitudAcceso, ahora_iso
 from .pipeline import PipelineAcceso
 from .red import ServidorDecisiones
+from .retencion import Carpeta, Retencion, clave_evento, clave_segmento, verificar_corruptos
 
 log = logging.getLogger(__name__)
 
@@ -56,6 +68,9 @@ class ServicioAcceso:
         )
         # CU-11/CU-12: credenciales registradas
         self._registro = RegistroCredenciales(cfg.credenciales.ruta)
+        # Serializa la escritura de imagenes de credenciales: un ALTA no puede
+        # generar su imagen mientras REGENERAR_QR esta vaciando la carpeta.
+        self._lock_imagenes = threading.Lock()
 
         # CU-13: el lector se construye ANTES que el pipeline, que
         # consulta si debe agregar la rama de cuadros crudos.
@@ -69,6 +84,22 @@ class ServicioAcceso:
             )
 
         self._pipeline = PipelineAcceso(cfg, self._buffer, self._lector)
+
+        # RF-7: retencion con un tope independiente por carpeta
+        self._carpetas_evidencia: list[str] = []
+        carpetas: list[Carpeta] = []
+        g, c = cfg.grabacion, cfg.clips
+        if g.habilitada:
+            self._carpetas_evidencia.append(g.directorio)
+            carpetas.append(Carpeta("evidencia", g.directorio, g.max_megabytes * 1024 * 1024,
+                                    clave_segmento(g.patron.split("%")[0])))
+        if c.habilitados:
+            self._carpetas_evidencia.append(c.directorio)
+            carpetas.append(Carpeta("eventos", c.directorio, c.max_megabytes * 1024 * 1024,
+                                    clave_evento))
+        self._retencion = Retencion(
+            carpetas, en_uso=lambda: {self._pipeline.segmento_actual})
+
         self._indicadores = IndicadoresAcceso(cfg.actuador)
         self._bitacora = Bitacora(cfg.bitacora.ruta)
 
@@ -77,6 +108,10 @@ class ServicioAcceso:
         self._pendiente: SolicitudAcceso | None = None
         self._lock_pendiente = threading.Lock()
         self._parar = threading.Event()
+        # B6: clips en escritura. _apagar() espera a que lleguen a cero para
+        # no cortar un clip que la bitacora ya anoto.
+        self._clips_en_curso = 0
+        self._cond_clips = threading.Condition()
         self._contador = 0
         self._reconectando = threading.Event()
 
@@ -94,7 +129,14 @@ class ServicioAcceso:
 
     # ------------------------------------------------------------------ #
     def ejecutar(self, dot_dir: str | None = None) -> int:
+        # Antes de montar la tuberia: borrar los clips que quedaron corruptos
+        # (sin indice) por un corte de energia, un cierre forzado o una falla
+        # de la camara. Aun no hay ningun archivo abierto, asi que es seguro.
+        verificar_corruptos(self._carpetas_evidencia)
+
         self._pipeline.al_fallar(self._al_fallar_pipeline)
+        self._pipeline.al_cerrar_segmento(self._retencion.solicitar)
+        self._retencion.iniciar()
         self._pipeline.construir()
         self._pipeline.iniciar()
 
@@ -183,6 +225,10 @@ class ServicioAcceso:
             return self._baja(partes[1] if len(partes) > 1 else "")
         if verbo == "LISTAR":
             return True, self._registro.resumen()
+        if verbo == "REGENERAR_QR":
+            return self._regenerar_qr()
+        if verbo == "BORRAR_CREDENCIALES":
+            return self._borrar_credenciales(partes[1] if len(partes) > 1 else "")
         if verbo == "ESTADO":
             return True, self._estado()
         if verbo == "PING":
@@ -291,6 +337,10 @@ class ServicioAcceso:
         clip = None
         if self._cfg.clips.habilitados:
             clip = self._ruta_clip(solicitud.identificador)
+            # Se registra ANTES de anotar la bitacora: desde que la ruta queda
+            # escrita, el apagado tiene que esperar a que el archivo exista.
+            with self._cond_clips:
+                self._clips_en_curso += 1
 
         self._bitacora.anotar(RegistroAcceso(
             timestamp=instante,
@@ -303,7 +353,12 @@ class ServicioAcceso:
         ))
 
         if clip is not None:
-            self._escribir_clip(clip)
+            try:
+                self._escribir_clip(clip)
+            finally:
+                with self._cond_clips:
+                    self._clips_en_curso -= 1
+                    self._cond_clips.notify_all()
 
     def _ruta_clip(self, identificador: str) -> str:
         """Ruta del clip de un evento, con la hora actual en el nombre."""
@@ -315,7 +370,12 @@ class ServicioAcceso:
         """Clip de pre-evento + post-evento desde el buffer circular."""
         cfg = self._cfg.clips
         # Esperar los segundos posteriores para que el buffer los acumule.
-        time.sleep(cfg.segundos_despues)
+        # B6: si el servicio se detiene en ese lapso, no se espera mas: el
+        # clip se escribe con lo que haya. Mas corto, pero existe, y la ruta
+        # que la bitacora ya anoto no queda apuntando a un archivo inexistente.
+        if self._parar.wait(cfg.segundos_despues):
+            log.warning("servicio deteniendose: el clip %s se escribe sin "
+                        "completar los %d s posteriores", ruta, cfg.segundos_despues)
 
         ventana = cfg.segundos_antes + cfg.segundos_despues
         cuadros = self._buffer.instantanea(ventana)
@@ -336,6 +396,7 @@ class ServicioAcceso:
             log.error("no se pudo empaquetar el clip en MP4 (%s); "
                       "se guarda crudo en %s", exc, respaldo)
             escribir_clip_anexo(respaldo, cuadros)
+        self._retencion.solicitar()     # RF-7: el clip nuevo puede exceder el tope
         return True
 
 
@@ -362,17 +423,18 @@ class ServicioAcceso:
         # La credencial se genera y se VERIFICA: una que no se puede leer es
         # peor que no tenerla, porque el fallo aparece recien cuando la
         # persona esta en la puerta.
-        ruta = os.path.join(self._cfg.credenciales.directorio,
-                            f"{cred.identificador}.png")
+        ruta = self._ruta_imagen(cred.identificador)
         try:
-            generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
-            if not verificar(ruta, cred.identificador):
+            with self._lock_imagenes:
+                generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
+                legible = verificar(ruta, cred.identificador)
+            if not legible:
                 return False, (f"{cred.identificador} registrado, pero la "
                                "credencial generada no se decodifica")
         except Exception as exc:                      # noqa: BLE001
             log.error("no se pudo generar la credencial: %s", exc)
             return True, (f"{cred.identificador} registrado, pero fallo la "
-                          f"generacion del PNG: {exc}")
+                          f"generacion de la imagen: {exc}")
 
         self._difundir(f"ALTA {cred.identificador} {cred.rol} {cred.nombre}")
         return True, (f"{cred.identificador} | {cred.nombre} | {cred.rol} | "
@@ -393,6 +455,77 @@ class ServicioAcceso:
 
         self._difundir(f"BAJA {cred.identificador} {cred.nombre}")
         return True, f"acceso revocado: {cred.identificador} | {cred.nombre}"
+
+    _EXT_IMAGEN = (".bmp", ".png", ".jpg", ".jpeg")
+
+    def _ruta_imagen(self, identificador: str) -> str:
+        return os.path.join(self._cfg.credenciales.directorio, f"{identificador}.bmp")
+
+    def _borrar_imagenes(self) -> int:
+        """Borra las imagenes de credenciales. Llamar con _lock_imagenes tomado."""
+        directorio = self._cfg.credenciales.directorio
+        os.makedirs(directorio, exist_ok=True)
+        borradas = 0
+        for nombre in os.listdir(directorio):
+            ruta = os.path.join(directorio, nombre)
+            if os.path.isfile(ruta) and nombre.lower().endswith(self._EXT_IMAGEN):
+                try:
+                    os.remove(ruta)
+                    borradas += 1
+                except OSError as exc:
+                    log.warning("no se pudo borrar %s: %s", ruta, exc)
+        return borradas
+
+    def _borrar_credenciales(self, confirmacion: str) -> tuple[bool, str]:
+        """BORRAR_CREDENCIALES SI: vacia el registro y borra las imagenes.
+
+        Exige la palabra SI como argumento: un comando que deja sin acceso
+        por QR a todo el personal no puede ejecutarse por un error de tipeo.
+        El cliente de vigilancia la pide al usuario antes de enviarlo.
+        """
+        if confirmacion.strip() != "SI":
+            return False, ("comando destructivo: enviar 'BORRAR_CREDENCIALES SI' "
+                           "para confirmar")
+        with self._lock_imagenes:
+            n = self._registro.vaciar()
+            borradas = self._borrar_imagenes()
+        self._difundir(f"CREDENCIALES-BORRADAS {n}")
+        return True, (f"{n} credenciales eliminadas (activas y revocadas), "
+                      f"{borradas} imagenes borradas")
+
+    def _regenerar_qr(self) -> tuple[bool, str]:
+        """REGENERAR_QR: rehace las imagenes de las credenciales activas.
+
+        Borra TODAS las imagenes de la carpeta (incluidas las de credenciales
+        revocadas, que quedaban ahi sin servir) y genera de nuevo la de cada
+        credencial activa, con el MISMO identificador. El registro no cambia:
+        nadie gana ni pierde acceso, y un QR impreso antes sigue valiendo.
+        Para invalidar una credencial esta BAJA (+ ALTA con identificador nuevo).
+        """
+        activas = self._registro.activas()
+        fallidas: list[str] = []
+
+        with self._lock_imagenes:
+            borradas = self._borrar_imagenes()
+            for cred in activas:
+                ruta = self._ruta_imagen(cred.identificador)
+                try:
+                    generar_credencial(ruta, cred.identificador, cred.nombre, cred.rol)
+                    if not verificar(ruta, cred.identificador):
+                        fallidas.append(f"{cred.identificador} (no se decodifica)")
+                except Exception as exc:                  # noqa: BLE001
+                    log.error("no se pudo regenerar %s: %s", cred.identificador, exc)
+                    fallidas.append(f"{cred.identificador} ({exc})")
+
+        regeneradas = len(activas) - len(fallidas)
+        log.info("REGENERAR_QR: %d imagenes borradas, %d de %d credenciales "
+                 "regeneradas", borradas, regeneradas, len(activas))
+        self._difundir(f"QR-REGENERADOS {regeneradas}")
+        mensaje = (f"{regeneradas} credenciales regeneradas, "
+                   f"{borradas} imagenes viejas borradas")
+        if fallidas:
+            return False, mensaje + " | fallaron: " + ", ".join(fallidas)
+        return True, mensaje
 
     # ------------------------------------------------------------------ #
     # CU-13: llega una lectura de QR
@@ -504,11 +637,28 @@ class ServicioAcceso:
 
     def _apagar(self) -> None:
         log.info("apagando el servicio")
-        self._parar.set()
+        self._parar.set()                 # B6: despierta a los clips en espera
         if self._lector is not None:
             self._lector.detener()
         if self._red is not None:
             self._red.detener()
         self._pipeline.detener()          # E4: EOS antes de NULL
+        self._esperar_clips()             # B6: los clips se escriben desde memoria
+        self._retencion.detener()
         self._indicadores.cerrar()
         log.info("buffer circular al cierre: %s", self._buffer.estado())
+
+    def _esperar_clips(self, tiempo_s: float = 5.0) -> None:
+        """B6: espera a que terminen de escribirse los clips pendientes.
+
+        Los hilos de solicitud son daemon: si el proceso sale antes, el clip se
+        pierde. Se escriben desde el buffer circular, que esta en memoria, asi
+        que no dependen de la tuberia y pueden terminar despues de que pase a
+        NULL. El plazo, sumado al de pipeline.detener() y al del lector, cabe
+        en TimeoutStopSec=20.
+        """
+        with self._cond_clips:
+            if not self._cond_clips.wait_for(lambda: self._clips_en_curso == 0,
+                                             timeout=tiempo_s):
+                log.error("%d clip(s) sin terminar de escribir tras %.1f s",
+                          self._clips_en_curso, tiempo_s)
