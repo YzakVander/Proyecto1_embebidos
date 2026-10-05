@@ -25,6 +25,7 @@ dbus-common cortexa72 1.16.2
 dbus-tools cortexa72 1.16.2
 dosfstools cortexa72 4.2
 dropbear cortexa72 2025.89
+dtc cortexa72 1.7.2
 e2fsprogs cortexa72 1.47.4
 e2fsprogs-badblocks cortexa72 1.47.4
 e2fsprogs-dumpe2fs cortexa72 1.47.4
@@ -77,13 +78,7 @@ gstreamer1.0-plugins-good-multifile cortexa72 1.28.5
 gstreamer1.0-plugins-good-rtp cortexa72 1.28.5
 gstreamer1.0-plugins-good-udp cortexa72 1.28.5
 gstreamer1.0-plugins-good-video4linux2 cortexa72 1.28.5
-gstreamer1.0-plugins-ugly cortexa72 1.28.5
-gstreamer1.0-plugins-ugly-asf cortexa72 1.28.5
-gstreamer1.0-plugins-ugly-dvdlpcmdec cortexa72 1.28.5
-gstreamer1.0-plugins-ugly-dvdsub cortexa72 1.28.5
 gstreamer1.0-plugins-ugly-locale-en-gb cortexa72 1.28.5
-gstreamer1.0-plugins-ugly-meta cortexa72 1.28.5
-gstreamer1.0-plugins-ugly-realmedia cortexa72 1.28.5
 gstreamer1.0-plugins-ugly-x264 cortexa72 1.28.5
 gstreamer1.0-python cortexa72 1.28.5
 hdparm cortexa72 9.65
@@ -2222,6 +2217,7 @@ python3-shell cortexa72 3.14.7
 python3-stringold cortexa72 3.14.7
 python3-threading cortexa72 3.14.7
 python3-unittest cortexa72 3.14.7
+raspi-utils cortexa72 1.0+git0+e923ccad57
 rpcbind cortexa72 1.2.9
 shadow cortexa72 4.19.4
 shadow-base cortexa72 4.19.4
@@ -2230,6 +2226,7 @@ shared-mime-info cortexa72 2.4
 shared-mime-info-data cortexa72 2.4
 shared-mime-info-locale-en-gb cortexa72 2.4
 shunit2 cortexa72 2.1.8
+sysstat cortexa72 12.7.9
 systemd cortexa72 259.5
 systemd-conf raspberrypi4_64 1.0
 systemd-extra-utils cortexa72 259.5

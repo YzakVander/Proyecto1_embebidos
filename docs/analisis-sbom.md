@@ -182,6 +182,19 @@ específico.
 Es el mismo error que el packagegroup fino busca evitar, cometido en el
 subpaquete de diagnóstico.
 
+**Efecto medido de la corrección.** Tras declarar
+`gstreamer1.0-plugins-ugly-x264` en vez del conjunto completo y reconstruir:
+
+| | Antes | Después |
+|---|---|---|
+| Subpaquetes de `plugins-ugly` en la imagen de desarrollo | 8 | **2** |
+| Espacio de usuario (desarrollo) | 397 | **394** |
+| Espacio de usuario (entrega) | 384 | 384 — sin cambio, como corresponde |
+
+Los dos que quedan son `-x264`, que es el que se necesita, y
+`-locale-en-gb`, su archivo de idioma. Desaparecieron los decodificadores de
+ASF, DVD, DVD-LPCM y RealMedia, y el metapaquete.
+
 ---
 
 ## 5. Licencias
