@@ -26,13 +26,6 @@
 | Repositorio | `github.com/YzakVander/Proyecto1_embebidos`, rama `Daniel` |
 | Hardware | RPi4 y microSD del laboratorio (acceso intermitente); cámara **USB** (DV20 UVC) autorizada por el profesor |
 
-> **Nota sobre el host.** El proyecto se inició en WSL2 y se migró a Ubuntu
-> nativo. El motivo fue técnico y no de comodidad: **WSL2 no expone cámaras
-> USB al subsistema V4L2 ni recibe UDP entrante**, de modo que ni la captura
-> ni la recepción del flujo RTP podían probarse. Sin esa migración, dos de
-> los tres casos de uso principales no eran verificables en la computadora de
-> desarrollo.
-
 ---
 
 ## Registro de decisiones de diseño
