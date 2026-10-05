@@ -1,3 +1,6 @@
+# MEDICION PRELIMINAR EN x86_64/WSL2 con videotestsrc.
+# El acta exige RPi 4 con v4l2src. Pendiente repetir en la plataforma final.
+
 # B1 - cada salida de tee necesita su propio queue
 # Plataforma: x86_64 WSL2, GStreamer 1.24.2
 # Prueba: 150 cuadros 1280x720 I420; rama lenta = x264enc speed-preset=veryslow
