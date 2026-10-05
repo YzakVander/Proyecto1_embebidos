@@ -1,0 +1,87 @@
+# Puesto de vigilancia — evidencia RF-1 y RF-3
+# placa: 172.20.10.3   2026-10-05T17:17:44.440171
+
+== RF-1: cuadros por segundo recibidos en el puesto ==
+sin muestras (ventana de video cerrada)
+
+== RF-3: tiempo de ida y vuelta de los comandos ==
+muestras : 17
+minimo   : 4.7 ms
+p50      : 10.6 ms
+maximo   : 426.8 ms
+criterio <= 100 ms : NO CUMPLE
+
+== Transcripcion de la sesion ==
+[17:09:16] puesto de vigilancia — placa 172.20.10.3
+[17:09:16] video: escuchando en UDP 5000
+[17:09:17] OK conectado al sistema de control de acceso
+[17:09:17] EVENTO STREAMING hacia 172.20.10.12:5000
+[17:09:38] > ESTADO
+[17:09:38] OK sin solicitud pendiente
+[17:09:39] > SOLICITUD
+[17:09:39] EVENTO SOLICITUD S-20261005-230939 plazo=30s
+[17:09:39] OK solicitud S-20261005-230939 abierta, plazo 30 s
+[17:09:45] > PERMITIR
+[17:09:45] OK S-20261005-230939 PERMITIDO
+[17:09:45] EVENTO RESULTADO S-20261005-230939 permitido
+[17:09:51] > ESTADO
+[17:09:51] OK sin solicitud pendiente
+[17:10:34] > LISTAR
+[17:10:34] OK no hay credenciales activas
+[17:10:58] > ALTA visitante Daniel García
+[17:10:58] EVENTO ALTA ACC-738112 visitante Daniel García
+[17:10:58] OK ACC-738112 | Daniel García | visitante | credencial en /var/lib/acceso/credenciales/ACC-738112.bmp
+[17:10:59] credencial abierta: recibidos/ACC-738112.bmp
+[17:11:26] > ALTA mantenimiento Vanderlutch
+[17:11:26] EVENTO ALTA ACC-66736C mantenimiento Vanderlutch
+[17:11:26] OK ACC-66736C | Vanderlutch | mantenimiento | credencial en /var/lib/acceso/credenciales/ACC-66736C.bmp
+[17:11:27] credencial abierta: recibidos/ACC-66736C.bmp
+[17:11:49] > REGENERAR_QR
+[17:11:49] EVENTO QR-REGENERADOS 2
+[17:11:49] OK 2 credenciales regeneradas, 2 imagenes viejas borradas
+[17:12:41] EVENTO SOLICITUD ACC-738112-Daniel_García plazo=30s
+[17:12:41] EVENTO QR-VISITANTE ACC-738112 Daniel García requiere decision del vigilante
+[17:12:49] > ESTADO
+[17:12:49] OK pendiente ACC-738112-Daniel_García restan 22 s
+[17:12:58] > ESTADO
+[17:12:58] OK pendiente ACC-738112-Daniel_García restan 12 s
+[17:13:11] EVENTO RESULTADO ACC-738112-Daniel_García denegado_por_vencimiento
+[17:13:14] EVENTO SOLICITUD ACC-738112-Daniel_García plazo=30s
+[17:13:14] EVENTO QR-VISITANTE ACC-738112 Daniel García requiere decision del vigilante
+[17:13:20] > DENEGAR
+[17:13:20] OK ACC-738112-Daniel_García DENEGADO
+[17:13:20] EVENTO RESULTADO ACC-738112-Daniel_García denegado
+[17:13:32] EVENTO SOLICITUD ACC-738112-Daniel_García plazo=30s
+[17:13:32] EVENTO QR-VISITANTE ACC-738112 Daniel García requiere decision del vigilante
+[17:13:40] > PERMITIR
+[17:13:40] OK ACC-738112-Daniel_García PERMITIDO
+[17:13:40] EVENTO RESULTADO ACC-738112-Daniel_García permitido
+[17:14:07] > BAJA ACC-66736C
+[17:14:07] EVENTO BAJA ACC-66736C Vanderlutch
+[17:14:07] OK acceso revocado: ACC-66736C | Vanderlutch
+[17:14:14] EVENTO SOLICITUD QR-ACC-66736C plazo=30s
+[17:14:14] EVENTO QR-DESCONOCIDO ACC-66736C requiere decision del vigilante
+[17:14:19] > DENEGAR
+[17:14:19] OK QR-ACC-66736C DENEGADO
+[17:14:19] EVENTO RESULTADO QR-ACC-66736C denegado
+[17:14:30] > LISTAR
+[17:14:30] OK 1 credenciales activas:
+[17:14:30]   ACC-738112  visitante      Daniel García
+[17:14:42] > ALTA mantenimiento Sofia
+[17:14:42] EVENTO ALTA ACC-FBB7DB mantenimiento Sofia
+[17:14:42] OK ACC-FBB7DB | Sofia | mantenimiento | credencial en /var/lib/acceso/credenciales/ACC-FBB7DB.bmp
+[17:14:43] credencial abierta: recibidos/ACC-FBB7DB.bmp
+[17:15:01] EVENTO SOLICITUD ACC-FBB7DB-Sofia plazo=30s
+[17:15:01] EVENTO QR-AUTORIZADO ACC-FBB7DB mantenimiento Sofia
+[17:15:01] EVENTO RESULTADO ACC-FBB7DB-Sofia permitido
+[17:15:07] > LISTAR
+[17:15:07] OK 2 credenciales activas:
+[17:15:07]   ACC-FBB7DB  mantenimiento  Sofia
+[17:15:07]   ACC-738112  visitante      Daniel García
+[17:15:38] abriendo recibidos/eventos/evento_20261005-231419_QR-ACC-66736C.mp4
+[17:15:47] abriendo recibidos/eventos/evento_20261005-231501_ACC-FBB7DB-Sofia.mp4
+[17:16:06] recoleccion iniciada (se puede seguir operando)
+[17:16:06] [recolectar] == Recoleccion limpia en /home/daniel/recoleccion
+[17:16:06] [recolectar] == Conectando con root@172.20.10.3 ...
+[17:16:06] [recolectar]    copiando evidencia ...
+
