@@ -1,0 +1,14 @@
+# C2 - razon de CPU hardware vs software
+# RPi 4B | 1280x720@30 | 2500 kbit/s | 2026-10-05T22:26:24+0000
+# Medido con los ticks de /proc/<pid>/stat durante 60 s.
+# (top -H no esta disponible: BusyBox no implementa -p)
+
+hardware  v4l2src ! v4l2jpegdec ! v4l2convert ! v4l2h264enc :    0.8 %
+software  v4l2src ! jpegdec ! videoconvert ! x264enc        :  295.0 %
+
+razon = 295.0 / 0.8 = 369x
+criterio del acta: >= 5x  ->  CUMPLE con amplio margen
+
+Nota: 295 % satura tres de los cuatro nucleos. x264enc
+probablemente no sostiene los 30 fps, de modo que la razon real
+es aun mas favorable al hardware: hace menos trabajo con mas CPU.
