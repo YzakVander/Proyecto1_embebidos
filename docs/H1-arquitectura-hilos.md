@@ -11,7 +11,7 @@ se comunican con GStreamer solo por estructuras de las que GStreamer escribe y
 nunca lee: un búfer de un cuadro para el QR y una deque con tope para los
 clips.
 
-Las referencias a líneas son de la rama `Isaac` al 2026-10-02.
+Las referencias a líneas son de la rama `Isaac` al 2026-10-05.
 
 ---
 
@@ -19,15 +19,15 @@ Las referencias a líneas son de la rama `Isaac` al 2026-10-02.
 
 | # | Hilo | Qué hace | Dónde se crea | ¿Puede bloquearse? | ¿Afecta al video si se bloquea? |
 |---|---|---|---|---|---|
-| 1 | Principal (bucle de GLib) | Atiende los mensajes del bus de GStreamer (error, warning, EOS, segmento cerrado) y las señales SIGINT/SIGTERM | `servicio.py:154` (`self._bucle.run()`) | No: cada manejador solo registra o despierta a otro hilo | No |
+| 1 | Principal (bucle de GLib) | Atiende los mensajes del bus de GStreamer (error, warning, EOS, segmento cerrado) y las señales SIGINT/SIGTERM | `servicio.py:158` (`self._bucle.run()`) | No: cada manejador solo registra o despierta a otro hilo | No |
 | 2 | Streaming de GStreamer (uno por `queue`) | Captura, decodifica, codifica, transmite y graba. Ejecuta los callbacks de los dos appsink | GStreamer, al pasar a PLAYING | **No debe**: es lo que este ítem protege | — |
-| 3 | Eventos (FIFO) | Lee comandos locales de `/tmp/acceso-eventos` | `servicio.py:145` → `_escuchar_eventos` (`:162`) | Sí, esperando una línea | No |
-| 4 | Red (uno por vigilante) | Lee comandos TCP y responde OK/ERROR | `red.py:84` (`serve_forever`, que crea uno por cliente) | Sí, esperando una línea del socket | No |
-| 5 | Uno por solicitud | Espera la decisión o el vencimiento, activa el buzzer, anota la bitácora y escribe el clip | `servicio.py:274` → `_atender` (`:299`) | **Sí, hasta 30 s** esperando al vigilante, y 5 s más esperando el video posterior del clip | No |
+| 3 | Eventos (FIFO) | Lee comandos locales de `/tmp/acceso-eventos` | `servicio.py:149` → `_escuchar_eventos` (`:166`) | Sí, esperando una línea | No |
+| 4 | Red (uno por vigilante) | Lee comandos TCP y responde OK/ERROR | `red.py:88` (`serve_forever`, que crea uno por cliente) | Sí, esperando una línea del socket | No |
+| 5 | Uno por solicitud | Espera la decisión o el vencimiento, activa el buzzer, anota la bitácora y escribe el clip | `servicio.py:278` → `_atender` (`:303`) | **Sí, hasta 30 s** esperando al vigilante, y 5 s más esperando el video posterior del clip | No |
 | 6 | Lector QR | Toma el último cuadro, lo reduce a 640 px y lo analiza con OpenCV | `lector_qr.py:74` → `_bucle` (`:86`) | Sí: cada análisis tarda ~15 ms en x86 y más en la RPi | **No** (ver §3) |
 | 7 | Retención | Borra los archivos más viejos cuando una carpeta supera su tope | `retencion.py:158` → `_bucle` (`:169`) | Sí, recorriendo y borrando archivos | No |
 | 8 | Buzzer (uno por indicación) | Reproduce el patrón de tonos escribiendo en `/sys/class/pwm` | `actuador.py:195` → `_reproducir` (`:221`) | Sí, durmiendo entre tonos (~1 s en total) | No |
-| 9 | Reconexión | Tras un error de la cámara, libera y reconstruye la tubería cada 5 s | `servicio.py:583` → `_reconectar` (`:585`) | Sí, entre reintentos | Es el que la restablece (E3) |
+| 9 | Reconexión | Tras un error de la cámara, libera y reconstruye la tubería cada 5 s | `servicio.py:601` → `_reconectar` (`:603`) | Sí, entre reintentos | Es el que la restablece (E3) |
 
 Todos son `daemon`, salvo el principal y los de GStreamer.
 
@@ -93,7 +93,7 @@ GStreamer salvo la reconexión, que solo actúa cuando la tubería ya falló.
 
 ## 3. Por qué GStreamer nunca espera al clasificador
 
-**El callback del QR no analiza nada** (`pipeline.py:198`,
+**El callback del QR no analiza nada** (`pipeline.py:253`,
 `_al_llegar_cuadro_qr`). Mapea el buffer, copia el cuadro a un arreglo de
 NumPy, lo deja en `_ultimo_cuadro` (`lector_qr.py:67`) y retorna. El análisis
 con OpenCV ocurre en el hilo 6.
@@ -110,7 +110,7 @@ retornando de inmediato y el resto de la tubería no se entera. El lector
 siempre analiza el cuadro más reciente: un QR de hace dos segundos ya no
 sirve.
 
-**Lo mismo con los clips.** El callback de clips (`pipeline.py:179`) solo copia
+**Lo mismo con los clips.** El callback de clips (`pipeline.py:227`) solo copia
 los bytes a la deque (`buffer_circular.py:76`), que tiene `maxlen` y descarta
 lo más viejo. La escritura del clip la hace el hilo 5, que antes toma una
 copia de la deque (`instantanea()`, `:89`).
@@ -126,19 +126,19 @@ tiempo de esos callbacks se mide en B5.
 La decisión no la toma ningún hilo de GStreamer:
 
 1. **Se abre una solicitud** desde el FIFO, la red o el lector QR. En los tres
-   casos se llama a `_nueva_solicitud` (`servicio.py:258`), que crea un
+   casos se llama a `_nueva_solicitud` (`servicio.py:262`), que crea un
    `SolicitudAcceso` y lanza el hilo 5.
 2. **El hilo 5 espera** en `SolicitudAcceso.esperar()` (`decision.py:104`),
    que es un `threading.Event.wait(30 s)`. Es el único hilo que espera al
    vigilante, y hay uno por solicitud.
 3. **El vigilante responde** desde el hilo de red: `_resolver`
-   (`servicio.py:280`) llama a `SolicitudAcceso.resolver()`, que hace
+   (`servicio.py:284`) llama a `SolicitudAcceso.resolver()`, que hace
    `Event.set()` y despierta al hilo 5.
 4. **Si nadie responde**, `wait` vence, la solicitud se cierra como
    `VENCIDO` y un `PERMITIR` tardío se rechaza (`decision.py:104-125`).
 
 Una credencial de vigilante o mantenimiento pasa por el mismo camino: el
-lector abre la solicitud y la resuelve de inmediato (`servicio.py:515`). Así
+lector abre la solicitud y la resuelve de inmediato (`servicio.py:567`). Así
 la bitácora, el buzzer y el clip funcionan igual sin importar quién decidió.
 
 ---
@@ -155,7 +155,7 @@ la bitácora, el buzzer y el clip funcionan igual sin importar quién decidió.
 | `Bitacora._lock` | `decision.py:52` | Que dos solicitudes no mezclen sus líneas en `accesos.log` | Hilos 5 |
 | `RegistroCredenciales._lock` | `registro.py:95` | `credenciales.json` | Hilos de red y eventos (ALTA, BAJA, LISTAR), lector QR (buscar) |
 | `_lock_imagenes` | `servicio.py:73` | Que un `ALTA` no genere su imagen mientras `REGENERAR_QR` vacía la carpeta | Hilos de red y eventos |
-| `ServidorDecisiones._lock` | `red.py:72` | La lista de vigilantes conectados y que una respuesta y un aviso no mezclen bytes en el socket | Hilos de red y quien difunde avisos |
+| `ServidorDecisiones._lock` | `red.py:76` | La lista de vigilantes conectados y que una respuesta y un aviso no mezclen bytes en el socket | Hilos de red y quien difunde avisos |
 | `IndicadoresAcceso._lock` + número de generación | `actuador.py:181` | Que una indicación nueva reemplace a la que suena sin que dos patrones se mezclen | Hilos 8 |
 | `Retencion._despertar` | `retencion.py:152` | Despertar la limpieza al cerrar un segmento o un clip (y cada 60 s de respaldo) | Hilo principal y 5 lo activan, hilo 7 espera |
 

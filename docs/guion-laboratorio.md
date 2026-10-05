@@ -1,12 +1,22 @@
 # Guion de verificación en la Raspberry Pi 4
 
+Primer arranque e inventario de la plataforma. Las mediciones del Rol A
+(grafo, latencia, fallas) están en `guion-placa-rol-a.md`; la generación e
+instalación de la imagen, en `tutorial-imagen-yocto.html`.
+
 Fecha: ______  Hora inicio: ______  Hora fin: ______
+
+> **Usar la imagen de desarrollo (`acceso-image-dev`).** Este guion entra por
+> SSH como root sin contraseña y usa `v4l-utils`, `videotestsrc`, `x264enc` y
+> `vcgencmd`, que solo vienen en esa imagen. La imagen de entrega
+> (`acceso-image`) no los trae (G2).
 
 ## 0. Grabar la microSD
 
     lsblk -d -o NAME,SIZE,TYPE,TRAN     # identificar el dispositivo (~29 GB, TRAN=usb)
-    sudo umount /dev/sdX*
-    sudo bmaptool copy --bmap acceso-image-...wic.bmap acceso-image-...wic.bz2 /dev/sdX
+    sudo umount /dev/sdX?*
+    sudo bmaptool copy --bmap acceso-image-dev-raspberrypi4-64.rootfs.wic.bmap \
+        acceso-image-dev-raspberrypi4-64.rootfs.wic.bz2 /dev/sdX
     sync
 
 Si la máquina del laboratorio es Windows: balenaEtcher, lee el .bz2 directo.
@@ -25,7 +35,7 @@ Desde la laptop:  `ssh root@<IP>`
 
 - [ ] SSH funciona
 
-## 3. Inventario de plataforma
+## 3. Inventario de plataforma (G5)
 
     uname -a
     cat /etc/os-release
@@ -33,6 +43,7 @@ Desde la laptop:  `ssh root@<IP>`
     python3 --version
 
 - [ ] Kernel: ______  GStreamer: ______  Python: ______
+      (esperado: 6.18.33-v8, 1.28.5, 3.14.x)
 
 ## 4. C1 — ¿el codificador por hardware existe de verdad?
 
@@ -43,9 +54,11 @@ Desde la laptop:  `ssh root@<IP>`
 - [ ] /dev/video11 presente: SÍ / NO
 - [ ] Controles del codificador visibles: SÍ / NO
 
-## 5. Elementos de GStreamer
+## 5. Elementos de GStreamer (G3)
 
-    for e in v4l2src v4l2h264enc v4l2convert h264parse splitmuxsink rtph264pay udpsink appsink jpegdec videoconvert; do
+    rm -rf ~/.cache/gstreamer-1.0
+    for e in v4l2src v4l2jpegdec v4l2convert v4l2h264enc h264parse tee queue \
+             splitmuxsink mp4mux rtph264pay udpsink appsink; do
       printf '%-16s ' "$e"; gst-inspect-1.0 $e >/dev/null 2>&1 && echo OK || echo FALTA
     done
 
@@ -61,22 +74,29 @@ Desde la laptop:  `ssh root@<IP>`
 
 ## 7. Cámara USB real
 
-Conectar la webcam.
+> **Detener antes el servicio.** El bloque `bcm2835-codec` no admite un
+> segundo proceso: con `acceso-control` corriendo, cualquier `gst-launch` con
+> elementos `v4l2*` falla con `ret -3` (`C1-hallazgo-contextos.txt`).
 
+    systemctl stop acceso-control && sleep 10
     v4l2-ctl --list-devices
-    v4l2-ctl -d /dev/video0 --list-formats-ext | head -20
+    v4l2-ctl -d /dev/video0 --list-formats-ext | head -40
 
-- [ ] Nodo: ______  Formato: ______  Resolución: ______
+- [ ] Nodo: ______  Formato: ______  Resolución máxima en MJPEG: ______
 
-Captura básica:
+Captura básica, con la misma cadena por hardware que usa la aplicación:
 
-    gst-launch-1.0 -v v4l2src device=/dev/videoN num-buffers=60 ! image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! videoconvert ! fakesink
+    gst-launch-1.0 -v v4l2src device=/dev/video0 num-buffers=60 \
+      ! image/jpeg,width=1280,height=720,framerate=30/1 \
+      ! v4l2jpegdec ! v4l2convert ! fakesink
 
 - [ ] Captura OK
 
 ## 8. C2 — razón de CPU hardware vs software
 
-    # software
+Con el servicio todavía detenido.
+
+    # software (x264enc: solo en la imagen de desarrollo)
     gst-launch-1.0 videotestsrc ! video/x-raw,format=I420,width=1280,height=720,framerate=30/1 ! x264enc tune=zerolatency bitrate=2500 ! fakesink &
     top -b -n 12 -d 5 -p $! | grep gst-launch
 
@@ -89,7 +109,10 @@ Captura básica:
 - [ ] CPU hardware: ______ %
 - [ ] Razón: ______ ×   (criterio: >= 5x)
 
-Referencia x86 solo software: 174 %.
+Referencias: x86 solo software 174 % (`C2-software-x86.txt`); servicio
+completo en la placa con la cadena por hardware 4.2 % (`C2-hardware-rpi4.txt`).
+
+Al terminar: `systemctl start acceso-control`
 
 ## 9. F4 — throttling
 
@@ -98,20 +121,26 @@ Referencia x86 solo software: 174 %.
 
 - [ ] get_throttled: ______  Temp: ______
 
-## 10. H5 — estado de los GPIO al arranque
+## 10. H5 — buzzer: PWM disponible y silencio desde el arranque
 
-    gpiodetect
-    gpioget gpiochip0 27 22
-    grep gpio /boot/config.txt
+El actuador es un buzzer pasivo en GPIO 18 (pin físico 12) por PWM de
+hardware, no LEDs (`docs/H4-H5-actuacion-y-alcance.md`).
 
-- [ ] GPIO 27 y 22 en estado bajo desde el arranque
+    ls /sys/class/pwm/                          # debe existir pwmchip0
+    ls /boot/overlays/ | grep pwm               # pwm.dtbo presente
+    grep -E "pwm|audio" /boot/config.txt        # dtoverlay=pwm,pin=18,func=2 y dtparam=audio=off
 
-LED: ánodo a GPIO por resistencia de 330 ohm, cátodo a GND.
+- [ ] `pwmchip0` presente y overlay cargado
 
-    gpioset --mode=time --sec=3 gpiochip0 27=1    # verde
-    gpioset --mode=time --sec=3 gpiochip0 22=1    # rojo
+Prueba del buzzer sin la aplicación (servicio detenido para que no compitan
+por el canal):
 
-- [ ] Ambos LED encienden
+    systemctl stop acceso-control
+    ./probar-buzzer.sh                          # copiar antes app/scripts/probar-buzzer.sh
+    systemctl start acceso-control
+
+- [ ] Suenan el tono de permitido, los tres pitidos de denegado y el barrido
+- [ ] Reinicio con el buzzer conectado: silencio entre el encendido y el arranque del servicio
 
 ## 11. E6 — reinicio automático
 
@@ -125,30 +154,40 @@ LED: ánodo a GPIO por resistencia de 330 ohm, cátodo a GND.
 
 - [ ] Se reinició solo tras 5 s
 
+> **Hallazgo conocido** (`E6-reinicio-rpi4.txt`): tras un `kill -9` el bloque
+> de video queda inservible; el servicio aparece activo pero no graba
+> (segmentos de pocos KB). Verificar con `ls -lh /var/lib/acceso/evidencia/`
+> y, si pasa, reiniciar la placa con `reboot`.
+
 ## 12. Transmisión en vivo (CU-1)
 
-Editar `/etc/acceso/acceso.conf`: `[streaming] host = <IP de la laptop>`
+No hay que configurar ninguna IP: al conectarse el puesto de vigilancia al
+canal de comandos (TCP 5001), la placa redirige el video a esa computadora.
 
-    systemctl restart acceso-control
+En la laptop, desde el repositorio:
 
-En la laptop:
-
-    gst-launch-1.0 -v udpsrc port=5000 caps="application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264,payload=(int)96" ! rtpjitterbuffer latency=100 ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! autovideosink sync=false
+    python3 app/scripts/puesto-vigilancia.py --ip <IP de la placa>
+    # o, en consola:  python3 app/scripts/vigilancia.py --ip <IP de la placa>
 
 - [ ] Video recibido desde la Pi
+- [ ] El log de la placa muestra `destino de transmision: ... -> <IP de la laptop>:5000`
 
 ## 13. Casos de uso
 
-    echo "SOLICITUD ID-001" > /run/acceso/eventos
-    echo "PERMITIR"         > /run/acceso/eventos
-    echo "SOLICITUD ID-002" > /run/acceso/eventos
-    echo "DENEGAR"          > /run/acceso/eventos
-    echo "SOLICITUD ID-003" > /run/acceso/eventos    # no responder, 30 s
+Desde el puesto de vigilancia (botones o comandos), o en la placa por la FIFO:
+
+    echo "SOLICITUD ID-001" > /tmp/acceso-eventos
+    echo "PERMITIR"         > /tmp/acceso-eventos
+    echo "SOLICITUD ID-002" > /tmp/acceso-eventos
+    echo "DENEGAR"          > /tmp/acceso-eventos
+    echo "SOLICITUD ID-003" > /tmp/acceso-eventos    # no responder, 30 s
 
     acceso-control --ver-bitacora
     ls -lh /var/lib/acceso/evidencia /var/lib/acceso/eventos
 
 - [ ] Los tres resultados distintos en la bitácora
+- [ ] Un clip MP4 por solicitud en `eventos/`
+- [ ] El buzzer suena con el patrón de cada resultado
 
 ## 14. E2 — desconexión de cámara en caliente
 
@@ -156,21 +195,24 @@ Desconectar la webcam con el servicio corriendo.
 
     journalctl -u acceso-control -f
 
-- [ ] Registra la alerta y reintenta
-- [ ] Al reconectar, se recupera
+- [ ] Registra la alerta y reintenta cada 5 s
+- [ ] Al reconectar, se recupera. Nodo al volver (`ls /dev/video*`): ______
 
 ## 15. E4 — cierre ordenado
 
     systemctl stop acceso-control
-    # copiar el último MP4 a la laptop y verificar
-    ffprobe <último>.mp4
+    journalctl -u acceso-control -n 15 | grep "segmento cerrado al detener"
+    U=$(ls -t /var/lib/acceso/evidencia/*.mp4 | head -1)
+    python3 -c "from acceso.retencion import es_mp4_sano; print('$U', es_mp4_sano('$U'))"
+    systemctl start acceso-control
 
-- [ ] El último segmento es reproducible
+- [ ] El último segmento es reproducible (`True`)
 
 ## Qué llevar
 
-- [ ] USB con la imagen (.wic.bz2 + .bmap)
+- [ ] USB con la imagen de desarrollo (.wic.bz2 + .bmap)
 - [ ] Webcam USB
-- [ ] 2 LED + 2 resistencias de 330 ohm + cables dupont
+- [ ] Buzzer pasivo + 2 cables dupont (GPIO 18 / pin 12 y GND / pin 14)
 - [ ] Cable de red o celular como hotspot
+- [ ] Laptop con GStreamer, `python3-tk` y `python3-opencv` (puesto de vigilancia)
 - [ ] Este guion impreso

@@ -1,5 +1,12 @@
 # Guion de demostración — transmisión en vivo entre dos computadoras
 
+> **Documento histórico (demo del 2026-09-22, en la PC con WSL2).** Ya no
+> describe el sistema: la aplicación corre en la Raspberry Pi 4 como servicio,
+> el destino del video se fija solo al conectarse el puesto de vigilancia y los
+> comandos se envían por TCP con `app/scripts/puesto-vigilancia.py` o
+> `app/scripts/vigilancia.py`. Guiones vigentes: `docs/guion-laboratorio.md` y
+> `docs/guion-placa-rol-a.md`.
+
 ## Antes de empezar
 
 1. Activar hotspot del celular. AMBOS se conectan a él.
