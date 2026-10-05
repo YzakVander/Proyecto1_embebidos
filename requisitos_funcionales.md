@@ -10,7 +10,7 @@
 
 * **Enunciado:** Durante la operación normal, el sistema deberá transmitir un flujo de video comprimido por red mediante el protocolo RTP/UDP hacia la dirección IP del puesto de vigilancia a una tasa mínima de 15 FPS.
 * **Trazabilidad:** Caso de uso 1.
-* **Método de Verificación:** Medición cuantitativa de tasa de cuadros en computadora remota.
+* **Método de Verificación:** Conteo de cuadros recibidos en la computadora del puesto de vigilancia con `fpsdisplaysink text-overlay=false`, no lectura de los caps negociados. Se reportan mínimo, promedio y máximo de una corrida continua. Criterio de aceptación: mínimo >= 15 fps.
 
 ---
 
@@ -26,7 +26,7 @@
 
 * **Enunciado:** La aplicación en Python en la Raspberry Pi 4 deberá detectar la recepción de cada comando del puesto de vigilancia (inicio de solicitud, permitir o denegar), enviado por la red desde la computadora remota, en un tiempo máximo de 100 ms desde su envío.
 * **Trazabilidad:** Caso de uso 3.
-* **Método de Verificación:** Medición del tiempo de ida y vuelta (RTT) entre el envío del comando y la confirmación de la Raspberry Pi 4. Un RTT ≤ 100 ms acota el tiempo de detección.
+* **Método de Verificación:** Medición del tiempo de ida y vuelta (RTT) con 20 comandos `PING` consecutivos desde el puesto de vigilancia, reportando mínimo, mediana, percentil 95 y máximo. El RTT acota por arriba el tiempo de detección. Criterio de aceptación: máximo <= 100 ms.
 
 ---
 
@@ -42,7 +42,7 @@
 
 * **Enunciado:** Al procesarse una solicitud de ingreso, el sistema deberá emitir por un buzzer pasivo conectado a la Raspberry Pi 4 un tono distinto para acceso permitido y para acceso denegado, con frecuencias y duraciones configurables, retornando posteriormente al silencio, y mostrar el resultado en la consola de la Raspberry Pi 4.
 * **Trazabilidad:** Caso de uso 4.
-* **Método de Verificación:** Inspección auditiva y medición de la frecuencia y la duración de la señal en la línea GPIO 18 por medio de osciloscopio.
+* **Método de Verificación:** Inspección auditiva de los dos patrones (tono continuo para acceso permitido y tres pitidos separados para denegado), verificando que difieren de forma audible y que el buzzer vuelve al silencio al terminar. Comprobación de que `frecuencia_permitido_hz`, `duracion_permitido_ms`, `frecuencia_denegado_hz` y `pitidos_denegado` son configurables en `acceso.conf`, y de que el resultado queda registrado en la bitácora del servicio. El estado seguro del pin desde el arranque se verifica en el requisito funcional 9.
 
 ---
 
@@ -74,7 +74,7 @@
 
 * **Enunciado:** La línea GPIO del actuador (GPIO 18, buzzer) deberá tener un estado definido (nivel bajo, en silencio) desde el arranque del kernel, antes de que inicie la aplicación en Python.
 * **Trazabilidad:** Caso de uso 7.
-* **Método de Verificación:** Inspección del estado del pin con `pinctrl get 18` y medición eléctrica inmediatamente después de energizar la placa.
+* **Método de Verificación:** Con el buzzer conectado, reiniciar la placa y verificar que no emite sonido entre el encendido y el arranque del servicio. Comprobar con `pinctrl get 18` y que el canal PWM (`/sys/class/pwm/pwmchip0/pwm0/enable`) no está habilitado antes de que el servicio lo exporte. El overlay `dtoverlay=pwm,pin=18,func=2` deja el canal sin señal desde el firmware.
 
 ---
 
@@ -90,7 +90,7 @@
 
 * **Enunciado:** Al detenerse, el sistema deberá cerrar ordenadamente el archivo de video en curso de modo que resulte reproducible.
 * **Trazabilidad:** Caso de uso 9.
-* **Método de Verificación:** Prueba de detención del servicio y validación de la integridad del último archivo `.mp4` (ej. usando `ffprobe`).
+* **Método de Verificación:** Detener el servicio con `systemctl stop` y validar la integridad del último `.mp4`. Como la imagen no incluye `ffprobe`, se verifica leyendo las cajas MP4 de primer nivel: debe existir la caja `moov` y las cajas deben sumar exactamente el tamaño del archivo. Es el mismo criterio que usa `retencion.py` para detectar archivos corruptos al arrancar.
 
 ---
 
@@ -132,7 +132,7 @@
 
 * **Enunciado:** El codificador deberá generar un cuadro clave al menos cada 1 s, de modo que el puesto de vigilancia pueda mostrar imagen en un máximo de 1 s al conectarse al stream o tras una pérdida de paquetes.
 * **Trazabilidad:** Arquitectura de video.
-* **Método de Verificación:** Inspección del parámetro `h264_i_frame_period` en la configuración y medición del intervalo entre cuadros clave en un video grabado (por ejemplo, con `ffprobe`).
+* **Método de Verificación:** Inspección del parámetro `h264_i_frame_period` en `acceso.conf` y medición del intervalo real entre cuadros clave sobre un segmento recolectado, analizado con `ffprobe` en la computadora del puesto de vigilancia (la imagen de la placa no incluye ffmpeg).
 
 ---
 
