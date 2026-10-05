@@ -1,4 +1,9 @@
-"""Generacion de la credencial: imagen PNG con el QR, el nombre y el rol.
+"""Generacion de la credencial: imagen BMP con el QR, el nombre y el rol.
+
+Formato BMP: OpenCV lo escribe y lo lee con su codec interno, sin depender
+de libpng. Asi la credencial funciona igual en la PC y en la imagen de
+Yocto, sin importar con que codecs se haya compilado OpenCV. El archivo
+pesa mas (~1.2 MB, medido), pero es irrelevante para unas pocas credenciales.
 
 Se usa cv2.QRCodeEncoder, que ya viene en la imagen de Yocto (modulo
 objdetect de OpenCV 4.13). No hace falta la biblioteca `qrcode` de Python ni
@@ -53,7 +58,10 @@ def generar_qr(texto: str, lado_px: int = 480) -> np.ndarray:
 def generar_credencial(ruta: str, identificador: str, nombre: str, rol: str,
                        titulo: str = "CONTROL DE ACCESO",
                        lado_qr: int = 480) -> str:
-    """Escribe el PNG de la credencial y devuelve su ruta.
+    """Escribe la imagen de la credencial y devuelve su ruta.
+
+    El formato lo decide la extension de la ruta (cv2.imwrite); el servicio
+    usa .bmp.
 
     Diseno: titulo arriba, QR centrado, nombre y rol debajo, identificador
     al pie en gris. El margen blanco alrededor del QR no es decorativo: el

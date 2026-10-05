@@ -181,6 +181,22 @@ class RegistroCredenciales:
         return cred
 
     # ------------------------------------------------------------------ #
+    # Vaciado total (BORRAR_CREDENCIALES)
+    # ------------------------------------------------------------------ #
+    def vaciar(self) -> int:
+        """Elimina TODAS las credenciales, activas y revocadas.
+
+        A diferencia de la baja, no deja historico: es para empezar de cero
+        (por ejemplo, antes de una demostracion). Devuelve cuantas habia.
+        """
+        with self._lock:
+            n = len(self._creds)
+            self._creds.clear()
+            self._guardar()
+        log.warning("registro de credenciales vaciado: %d eliminadas", n)
+        return n
+
+    # ------------------------------------------------------------------ #
     # Consulta: la usa el lector de QR en cada deteccion
     # ------------------------------------------------------------------ #
     def buscar(self, identificador: str) -> Credencial | None:
