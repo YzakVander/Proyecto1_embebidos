@@ -90,8 +90,8 @@ depender del mismo elemento que toma la decisión de acceso.
 
 ## 5. Verificación realizada
 
-- [ ] Reinicio con el buzzer conectado: no emite sonido entre el encendido y
+- [x] Reinicio con el buzzer conectado: no emite sonido entre el encendido y
       el arranque del servicio
-- [ ] `/boot/overlays/pwm.dtbo` presente tras el build
-- [ ] `/sys/class/pwm/pwmchip0/` existe y el canal arranca sin exportar
-- [ ] Al detener el servicio el buzzer queda en silencio
+- [x] `/boot/overlays/pwm.dtbo` presente tras el build
+- [x] `/sys/class/pwm/pwmchip0/` existe y el canal arranca sin exportar
+- [x] Al detener el servicio el buzzer queda en silencio
