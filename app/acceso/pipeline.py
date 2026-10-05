@@ -183,9 +183,18 @@ class PipelineAcceso:
             #
             # leaky=downstream con un solo buffer: si el detector se atrasa,
             # interesa el presente. Un QR de hace dos segundos ya no sirve.
+            # El sello de fecha y hora NO va en esta rama. Dos razones:
+            # el detector analiza la imagen para encontrar un codigo, de modo
+            # que sobreimprimirle texto es trabajo sin proposito; y medido en
+            # la placa, clockoverlay aqui CONGELA la tuberia al minuto de
+            # arrancar (pango levanta hilos de fontconfig que no terminan y
+            # la rama deja de consumir, con lo que el tee se bloquea). El
+            # sintoma es mudo: el servicio sigue en "active" y no se graba.
+            conv_qr = re.sub(r"\s*!\s*clockoverlay\b[^!]*", "",
+                             c.camara.convertidor).strip()
             partes.append(
                 f"t_raw. ! queue max-size-buffers=1 leaky=downstream "
-                f"! {c.camara.convertidor} ! video/x-raw,format=BGR "
+                f"! {conv_qr} ! video/x-raw,format=BGR "
                 "! appsink name=qr emit-signals=true sync=false "
                 "max-buffers=1 drop=true"
             )
