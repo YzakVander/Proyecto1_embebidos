@@ -30,6 +30,7 @@
 | D-05 | 2026-09-30 | Clips de evento en MP4 (`mp4mux`) en lugar de `.h264` crudo | El `.h264` crudo no abre en muchos reproductores; se deja como respaldo si el empaquetado falla. |
 | D-06 | 2026-10-01 | Credenciales en BMP en lugar de PNG | OpenCV lo lee y escribe con su codec interno, sin depender de libpng en la imagen de Yocto. |
 | D-07 | 2026-10-01 | Topes de retención separados para `evidencia/` y `eventos/` | Evita que la grabación continua desplace los clips de evento y que la microSD se llene. |
+| D-08 | 2026-10-04 | Validar el tutorial de Yocto en un contenedor Ubuntu 26.04.1 limpio hasta `bitbake -n`, sin la compilación completa | La simulación detecta en minutos los errores de configuración (paquetes, capas, variables); la compilación completa toma horas y queda para G4. |
 
 ---
 
@@ -42,6 +43,7 @@
 | P-03 | 2026-09-30 | `ESTADO` seguía reportando la solicitud como pendiente tras decidir | La solicitud se liberaba al terminar el clip (~5 s después), no al decidir | Se libera en el instante de la decisión y la bitácora registra esa hora exacta. |
 | P-04 | 2026-09-30 | Video atascado al aclarar la imagen | El elemento `gamma` en software saturaba un núcleo | Se descartó `gamma`; se fijaron los controles de la cámara en `extra-controls` (`exposure_time_absolute=2000`). |
 | P-05 | 2026-10-02 | Clips corruptos al interrumpir la aplicación durante una solicitud | El apagado no esperaba a que terminara la escritura del clip | Contador de clips en curso; el apagado espera a que lleguen a cero (B6). |
+| P-06 | 2026-10-04 | `RPI_EXTRA_CONFIG` definido en `acceso-image.bb` sin efecto | La variable la consume la receta `rpi-config`, que solo ve la configuración global, no la receta de la imagen | El valor efectivo es el de `local.conf`; verificado con `bitbake -e rpi-config` y documentado en el tutorial. |
 
 ---
 
@@ -154,3 +156,26 @@ ffprobe -v error -show_entries stream=avg_frame_rate evidencia/evidencia_00000.m
 6. Scripts de medición (`a6-grafo.sh`, `analizar-dot.py`, `d1-latencia.sh`, `analizar-segmentos.sh`, `g1-plugins.sh`), actualización del README y guion para la sesión en placa (`guion-placa-rol-a.md`).
 
 **Pendientes:** sesión en placa según el guion.
+
+### 2026-10-04 · 4 h
+
+**Objetivo de la sesión:** Revisar el estado del proyecto contra la especificación y generar el tutorial de síntesis e instalación de la imagen Yocto.
+
+**Actividades:**
+1. Bitácora completada con las entradas faltantes (19/09 a 02/10) a partir de los commits, y con las tablas de decisiones y problemas.
+2. Revisión del repositorio contra la especificación: faltaban el tutorial y la declaración de uso de IA, la copia de la app en la receta estaba desactualizada y había errores en la GUI del puesto de vigilancia. Se agregó a `.gitignore` la exclusión de las imágenes QR que traen los clientes.
+3. Tutorial `docs/tutorial-imagen-yocto.html` con la configuración del Rol B. Se validó en un contenedor Ubuntu 26.04.1 limpio (distrobox) hasta la simulación completa: `bitbake -n acceso-image`, 7623 tareas sin errores.
+4. Actualización de los documentos desactualizados (H1, guion de laboratorio, política de retención, D4, G5, README) y de la declaración de uso de IA (parte del Rol A).
+
+**Resultados:** el tutorial queda validado hasta el paso previo a la compilación; el host, los paquetes, las capas y la configuración funcionan en una máquina limpia. Se detectó que `RPI_EXTRA_CONFIG` solo tiene efecto en `local.conf` y que el repositorio es público.
+
+**Pendientes:** compilación completa desde cero (G4), sesión en la placa y etiqueta de entrega para el tutorial.
+
+**Comandos relevantes:**
+```bash
+distrobox create --name yocto-limpio --image ubuntu:26.04 --home ~/distrobox/yocto-limpio
+source layers/openembedded-core/oe-init-build-env build
+bitbake -p
+bitbake -n acceso-image
+bitbake -e rpi-config | grep ^RPI_EXTRA_CONFIG=
+```

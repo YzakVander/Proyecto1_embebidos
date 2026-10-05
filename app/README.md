@@ -99,9 +99,33 @@ acceso-control --ver-bitacora              # bitácora de accesos (H6)
 
 ### Desde el puesto de vigilancia (otra computadora)
 
-`scripts/vigilancia.py` abre el video en vivo y se conecta al canal de comandos
-(TCP 5001). Al conectarse, la placa redirige el video a la IP de esa
+Hay dos clientes; los dos abren el video en vivo y se conectan al canal de
+comandos (TCP 5001). Al conectarse, la placa redirige el video a la IP de esa
 computadora.
+
+Requisitos en esa computadora: `python3-tk`, `python3-opencv`,
+`gstreamer1.0-tools` y los plugins `good`, `bad` y `libav`.
+
+**Interfaz gráfica** (`scripts/puesto-vigilancia.py`):
+
+```bash
+python3 scripts/puesto-vigilancia.py --ip <IP de la placa>
+```
+
+| Pestaña | Qué tiene |
+|---|---|
+| Operación | `SOLICITUD`, `ESTADO`, `PERMITIR`, `DENEGAR` y comando libre |
+| Credenciales | alta (mantenimiento o visitante), `LISTAR`, `BAJA` y `REGENERAR_QR`. La imagen de la credencial nueva se trae a esta computadora y se abre sola |
+| Galería de QR | miniaturas de las credenciales; doble clic para verlas |
+| Clips de eventos | los clips de cada solicitud; doble clic para reproducirlos |
+| Evidencia | RECOLECTAR y BORRAR (ver la tabla de abajo) |
+| Mediciones | RF-1 (cuadros por segundo recibidos) y RF-3 (20 `PING`), con veredicto y archivo de evidencia |
+
+Las imágenes que trae quedan en `recibidos/` y `.cache-miniaturas/`, en la
+carpeta desde donde se ejecuta; `.gitignore` las excluye porque un QR de
+mantenimiento abre la puerta.
+
+**Consola** (`scripts/vigilancia.py`), con los comandos de la tabla:
 
 ```bash
 ./scripts/vigilancia.py --ip <IP de la placa>

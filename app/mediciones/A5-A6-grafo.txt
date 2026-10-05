@@ -1,6 +1,11 @@
-# MEDICION PRELIMINAR EN x86_64/WSL2 con videotestsrc.
-# El acta exige RPi 4 con v4l2src. Pendiente repetir en la plataforma final.
-
+# NOTA (2026-10-05): este es el grafo del PROTOTIPO en la PC (videotestsrc,
+# x264enc, rama de foto con jpegenc/valve/multifilesink), no el de la tuberia
+# actual. La tuberia real (v4l2src MJPEG -> v4l2jpegdec -> v4l2convert ->
+# v4l2h264enc, ramas de grabacion, RTP, clips y QR) se obtiene en la placa con
+# app/scripts/a6-grafo.sh, que vuelca el .dot desde la aplicacion y lo analiza
+# con analizar-dot.py. Pendiente: docs/guion-placa-rol-a.md, paso 1.1.
+# El grafo app/grafos/pipeline-acceso.png corresponde a este prototipo.
+#
 # A5 / A6 - inventario del grafo real
 # Fuente: grafos/0.00.03.384296098-gst-launch.PLAYING_PAUSED.dot
 # Plataforma: x86_64 WSL2, GStreamer 1.24.2, fuente videotestsrc

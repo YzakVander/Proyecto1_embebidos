@@ -1,5 +1,13 @@
 # Cambios en los módulos existentes
 
+> **Documento histórico (2026-09-23). Ya está aplicado y no describe el código actual.**
+> Los cambios se integraron con diferencias: la rama de QR no usa `videorate` ni
+> fija ancho y alto (rompían la negociación a través del `tee`; ahora el lector
+> descarta cuadros y reduce con `cv2.resize`); la configuración quedó en las
+> secciones `[qr]` y `[credenciales]` (no `[registro]`); las credenciales se
+> generan en BMP, no PNG; y se agregaron `REGENERAR_QR` y `BORRAR_CREDENCIALES`.
+> La referencia vigente es el código de `app/acceso/` y `app/README.md`.
+
 Tres archivos ya existentes hay que tocar. Abajo va **exactamente** qué
 agregar y dónde, sobre la versión actual del repositorio.
 

@@ -85,10 +85,10 @@ archivarla con `recolectar-evidencia.sh`.
 
 | Vía | Qué permite | Quién |
 |---|---|---|
-| Canal TCP 5001 (`vigilancia.py` o `nc`) | `LISTAR` muestra nombres y roles de las credenciales activas. `ALTA`, `BAJA`, `REGENERAR_QR` y `BORRAR_CREDENCIALES` las modifican | El puesto de vigilancia |
+| Canal TCP 5001 (`puesto-vigilancia.py`, `vigilancia.py` o `nc`) | `LISTAR` muestra nombres y roles de las credenciales activas. `ALTA`, `BAJA`, `REGENERAR_QR` y `BORRAR_CREDENCIALES` las modifican | El puesto de vigilancia |
 | SSH a la placa | Lectura y borrado de todo `/var/lib/acceso/` | Mantenimiento / administrador |
-| `recolectar-evidencia.sh` (o `RECOLECTAR` en `vigilancia.py`) | Copia a la computadora de observación, en `~/recoleccion/`: la evidencia, los clips, la bitácora y las imágenes QR de las credenciales **activas** | Mantenimiento / administrador |
-| `BORRAR_VIDEOS_LOG` en `vigilancia.py` | Borra en la placa la evidencia, los clips y la bitácora (pide confirmación; no toca las credenciales) | Mantenimiento / administrador |
+| `recolectar-evidencia.sh` (o RECOLECTAR en `puesto-vigilancia.py` y en `vigilancia.py`) | Copia a la computadora de observación, en `~/recoleccion/`: la evidencia, los clips, la bitácora y las imágenes QR de las credenciales **activas** | Mantenimiento / administrador |
+| BORRAR en `puesto-vigilancia.py` o `BORRAR_VIDEOS_LOG` en `vigilancia.py` | Borra en la placa la evidencia, los clips y la bitácora (pide confirmación; no toca las credenciales) | Mantenimiento / administrador |
 | Transmisión RTP/UDP | Video en vivo, sin cifrar | Quien esté en la IP de destino |
 | Consola local (monitor y teclado en la placa) | Todo lo anterior | Quien tenga acceso físico |
 
@@ -107,7 +107,10 @@ acceso. Por eso:
 
 - No se suben al repositorio. `recolectar-evidencia.sh` las deja en
   `~/recoleccion/QR/`, fuera del repositorio, para que un `git add` no las
-  publique por accidente.
+  publique por accidente. Los clientes de vigilancia, en cambio, copian las
+  imágenes a la carpeta desde donde se ejecutan (`recibidos/` y
+  `.cache-miniaturas/` en `puesto-vigilancia.py`, `credenciales-recibidas/` en
+  `vigilancia.py`); por eso `.gitignore` excluye esas carpetas y los `*.bmp`.
 - La forma de invalidar una credencial filtrada es `BAJA <id>`: el
   identificador deja de resolver a una persona aunque la imagen siga
   circulando. Regenerar la imagen **no** sirve, porque conserva el mismo
@@ -146,7 +149,10 @@ acceso. Por eso:
    ver los nombres, o dar de alta una credencial. Para la operación debe
    contener solo la IP del puesto de vigilancia.
 3. **La imagen de desarrollo deja a root sin contraseña** por SSH
-   (`acceso-image.bb`). Con eso, cualquiera en la red puede leer o borrar
-   todo lo de este inventario. La imagen de entrega debe quitarlo (G2, Rol B).
+   (`acceso-image-dev.bb`). Con eso, cualquiera en la red puede leer o borrar
+   todo lo de este inventario. La imagen de entrega (`acceso-image.bb`) ya no
+   lo trae (G2), pero todavía no define otra forma de entrar a la placa; las
+   funciones del puesto de vigilancia que usan SSH (recolectar, borrar y
+   traer las imágenes QR) dependen de cómo se resuelva.
 4. **El video viaja sin cifrar.** RTP sobre UDP en la red local. Aceptable en
    la red del laboratorio, no en una red compartida.

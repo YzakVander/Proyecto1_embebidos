@@ -156,7 +156,7 @@
   <h1>Síntesis e instalación de la imagen Yocto del sistema de control de acceso</h1>
   <p class="sub">Proyecto 1 · Taller de Sistemas Embebidos · Instituto Tecnológico de Costa Rica · II Semestre 2026</p>
   <p class="sub">Isaac Vanderlucht López (Rol A) · Daniel Chavarría García (Rol B)</p>
-  <p class="sub">Versión del 2026-10-04</p>
+  <p class="sub">Versión del 2026-10-05</p>
 </header>
 
 <!-- ================================================================== -->
@@ -199,9 +199,10 @@
 </table></div>
 <div class="nota caja">
   <strong>Sobre la serie de Yocto</strong>
-  <p>Se usa wrynose (5.1) y no Scarthgap (5.0). La receta de la aplicación usa
-  <code>${UNPACKDIR}</code>, que apareció en 5.1; en Scarthgap habría que cambiarlo por
-  <code>${WORKDIR}</code>.</p>
+  <p>Se usa wrynose (6.0) y no Scarthgap (5.0), que es la serie que menciona el acta de
+  validación. Entre las dos están Styhead (5.1), Walnascar (5.2) y Whinlatter (5.3). La
+  receta de la aplicación usa <code>${UNPACKDIR}</code>, que apareció en 5.1; en Scarthgap
+  habría que cambiarlo por <code>${WORKDIR}</code>.</p>
 </div>
 
 <!-- ================================================================== -->
@@ -620,7 +621,7 @@ activa se ignora en silencio y el elemento no aparece.</p>
 </p>
 <p>
   En wrynose el análisis de CVE se activa con un <strong>fragmento de configuración</strong>,
-  un mecanismo nuevo de Yocto 5.x. Hay dos formas equivalentes:
+  un mecanismo que no existe en Scarthgap. Hay dos formas equivalentes:
 </p>
 <div class="bloque"><div class="etiqueta">En build/conf/local.conf</div><pre><code>OE_FRAGMENTS += "core/yocto/sbom-cve-check"</code></pre></div>
 <div class="bloque"><div class="etiqueta">O desde la consola, con el entorno iniciado</div><pre><code>bitbake-config-build enable-fragment core/yocto/sbom-cve-check</code></pre></div>
