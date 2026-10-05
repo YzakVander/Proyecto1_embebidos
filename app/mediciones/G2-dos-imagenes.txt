@@ -17,3 +17,10 @@ desarrollo : 2263
 == Tamano de imagen ==
 62 build/tmp/deploy/images/raspberrypi4-64/acceso-image-dev-raspberrypi4-64.rootfs.wic.bz2
 58 build/tmp/deploy/images/raspberrypi4-64/acceso-image-raspberrypi4-64.rootfs.wic.bz2
+
+CORRECCION: los tamanos de arriba (58 y 62 bytes) son los de los ENLACES
+simbolicos, no los de las imagenes. Medidos con ls -lLh:
+  acceso-image     (entrega)    159 MB
+  acceso-image-dev (desarrollo) 162 MB
+La diferencia de 3 MB es lo que pesan las herramientas de diagnostico
+(v4l-utils, videotestsrc, x264, raspi-utils).

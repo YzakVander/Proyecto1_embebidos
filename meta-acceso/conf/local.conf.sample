@@ -44,8 +44,3 @@ PACKAGECONFIG:append:pn-gstreamer1.0-plugins-ugly = " x264"
 
 # SBOM y analisis de vulnerabilidades. La primera corrida descarga el indice
 # de CVE del NIST (varios cientos de MB) y puede tardar bastante.
-# Analisis de vulnerabilidades. OJO: en wrynose la clase se llama
-# sbom-cve-check; en Scarthgap y anteriores era cve-check, y usar ese nombre
-# falla con "Could not inherit file classes/cve-check.bbclass".
-# La primera corrida descarga el indice del NIST y tarda bastante.
-INHERIT += "sbom-cve-check"
