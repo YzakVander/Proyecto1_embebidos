@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial de la imagen Yocto</title>
+<style>
+  :root {
+    --fondo: #fbfaf7;
+    --superficie: #ffffff;
+    --texto: #1f2328;
+    --tenue: #5b636d;
+    --borde: #dcd8cf;
+    --acento: #1f5f8b;
+    --codigo-fondo: #f2efe8;
+    --nota-fondo: #eaf2f8;   --nota-borde: #1f5f8b;
+    --aviso-fondo: #fdf3e1;  --aviso-borde: #b26b00;
+    --todo-fondo: #fbe9e7;   --todo-borde: #a33a2a;
+    --ok-fondo: #e9f4ec;     --ok-borde: #2f6b3f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fondo: #16181b;
+      --superficie: #1e2125;
+      --texto: #e6e3dc;
+      --tenue: #a3a9b1;
+      --borde: #343a41;
+      --acento: #7fb6dc;
+      --codigo-fondo: #262a2f;
+      --nota-fondo: #1b2a36;   --nota-borde: #7fb6dc;
+      --aviso-fondo: #33281a;  --aviso-borde: #e0a24a;
+      --todo-fondo: #3a2220;   --todo-borde: #e07a6a;
+      --ok-fondo: #1e3024;     --ok-borde: #7cc191;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fondo: #16181b;
+    --superficie: #1e2125;
+    --texto: #e6e3dc;
+    --tenue: #a3a9b1;
+    --borde: #343a41;
+    --acento: #7fb6dc;
+    --codigo-fondo: #262a2f;
+    --nota-fondo: #1b2a36;   --nota-borde: #7fb6dc;
+    --aviso-fondo: #33281a;  --aviso-borde: #e0a24a;
+    --todo-fondo: #3a2220;   --todo-borde: #e07a6a;
+    --ok-fondo: #1e3024;     --ok-borde: #7cc191;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--texto);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  }
+  .contenedor {
+    display: grid;
+    grid-template-columns: 270px minmax(0, 1fr);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  nav.indice {
+    position: sticky; top: 0;
+    align-self: start;
+    height: 100vh; overflow-y: auto;
+    padding: 28px 20px;
+    border-right: 1px solid var(--borde);
+    font-size: 14px;
+  }
+  nav.indice h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--tenue); margin: 0 0 12px; }
+  nav.indice ol { margin: 0; padding-left: 20px; }
+  nav.indice li { margin: 4px 0; }
+  nav.indice a { color: var(--texto); text-decoration: none; }
+  nav.indice a:hover { color: var(--acento); text-decoration: underline; }
+
+  main { padding: 32px 48px 80px; min-width: 0; }
+  header.portada { border-bottom: 1px solid var(--borde); padding-bottom: 20px; margin-bottom: 28px; }
+  header.portada h1 { font-size: 30px; line-height: 1.25; margin: 0 0 8px; }
+  header.portada .sub { color: var(--tenue); margin: 2px 0; }
+  h2 { font-size: 23px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--borde); }
+  h3 { font-size: 18px; margin: 28px 0 8px; }
+  a { color: var(--acento); }
+  code { font: 14px/1.4 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--codigo-fondo); padding: 1px 5px; border-radius: 4px; }
+
+  .bloque { position: relative; margin: 12px 0 18px; }
+  .bloque pre {
+    margin: 0; padding: 14px 16px; overflow-x: auto;
+    background: var(--codigo-fondo); border: 1px solid var(--borde); border-radius: 8px;
+    font: 14px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  .bloque pre code { background: none; padding: 0; }
+  .bloque .etiqueta { font-size: 12px; color: var(--tenue); margin-bottom: 4px; }
+  .bloque button {
+    position: absolute; top: 26px; right: 8px;
+    font-size: 12px; padding: 3px 9px; cursor: pointer;
+    background: var(--superficie); color: var(--texto);
+    border: 1px solid var(--borde); border-radius: 6px;
+  }
+  .bloque button:hover { border-color: var(--acento); }
+
+  .caja { border-left: 4px solid; border-radius: 6px; padding: 10px 14px; margin: 14px 0; }
+  .caja p { margin: 4px 0; }
+  .caja strong:first-child { display: block; margin-bottom: 2px; }
+  .nota  { background: var(--nota-fondo);  border-color: var(--nota-borde); }
+  .aviso { background: var(--aviso-fondo); border-color: var(--aviso-borde); }
+  .todo  { background: var(--todo-fondo);  border-color: var(--todo-borde); }
+  .ok    { background: var(--ok-fondo);    border-color: var(--ok-borde); }
+
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 18px; font-size: 15px; }
+  th, td { border: 1px solid var(--borde); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--codigo-fondo); }
+  .tabla { overflow-x: auto; }
+  ol.pasos > li { margin: 6px 0; }
+
+  @media (max-width: 860px) {
+    .contenedor { display: block; }
+    nav.indice { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--borde); padding: 16px; }
+    main { padding: 20px 16px 60px; }
+    header.portada h1 { font-size: 24px; }
+  }
+  @media print {
+    nav.indice, .bloque button { display: none; }
+    .contenedor { display: block; }
+    main { padding: 0; }
+    h2 { break-after: avoid; }
+    .bloque, .caja, table { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="contenedor">
+
+<nav class="indice" aria-label="Índice">
+  <h2>Contenido</h2>
+  <ol>
+    <li><a href="#alcance">Alcance y resultado</a></li>
+    <li><a href="#versiones">Versiones de referencia</a></li>
+    <li><a href="#host">Preparar el host</a></li>
+    <li><a href="#repo">Obtener el proyecto y las capas</a></li>
+    <li><a href="#entorno">Iniciar el entorno de compilación</a></li>
+    <li><a href="#config">Configurar el build</a></li>
+    <li><a href="#compilar">Compilar la imagen</a></li>
+    <li><a href="#grabar">Grabar la microSD</a></li>
+    <li><a href="#arranque">Primer arranque y verificación</a></li>
+    <li><a href="#vigilancia">Computadora del vigilante</a></li>
+    <li><a href="#contenido">Qué contiene la imagen</a></li>
+    <li><a href="#problemas">Problemas conocidos</a></li>
+    <li><a href="#pendientes">Pendientes</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="portada">
+  <h1>Síntesis e instalación de la imagen Yocto del sistema de control de acceso</h1>
+  <p class="sub">Proyecto 1 · Taller de Sistemas Embebidos · Instituto Tecnológico de Costa Rica · II Semestre 2026</p>
+  <p class="sub">Isaac Vanderlucht López (Rol A) · Daniel Chavarría García (Rol B)</p>
+  <p class="sub">Versión del 2026-10-04</p>
+</header>
+
+<!-- ================================================================== -->
+<h2 id="alcance">1. Alcance y resultado</h2>
+<p>
+  Este documento describe, paso a paso, cómo generar desde cero la imagen de Linux
+  a la medida del sistema de control de acceso con Yocto Project, y cómo instalarla
+  en una Raspberry Pi 4. Al terminar, la placa arranca sola el servicio
+  <code>acceso-control</code>, que captura video de una cámara USB, graba la evidencia,
+  transmite en vivo al puesto de vigilancia, lee credenciales QR y acciona un buzzer
+  por PWM.
+</p>
+<p>Se generan dos imágenes desde la misma capa (<code>meta-acceso</code>):</p>
+<div class="tabla"><table>
+  <tr><th>Imagen</th><th>Uso</th><th>Tamaño (<code>.wic.bz2</code>)</th></tr>
+  <tr><td><code>acceso-image</code></td><td><strong>Entrega.</strong> Sin contraseña vacía ni herramientas de diagnóstico. Es la que documenta este tutorial.</td><td>159 MB</td></tr>
+  <tr><td><code>acceso-image-dev</code></td><td>Desarrollo y mediciones. Hereda de la anterior y agrega root sin contraseña por SSH, <code>v4l-utils</code>, <code>videotestsrc</code> y <code>x264enc</code>.</td><td>162 MB</td></tr>
+</table></div>
+
+<div class="aviso caja">
+  <strong>Validación pendiente</strong>
+  <p>Este procedimiento todavía no se ha ejecutado completo en una máquina limpia
+  (requisito RNF-5, ítem G4). Los pasos salen de la configuración con la que se
+  compilaron las imágenes del proyecto, pero los tiempos de una compilación desde
+  cero no están medidos.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="versiones">2. Versiones de referencia</h2>
+<div class="tabla"><table>
+  <tr><th>Componente</th><th>Versión</th></tr>
+  <tr><td>Host de compilación</td><td>Ubuntu 26.04.1 LTS nativo, kernel 7.0.0-34-generic</td></tr>
+  <tr><td>Yocto Project</td><td>Serie <strong>wrynose</strong> (Poky 6.0.3)</td></tr>
+  <tr><td>BitBake</td><td>2.18.0</td></tr>
+  <tr><td>Máquina destino</td><td><code>raspberrypi4-64</code> (aarch64, Cortex-A72)</td></tr>
+  <tr><td>Kernel en la placa</td><td>6.18.33-v8</td></tr>
+  <tr><td>GStreamer en la placa</td><td>1.28.5</td></tr>
+  <tr><td>Python en la placa</td><td>3.14.7</td></tr>
+  <tr><td>OpenCV en la placa</td><td>4.13.0</td></tr>
+</table></div>
+<div class="nota caja">
+  <strong>Sobre la serie de Yocto</strong>
+  <p>Se usa wrynose (5.1) y no Scarthgap (5.0). La receta de la aplicación usa
+  <code>${UNPACKDIR}</code>, que apareció en 5.1; en Scarthgap habría que cambiarlo por
+  <code>${WORKDIR}</code>.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="host">3. Preparar el host</h2>
+
+<h3>3.1 Requisitos de hardware</h3>
+<div class="tabla"><table>
+  <tr><th>Recurso</th><th>Mínimo recomendado</th><th>Equipo con el que se compiló</th></tr>
+  <tr><td>Sistema</td><td>Ubuntu 26.04 LTS nativo</td><td>Ubuntu 26.04.1 LTS en partición propia</td></tr>
+  <tr><td>Núcleos</td><td>4</td><td>4</td></tr>
+  <tr><td>RAM</td><td>8 GB</td><td>8 GB</td></tr>
+  <tr><td>Swap</td><td>4 GB</td><td>4 GB (<code>/swap.img</code>, el que Ubuntu crea por omisión)</td></tr>
+  <tr><td>Disco libre</td><td><strong>100 GB</strong></td><td>Partición de 295 GB</td></tr>
+</table></div>
+<p>
+  Ubuntu 26.04 está en la lista <code>SANITY_TESTED_DISTROS</code> de wrynose: es un
+  host soportado oficialmente y BitBake no muestra el aviso de distribución no validada.
+</p>
+<div class="nota caja">
+  <strong>Ubuntu nativo, no WSL2</strong>
+  <p>El proyecto empezó en WSL2 sobre Windows y se migró a Ubuntu nativo. Este
+  tutorial describe solo el host nativo.</p>
+</div>
+
+<h3>3.2 Paquetes</h3>
+<p>Es la lista oficial de Yocto para Ubuntu con dos cambios:</p>
+<ul>
+  <li><code>liblz4-tool</code> ya no existe con ese nombre en Ubuntu reciente: se llama <code>lz4</code>. Si se copia la lista literal de la documentación de Yocto, <code>apt</code> responde que no encuentra el paquete.</li>
+  <li>Se agrega <code>bmap-tools</code>, que sirve para grabar la microSD (sección 8).</li>
+</ul>
+<div class="bloque"><div class="etiqueta">Host</div><pre><code>sudo apt update
+sudo apt install build-essential chrpath cpio debianutils diffstat file gawk gcc \
+    git iputils-ping libacl1 lz4 locales python3 python3-git python3-jinja2 \
+    python3-pexpect python3-pip python3-subunit socat texinfo unzip wget \
+    xz-utils zstd bmap-tools
+sudo locale-gen en_US.UTF-8</code></pre></div>
+
+<div class="ok caja">
+  <strong>No hace falta desactivar la restricción de user namespaces</strong>
+  <p>Desde Ubuntu 24.04 el sistema restringe los user namespaces sin privilegios
+  (<code>kernel.apparmor_restrict_unprivileged_userns = 1</code>), y circula la
+  recomendación de desactivarla para compilar con Yocto. En este proyecto no fue
+  necesario: la restricción quedó activa, sin archivos en <code>/etc/sysctl.d/</code>, y
+  las compilaciones terminan sin errores.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="repo">4. Obtener el proyecto y las capas</h2>
+
+<h3>4.1 Clonar el repositorio del proyecto</h3>
+<p>El repositorio contiene la aplicación (<code>app/</code>) y la capa propia
+(<code>meta-acceso/</code>). Las capas de terceros, el directorio de compilación,
+las descargas y el sstate quedan fuera del control de versiones (<code>.gitignore</code>).</p>
+<div class="bloque"><div class="etiqueta">Host</div><pre><code>git clone -b main https://github.com/YzakVander/Proyecto1_embebidos.git ~/proyecto-acceso
+cd ~/proyecto-acceso</code></pre></div>
+
+<h3>4.2 Clonar las capas de Yocto</h3>
+<p>
+  Se usa el layout <strong>separado</strong>: <code>openembedded-core</code> y
+  <code>meta-yocto</code> por aparte, con BitBake en su propio repositorio. Es
+  equivalente al repositorio <code>poky</code> monolítico que asumen muchos tutoriales,
+  pero las rutas cambian. Cada capa se fija en el commit exacto con que se compiló el
+  proyecto, para que la imagen se pueda reproducir.
+</p>
+<div class="bloque"><div class="etiqueta">Host, desde ~/proyecto-acceso</div><pre><code>mkdir -p layers && cd layers
+
+git clone -b 2.18    https://git.openembedded.org/bitbake
+git clone -b wrynose https://git.openembedded.org/openembedded-core
+git clone -b wrynose https://git.yoctoproject.org/meta-yocto
+git clone -b wrynose https://github.com/agherzan/meta-raspberrypi.git
+git clone -b wrynose https://github.com/openembedded/meta-openembedded.git
+
+git -C bitbake           checkout 84a8d046593840df460c1312365031c817eb8918
+git -C openembedded-core checkout cc4695f65beb6e5069fbecc16475fa5a27c768e9
+git -C meta-yocto        checkout ddeeba423ff0565b8f1192f16072b5993d5ea6a0
+git -C meta-raspberrypi  checkout f62c67921474370829d24a4fa01ef88543f3906b
+git -C meta-openembedded checkout 47d7dbdd10890bbd429bc0cccbe14435c37e5af1</code></pre></div>
+
+<h3>4.3 Enlazar la capa propia</h3>
+<p>
+  <code>meta-acceso</code> vive versionada en la raíz del repositorio. Se enlaza dentro
+  de <code>layers/</code> para que todas las capas estén en el mismo lugar.
+  <strong>Este paso es manual:</strong> <code>layers/</code> no está en el repositorio,
+  así que el enlace no viene con el clon y sin él BitBake no encuentra la capa.
+</p>
+<div class="bloque"><div class="etiqueta">Host, desde ~/proyecto-acceso/layers</div><pre><code>ln -s ../meta-acceso meta-acceso
+cd ..</code></pre></div>
+<p>Estructura resultante:</p>
+<div class="bloque"><pre><code>~/proyecto-acceso/
+├── app/                    aplicación Python (fuente de la receta)
+├── meta-acceso/            capa propia (versionada)
+├── scripts/                sincronizar-receta.sh, verificar-pipeline.sh
+├── layers/                 fuera de git
+│   ├── bitbake/
+│   ├── openembedded-core/
+│   ├── meta-yocto/
+│   ├── meta-raspberrypi/
+│   ├── meta-openembedded/
+│   └── meta-acceso -> ../meta-acceso
+├── build/                  se crea en el paso 5
+├── downloads/              DL_DIR, se crea al compilar
+└── sstate-cache/           SSTATE_DIR, se crea al compilar</code></pre></div>
+
+<!-- ================================================================== -->
+<h2 id="entorno">5. Iniciar el entorno de compilación</h2>
+<p>
+  El script crea <code>build/</code> la primera vez, con un <code>local.conf</code> y un
+  <code>bblayers.conf</code> de plantilla que se reemplazan en el paso 6. Encuentra BitBake
+  solo porque está en <code>layers/bitbake</code>, al lado de <code>openembedded-core</code>.
+</p>
+<div class="bloque"><div class="etiqueta">Host, desde ~/proyecto-acceso</div><pre><code>source layers/openembedded-core/oe-init-build-env build</code></pre></div>
+<div class="aviso caja">
+  <strong>En cada terminal nueva</strong>
+  <p>El <code>source</code> hay que repetirlo en cada terminal antes de usar
+  <code>bitbake</code>. Si se olvida, <code>bitbake</code> responde con código 127
+  (comando no encontrado).</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="config">6. Configurar el build</h2>
+
+<h3>6.1 <code>bblayers.conf</code></h3>
+<p>
+  Rutas relativas a <code>${TOPDIR}</code> (el directorio <code>build/</code>), para que
+  no dependan del nombre de usuario.
+</p>
+<div class="bloque"><div class="etiqueta">Host: reemplazar build/conf/bblayers.conf</div><pre><code>cat > conf/bblayers.conf << 'EOF'
+POKY_BBLAYERS_CONF_VERSION = "2"
+
+BBPATH = "${TOPDIR}"
+BBFILES ?= ""
+
+BBLAYERS ?= " \
+  ${TOPDIR}/../layers/openembedded-core/meta \
+  ${TOPDIR}/../layers/meta-yocto/meta-poky \
+  ${TOPDIR}/../layers/meta-raspberrypi \
+  ${TOPDIR}/../layers/meta-openembedded/meta-oe \
+  ${TOPDIR}/../layers/meta-openembedded/meta-python \
+  ${TOPDIR}/../layers/meta-openembedded/meta-multimedia \
+  ${TOPDIR}/../layers/meta-openembedded/meta-networking \
+  ${TOPDIR}/../layers/meta-acceso \
+  "
+EOF</code></pre></div>
+<p>
+  <code>meta-oe</code> y <code>meta-python</code> son necesarias (OpenCV y PyGObject).
+  <code>meta-multimedia</code> y <code>meta-networking</code> están porque con ellas se
+  compilaron las imágenes del proyecto; no se verificó si se pueden quitar.
+</p>
+<p>Verificación:</p>
+<div class="bloque"><pre><code>bitbake-layers show-layers</code></pre></div>
+
+<h3>6.2 <code>local.conf</code></h3>
+<p>La configuración completa está versionada en la capa. Se copia tal cual:</p>
+<div class="bloque"><div class="etiqueta">Host, desde build/</div><pre><code>cp ../meta-acceso/conf/local.conf.sample conf/local.conf</code></pre></div>
+<p>Qué hace cada parte relevante:</p>
+<div class="tabla"><table>
+  <tr><th>Línea</th><th>Por qué</th></tr>
+  <tr><td><code>MACHINE = "raspberrypi4-64"</code></td><td>Destino de 64 bits. El <code>MACHINE ??= "qemux86-64"</code> anterior viene de la plantilla de Poky: <code>??=</code> es un valor por omisión débil, y la asignación posterior lo sobrescribe.</td></tr>
+  <tr><td><code>DISTRO = "poky"</code>, <code>INIT_MANAGER = "systemd"</code></td><td>La aplicación corre como servicio de systemd, con reinicio automático y cierre ordenado del MP4.</td></tr>
+  <tr><td><code>IMAGE_FSTYPES = "wic.bz2 wic.bmap"</code></td><td>Imagen de tarjeta comprimida y su mapa de bloques para <code>bmaptool</code>.</td></tr>
+  <tr><td><code>DISTRO_FEATURES:append = " gobject-introspection-data"</code><br><code>MACHINE_FEATURES:append = " qemu-usermode"</code></td><td>Sin los datos de introspección, PyGObject no ve GStreamer (<code>gi.require_version("Gst")</code> falla). <code>qemu-usermode</code> es lo que permite generarlos al compilar en forma cruzada.</td></tr>
+  <tr><td><code>PACKAGECONFIG:pn-opencv = "python3 png jpeg"</code></td><td>OpenCV con enlaces de Python, para leer los QR.</td></tr>
+  <tr><td><code>RPI_EXTRA_CONFIG = "dtoverlay=pwm,pin=18,func=2\ndtparam=audio=off"</code></td><td>PWM de hardware en GPIO 18 para el buzzer. Debe estar en <code>local.conf</code> (ver problema 1 en la sección 12).</td></tr>
+  <tr><td><code>RPI_KERNEL_DEVICETREE_OVERLAYS:append = " overlays/pwm.dtbo overlays/pwm-2chan.dtbo"</code></td><td>Sin esto el overlay no se copia a <code>/boot/overlays/</code> (problema 1).</td></tr>
+  <tr><td><code>ENABLE_UART = "1"</code>, <code>GPU_MEM = "128"</code></td><td>Consola serie y memoria para el bloque de video.</td></tr>
+  <tr><td><code>LICENSE_FLAGS_ACCEPTED += "synaptics-killswitch"</code></td><td>Firmware WiFi de la placa, que la imagen base arrastra.</td></tr>
+  <tr><td><code>LICENSE_FLAGS_ACCEPTED += "commercial"</code><br><code>PACKAGECONFIG:append:pn-gstreamer1.0-plugins-ugly = " x264"</code></td><td><code>x264enc</code>, solo para la imagen de desarrollo (comparación de CPU, ítem C2). Ver problema 3.</td></tr>
+  <tr><td><code>DL_DIR</code> y <code>SSTATE_DIR</code> en <code>${TOPDIR}/../</code></td><td>Descargas y caché fuera de <code>build/</code>: se pueden reutilizar si se borra el build.</td></tr>
+  <tr><td><code>BB_NUMBER_THREADS = "2"</code><br><code>PARALLEL_MAKE = "-j 2"</code></td><td>Ver la nota siguiente.</td></tr>
+</table></div>
+<div class="aviso caja">
+  <strong>El paralelismo depende del hardware</strong>
+  <p>Los valores en 2 corresponden a 8 GB de RAM, 4 núcleos y 4 GB de swap. Con más
+  paralelismo, compilaciones grandes como OpenCV o LLVM pueden agotar la memoria y el
+  OOM killer termina el build. En un equipo con más RAM se pueden subir (como guía,
+  ~2 GB de RAM por tarea paralela).</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="compilar">7. Compilar la imagen</h2>
+
+<h3>7.1 Sincronizar la aplicación con la receta</h3>
+<p>
+  La receta <code>acceso-control</code> toma los módulos de Python de una copia dentro
+  de la capa (<code>meta-acceso/recipes-acceso/acceso-control/files/</code>), no de
+  <code>app/</code>. <strong>Antes de cada <code>bitbake</code></strong> hay que copiar la
+  versión actual:
+</p>
+<div class="bloque"><div class="etiqueta">Host, desde ~/proyecto-acceso</div><pre><code>./scripts/sincronizar-receta.sh</code></pre></div>
+
+<h3>7.2 Compilar</h3>
+<div class="bloque"><div class="etiqueta">Host, desde build/ (con el entorno iniciado)</div><pre><code>bitbake acceso-image</code></pre></div>
+<p>
+  La primera compilación descarga todas las fuentes y compila la cadena de herramientas,
+  el kernel, GStreamer, OpenCV y el resto de la imagen: son más de 7600 tareas y toma
+  varias horas. Las compilaciones siguientes reutilizan el sstate y tardan minutos.
+</p>
+<div class="todo caja">
+  <strong>Pendiente: tiempo de una compilación desde cero</strong>
+  <p>No está medido en el host actual. Como referencia histórica (en WSL2, con 2
+  hilos), la imagen base tardó unas 6 h y OpenCV unas 4 h. La cifra real saldrá de la
+  validación G4.</p>
+</div>
+
+<div class="nota caja">
+  <strong>Imagen de desarrollo</strong>
+  <p>Para mediciones y desarrollo: <code>bitbake acceso-image-dev</code>. Permite entrar
+  por SSH como root sin contraseña y actualizar los módulos de Python con
+  <code>scp</code> + <code>systemctl restart acceso-control</code> sin recompilar.
+  <strong>No debe usarse como imagen de entrega.</strong></p>
+</div>
+
+<h3>7.3 Resultado</h3>
+<div class="bloque"><div class="etiqueta">Host, desde build/</div><pre><code>ls -lLh tmp/deploy/images/raspberrypi4-64/acceso-image-raspberrypi4-64.rootfs.wic.*</code></pre></div>
+<p>
+  Archivos a usar: <code>acceso-image-raspberrypi4-64.rootfs.wic.bz2</code> (~159 MB) y
+  <code>acceso-image-raspberrypi4-64.rootfs.wic.bmap</code>. Los nombres sin fecha son
+  enlaces simbólicos a la última compilación; por eso el tamaño se consulta con
+  <code>ls -L</code>, que sigue el enlace.
+</p>
+<p>
+  La compilación también genera el SBOM en formato SPDX 3.0.1
+  (<code>tmp/deploy/spdx/3.0.1/</code>), por imagen, rootfs y paquete.
+</p>
+
+<!-- ================================================================== -->
+<h2 id="grabar">8. Grabar la microSD</h2>
+<ol class="pasos">
+  <li>Insertar la microSD en el host e identificar su dispositivo:
+    <div class="bloque"><pre><code>lsblk -d -o NAME,SIZE,TYPE,TRAN,MODEL</code></pre></div>
+  </li>
+  <li>Desmontar sus particiones si el escritorio las montó solo (reemplazar <code>sdX</code>):
+    <div class="bloque"><pre><code>sudo umount /dev/sdX?*</code></pre></div>
+  </li>
+  <li>Grabar con <code>bmaptool</code>, que usa el mapa de bloques y salta los bloques vacíos:
+    <div class="bloque"><div class="etiqueta">Host, desde build/tmp/deploy/images/raspberrypi4-64/</div><pre><code>sudo bmaptool copy --bmap acceso-image-raspberrypi4-64.rootfs.wic.bmap \
+    acceso-image-raspberrypi4-64.rootfs.wic.bz2 /dev/sdX
+sync</code></pre></div>
+  </li>
+</ol>
+<div class="aviso caja">
+  <strong>Elegir bien el dispositivo</strong>
+  <p><code>bmaptool</code> sobrescribe el dispositivo completo sin preguntar. Confirmar con
+  el tamaño y la columna <code>TRAN</code> (<code>usb</code> o <code>mmc</code>) que
+  <code>/dev/sdX</code> es la microSD y no un disco del host.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="arranque">9. Primer arranque y verificación</h2>
+
+<h3>9.1 Conexiones</h3>
+<div class="tabla"><table>
+  <tr><th>Elemento</th><th>Conexión</th></tr>
+  <tr><td>Cámara</td><td>Webcam USB (UVC) con MJPEG a 1280×720 y 30 fps, en cualquier puerto USB. Aparece como <code>/dev/video0</code>. Se usa en lugar de la cámara CSI, con autorización del profesor.</td></tr>
+  <tr><td>Buzzer pasivo</td><td>Positivo a GPIO 18 (pin físico 12), negativo a GND (pin físico 14).</td></tr>
+  <tr><td>Red</td><td>Ethernet en la misma red que la computadora del vigilante.</td></tr>
+  <tr><td>Alimentación</td><td>Fuente USB-C de la Raspberry Pi 4.</td></tr>
+</table></div>
+
+<h3>9.2 Qué debe pasar solo</h3>
+<p>
+  No hace falta ningún paso manual. La configuración (<code>/etc/acceso/acceso.conf</code>)
+  viene en la imagen y systemd arranca el servicio <code>acceso-control</code>. El destino
+  del video no se configura: la placa transmite a la computadora que se conecta a su
+  canal de comandos (sección 10).
+</p>
+
+<h3>9.3 Acceso a la placa</h3>
+<div class="todo caja">
+  <strong>Pendiente: acceso de root en la imagen de entrega</strong>
+  <p>La imagen de entrega quitó la contraseña vacía y el login de root sin credencial,
+  pero no define otra forma de entrar, así que lo más probable es que root quede
+  bloqueado por SSH. Opciones en evaluación: dejarlo bloqueado y documentar el acceso
+  por consola serie (la imagen habilita la UART con <code>ENABLE_UART</code>), fijar una
+  contraseña con <code>EXTRA_USERS_PARAMS</code>, o autenticar por llave. Falta decidir
+  cuál y probarla en la placa.</p>
+</div>
+<p>Con la imagen de desarrollo, el acceso es <code>ssh root@&lt;IP-de-la-placa&gt;</code>
+sin contraseña.</p>
+
+<h3>9.4 Verificación</h3>
+<p>Ya dentro de la placa:</p>
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code># Plataforma
+cat /etc/os-release | grep PRETTY_NAME      # Poky ... 6.0.3 (wrynose)
+gst-inspect-1.0 --version                   # 1.28.5
+
+# Servicio
+systemctl status acceso-control             # active (running)
+journalctl -u acceso-control -n 30          # "tuberia en PLAYING", "servicio ... en operacion"
+
+# Codificador por hardware y cámara
+ls /dev/video0 /dev/video11
+
+# PWM del buzzer
+ls /sys/class/pwm/                          # debe existir pwmchip0
+grep -E "pwm|audio" /boot/config.txt
+
+# Python con GStreamer y OpenCV
+python3 -c "import gi; gi.require_version('Gst','1.0'); from gi.repository import Gst; Gst.init(None); print(Gst.version_string())"
+python3 -c "import cv2, numpy; print(cv2.__version__, numpy.__version__)"
+
+# Evidencia en disco (después de un minuto)
+ls -lh /var/lib/acceso/evidencia/</code></pre></div>
+<div class="ok caja">
+  <strong>Resultado esperado</strong>
+  <p>Servicio activo, <code>pwmchip0</code> presente, las dos importaciones sin error y
+  segmentos <code>evidencia_NNNNN.mp4</code> de unos 17 MB por minuto.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="vigilancia">10. Computadora del vigilante</h2>
+<p>Es otra computadora en la misma red. No usa Yocto. Paquetes en Ubuntu:</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>sudo apt install python3-tk python3-opencv gstreamer1.0-tools \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav</code></pre></div>
+<p>Desde una copia del repositorio, cualquiera de los dos clientes:</p>
+<div class="bloque"><pre><code># Interfaz gráfica
+python3 app/scripts/puesto-vigilancia.py --ip &lt;IP-de-la-placa&gt;
+
+# Consola
+python3 app/scripts/vigilancia.py --ip &lt;IP-de-la-placa&gt;</code></pre></div>
+<p>
+  Al conectarse al canal de comandos (TCP 5001), la placa redirige el video (RTP/UDP 5000)
+  a la IP de esa computadora y se abre la ventana del video. Si no aparece imagen,
+  revisar que el firewall de la computadora del vigilante permita UDP 5000.
+</p>
+
+<!-- ================================================================== -->
+<h2 id="contenido">11. Qué contiene la imagen</h2>
+<div class="tabla"><table>
+  <tr><th>Receta</th><th>Aporta</th></tr>
+  <tr><td><code>acceso-image.bb</code></td><td>Hereda <code>core-image</code>. Agrega SSH (dropbear), <code>packagegroup-acceso</code>, <code>acceso-control</code>, <code>python3-opencv</code> y los módulos del kernel. Deja 8 GiB de espacio extra en la partición para la evidencia.</td></tr>
+  <tr><td><code>acceso-image-dev.bb</code></td><td>Hereda de la anterior. Agrega root sin contraseña y <code>packagegroup-acceso-diagnostico</code>.</td></tr>
+  <tr><td><code>packagegroup-acceso.bb</code></td><td>Solo los subpaquetes de GStreamer que la tubería usa (<code>video4linux2</code>, <code>isomp4</code>, <code>multifile</code>, <code>rtp</code>, <code>udp</code>, <code>app</code>, <code>videoparsersbad</code>…), Python, PyGObject y <code>libgpiod</code>.</td></tr>
+  <tr><td><code>acceso-control_1.0.bb</code></td><td>Los módulos de Python en <code>site-packages/acceso</code>, el ejecutable <code>/usr/bin/acceso-control</code>, <code>/etc/acceso/acceso.conf</code> y la unidad de systemd. Declara sus propias dependencias de ejecución.</td></tr>
+  <tr><td><code>acceso-control.service</code></td><td><code>Restart=on-failure</code>, <code>TimeoutStopSec=20</code> para cerrar el último MP4, y <code>StateDirectory=acceso</code> (<code>/var/lib/acceso</code>, que persiste entre reinicios).</td></tr>
+</table></div>
+
+<!-- ================================================================== -->
+<h2 id="problemas">12. Problemas conocidos</h2>
+<p>Todos aparecieron durante el proyecto y ya están resueltos en la configuración de
+este tutorial. Se documentan porque fallan en silencio o con mensajes engañosos.</p>
+
+<h3>1. El buzzer no suena y <code>/sys/class/pwm/</code> está vacío</h3>
+<p>
+  <code>meta-raspberrypi</code> despliega solo los overlays de una lista explícita
+  (<code>RPI_KERNEL_DEVICETREE_OVERLAYS</code>), y <code>pwm.dtbo</code> no está en ella. El
+  <code>dtoverlay=pwm</code> de <code>config.txt</code> se ignora sin ningún error.
+  <strong>Solución:</strong> el <code>:append</code> de <code>local.conf</code> (sección 6.2).
+</p>
+<p>
+  Además, <code>RPI_EXTRA_CONFIG</code> <strong>tiene que estar en <code>local.conf</code></strong>.
+  La consume la receta <code>rpi-config</code>, que genera <code>config.txt</code> y solo ve
+  la configuración global. Una asignación dentro de la receta de la imagen no la alcanza.
+  Se verifica con:
+</p>
+<div class="bloque"><pre><code>bitbake -e rpi-config | grep ^RPI_EXTRA_CONFIG=</code></pre></div>
+
+<h3>2. PyGObject no encuentra GStreamer</h3>
+<p>Sin <code>gobject-introspection-data</code> en <code>DISTRO_FEATURES</code>, la imagen no
+lleva los <code>.typelib</code> y <code>gi.require_version("Gst", "1.0")</code> falla.
+<strong>Solución:</strong> sección 6.2.</p>
+
+<h3>3. <code>x264enc</code> no existe en la imagen de desarrollo</h3>
+<p>x264 tiene la marca de licencia <code>commercial</code>. Sin
+<code>LICENSE_FLAGS_ACCEPTED += "commercial"</code>, el <code>PACKAGECONFIG</code> que lo
+activa se ignora en silencio y el elemento no aparece.</p>
+
+<h3>4. La imagen sale con una versión vieja de la aplicación</h3>
+<p>La receta usa la copia de <code>meta-acceso/.../files/</code>, no <code>app/</code>.
+<strong>Solución:</strong> <code>./scripts/sincronizar-receta.sh</code> antes de cada
+<code>bitbake</code> (sección 7.1).</p>
+
+<h3>5. <code>Could not inherit file</code> al seguir tutoriales de otras versiones</h3>
+<p>
+  En wrynose las clases están repartidas en tres carpetas con reglas distintas:
+  <code>classes/</code> y <code>classes-global/</code> se pueden poner en
+  <code>INHERIT</code> de <code>local.conf</code>; <code>classes-recipe/</code> solo con
+  <code>inherit</code> dentro de una receta. Ejemplo: <code>INHERIT += "cve-check"</code> falla
+  porque esa clase ya no existe en wrynose, y <code>INHERIT += "sbom-cve-check"</code> también,
+  porque está en <code>classes-recipe/</code>. Quien siga una guía de Scarthgap va a
+  intentar <code>INHERIT</code> y va a fallar las dos veces.
+</p>
+<p>
+  En wrynose el análisis de CVE se activa con un <strong>fragmento de configuración</strong>,
+  un mecanismo nuevo de Yocto 5.x. Hay dos formas equivalentes:
+</p>
+<div class="bloque"><div class="etiqueta">En build/conf/local.conf</div><pre><code>OE_FRAGMENTS += "core/yocto/sbom-cve-check"</code></pre></div>
+<div class="bloque"><div class="etiqueta">O desde la consola, con el entorno iniciado</div><pre><code>bitbake-config-build enable-fragment core/yocto/sbom-cve-check</code></pre></div>
+<p>
+  La configuración de este tutorial no lo activa: el cruce automático de CVE queda
+  pendiente (sección 13). El SBOM SPDX sí se genera (sección 7.3).
+</p>
+
+<h3>6. Nombres de paquete del host</h3>
+<p><code>liblz4-tool</code> no existe en Ubuntu reciente: usar <code>lz4</code> (sección 3.2).</p>
+
+<!-- ================================================================== -->
+<h2 id="pendientes">13. Pendientes</h2>
+<ul>
+  <li><strong>G4 / RNF-5:</strong> ejecutar este tutorial completo en una máquina limpia, sin <code>downloads/</code> ni <code>sstate-cache/</code>, y anotar el tiempo total.</li>
+  <li><strong>Acceso a la imagen de entrega:</strong> decidir y probar cómo se entra a la placa (sección 9.3).</li>
+  <li><strong>Capas opcionales:</strong> verificar si <code>meta-multimedia</code> y <code>meta-networking</code> se pueden quitar de <code>bblayers.conf</code>.</li>
+  <li><strong>Imagen sin gráficos:</strong> la imagen lleva <code>gstreamer1.0-plugins-base-opengl</code>, <code>-ximagesink</code> y <code>-xvimagesink</code> en un sistema sin pantalla, porque no se quitaron <code>opengl</code>, <code>wayland</code> ni <code>x11</code> de <code>DISTRO_FEATURES</code>.</li>
+  <li><strong>CVE:</strong> activar el fragmento <code>core/yocto/sbom-cve-check</code> (problema 5), compilar y revisar el informe de vulnerabilidades.</li>
+</ul>
+
+</main>
+</div>
+
+<script>
+  document.querySelectorAll(".bloque").forEach(function (bloque) {
+    var pre = bloque.querySelector("pre");
+    if (!pre) return;
+    var boton = document.createElement("button");
+    boton.type = "button";
+    boton.textContent = "Copiar";
+    if (!bloque.querySelector(".etiqueta")) boton.style.top = "8px";
+    boton.addEventListener("click", function () {
+      var texto = pre.innerText;
+      var listo = function () {
+        boton.textContent = "Copiado";
+        setTimeout(function () { boton.textContent = "Copiar"; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(listo, function () {});
+      }
+    });
+    bloque.appendChild(boton);
+  });
+</script>
+</body>
+</html>

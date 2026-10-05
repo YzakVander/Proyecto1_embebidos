@@ -36,5 +36,12 @@ venv/
 app/credenciales/
 *.png
 
+# Credenciales traidas por los clientes de vigilancia: un QR de mantenimiento
+# abre la puerta, no puede llegar al repositorio
+*.bmp
+recibidos/
+credenciales-recibidas/
+.cache-miniaturas/
+
 # Respaldos de los scripts de parcheo
 *.bak
