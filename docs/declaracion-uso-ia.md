@@ -110,6 +110,3 @@ defenderlos.
 
 La responsabilidad sobre el contenido entregado es enteramente de los autores.
 
----
-
-_Fecha: _______________    Firma: _______________________________
