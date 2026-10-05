@@ -286,11 +286,33 @@ día la documentación.
 
 **No requieren la placa**
 
-- [ ] G4: reconstrucción limpia sin `sstate-cache` siguiendo solo el tutorial
-- [ ] Análisis de SBOM/CVE de la imagen
-- [ ] Quitar `opengl wayland x11` de `DISTRO_FEATURES` (P-20)
-- [ ] Rastrear por qué entran 38 paquetes de `plugins-base` con 3 declarados
-- [ ] Revisar P-21: el `PACKAGECONFIG` de OpenCV que no redujo los módulos
+- [ ] G4: reconstrucción limpia sin `sstate-cache` siguiendo solo el tutorial.
+      Depende de que el documento tutorial esté terminado: la prueba consiste
+      en seguirlo al pie de la letra, de modo que no se puede validar antes.
+- [ ] Análisis de SBOM/CVE de la imagen. El SPDX ya lo genera el build; falta
+      el cruce contra la base de vulnerabilidades y la redacción del informe.
+
+**Hallazgos documentados y no corregidos**
+
+Los tres siguientes se detectaron, se entendió su causa y se decidió no
+corregirlos por relación costo-beneficio frente al cronograma. Ninguno impide
+el funcionamiento del sistema; los tres engordan la imagen.
+
+- **P-20 · `opengl` activo en una placa sin pantalla.** Poky activa `opengl` por
+  omisión, y eso arrastró Mesa y LLVM al árbol de compilación. Corregirlo
+  (`DISTRO_FEATURES:remove = "opengl wayland x11"`) invalida todas las firmas
+  de sstate y obliga a recompilar desde cero.
+- **38 paquetes de `plugins-base` instalados con 3 declarados.** El packagegroup
+  declara `-app`, `-videoconvertscale` y `-pango`, y la imagen trae además
+  audio (`alsa`, `vorbis`, `theora`, `ogg`), OpenGL y salida a X11
+  (`ximagesink`, `xvimagesink`). Verificado que los `RDEPENDS` de los
+  subpaquetes finos **no** los arrastran: solo piden `gstreamer1.0`,
+  `libgstapp-1.0` y `libgstvideo-1.0`. Entran por otra vía, probablemente la
+  misma de P-20.
+- **P-21 · El `PACKAGECONFIG` de OpenCV no redujo los módulos.** Se compilaron
+  igual `gapi`, `tracking`, `xfeatures2d`, `stitching` y el resto de contrib.
+  Sin resolver: queda pendiente revisar si dependen de otra variable o si la
+  asignación no sobrescribió el `??=` de la receta.
 
 ---
 
