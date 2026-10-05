@@ -1,7 +1,7 @@
 # Bitácora individual de trabajo
 
 **Estudiante:** Daniel Chavarría García
-**Rol en el equipo:** B — Plataforma (Yocto, BSP, imagen) · asumió temporalmente el Rol A mientras el compañero no tuvo disponibilidad
+**Rol en el equipo:** B — Plataforma (Yocto, BSP, imagen) · asumió temporalmente el Rol A
 **Proyecto 1 — Sistema de control de acceso con Yocto Project y GStreamer**
 **Taller de Sistemas Embebidos · TEC · II Semestre 2026**
 **Prof. Dr. Ing. Johan Carvajal Godínez**
