@@ -26,6 +26,10 @@
 | D-01 | 2026-09-16 | Adaptación de ISO/IEC/IEEE 29148:2018 (Anexo C) | Enfocar el esfuerzo documental solo en Casos de Uso y Requisitos Funcionales (SyRS/SRS). |
 | D-02 | 2026-09-16 | Trigger de ingreso por evento de consola | Simplifica dependencias externas para priorizar el desarrollo de las tuberías en GStreamer. |
 | D-03 | 2026-09-16 | Salida de actuación simulada con LED / texto | Permite validar la lógica en Python antes de probar con el relevador físico en el laboratorio. |
+| D-04 | 2026-09-30 | Buzzer pasivo en GPIO 18 (PWM de hardware) en lugar de LEDs | Tonos distintos para permitido/denegado, perceptibles por el sujeto sin mirar la placa. |
+| D-05 | 2026-09-30 | Clips de evento en MP4 (`mp4mux`) en lugar de `.h264` crudo | El `.h264` crudo no abre en muchos reproductores; se deja como respaldo si el empaquetado falla. |
+| D-06 | 2026-10-01 | Credenciales en BMP en lugar de PNG | OpenCV lo lee y escribe con su codec interno, sin depender de libpng en la imagen de Yocto. |
+| D-07 | 2026-10-01 | Topes de retención separados para `evidencia/` y `eventos/` | Evita que la grabación continua desplace los clips de evento y que la microSD se llene. |
 
 ---
 
@@ -35,6 +39,9 @@
 |---|---|---|---|---|
 | P-01 | 2026-09-16 | Duda sobre rol de la cámara en el evento | Creer que la cámara debía procesar la imagen/IA | Se aclaró que la cámara solo transmite video continuo; el evento lo maneja Python por aparte. |
 | P-02 | 2026-09-16 | Términos ambiguos en requisitos ("sin retraso") | Redacción subjetiva no permitida por el estándar | Se agregaron condiciones cuantitativas medibles. |
+| P-03 | 2026-09-30 | `ESTADO` seguía reportando la solicitud como pendiente tras decidir | La solicitud se liberaba al terminar el clip (~5 s después), no al decidir | Se libera en el instante de la decisión y la bitácora registra esa hora exacta. |
+| P-04 | 2026-09-30 | Video atascado al aclarar la imagen | El elemento `gamma` en software saturaba un núcleo | Se descartó `gamma`; se fijaron los controles de la cámara en `extra-controls` (`exposure_time_absolute=2000`). |
+| P-05 | 2026-10-02 | Clips corruptos al interrumpir la aplicación durante una solicitud | El apagado no esperaba a que terminara la escritura del clip | Contador de clips en curso; el apagado espera a que lleguen a cero (B6). |
 
 ---
 
@@ -54,6 +61,38 @@
 git status
 ```
 
+### 2026-09-19 · 2 h
+
+**Objetivo de la sesión:** Revisar los casos de uso y requisitos funcionales.
+
+**Actividades:**
+1. CU-2 pasa de grabación continua a extracción y consulta de evidencia por parte de mantenimiento.
+2. CU-3 y CU-4 reescritos: el vigilante decide con una tecla y el sujeto percibe el resultado en los LEDs.
+3. Ajustes de redacción en los RF.
+
+### 2026-09-22 · 3 h
+
+**Objetivo de la sesión:** Transmitir video entre dos computadoras y documentar el código base.
+
+**Actividades:**
+1. Configuración de `[streaming]` con la IP de la laptop receptora y pruebas con `videotestsrc` en la red de la casa.
+2. Comentarios en `config.py` (dataclasses, `field`, `cargar()`) y en `pipeline.py`.
+
+### 2026-09-23 · 2 h
+
+**Objetivo de la sesión:** Adaptar la configuración a la Raspberry Pi 4.
+
+**Actividades:**
+1. `acceso.conf`: cámara USB (`v4l2src` + `jpegdec`) y codificador por hardware `v4l2h264enc` a 2.5 Mbit/s, GOP de 30.
+2. Avance en la documentación de `pipeline.py` y commit previo al merge con `main`.
+
+### 2026-09-24 · 2 h
+
+**Objetivo de la sesión:** Documentar el flujo principal de la aplicación.
+
+**Actividades:**
+1. Comentarios en `servicio.py`, `__main__.py` y `pipeline.py`.
+
 ### 2026-09-30 · 2 h
 
 **Objetivo de la sesión:** Comparar los casos de uso y requisitos con el estado actual del proyecto para identificar lo que falta desarrollar, y actualizar la documentación.
@@ -66,7 +105,7 @@ git status
 
 **Pendientes:** retención de evidencia (RF-7), script de extracción de videos por SSH (CU-2), programa del puesto de vigilancia, reinicio automático con systemd (Rol B).
 
-### 2026-09-30 · 6 h
+### 2026-09-30 · 10 h
 
 **Objetivo de la sesión:** Implementar el mecanismo de interacción entre la placa y la computadora del puesto de vigilancia, ajustar la configuración de la cámara y mejorar la generación de evidencias.
 
@@ -92,3 +131,26 @@ sudo python3 -m acceso -c config/acceso.conf
 nc <ip-rpi> 5001
 ffprobe -v error -show_entries stream=avg_frame_rate evidencia/evidencia_00000.mp4
 ```
+
+### 2026-10-01 · 4 h
+
+**Objetivo de la sesión:** Evitar que la evidencia llene la microSD y alinear la documentación con la lectura de QR.
+
+**Actividades:**
+1. Módulo `retencion.py`: tope por carpeta (`evidencia/` 500 MB, `eventos/` 150 MB), borrado de los archivos más viejos y eliminación de MP4 corruptos al arrancar.
+2. Credenciales generadas en BMP en lugar de PNG para no depender de libpng en la imagen de Yocto.
+3. Actualización de RF-7 y nuevos RF-12 a RF-14 (lectura de QR, resolución por rol, gestión de credenciales) en `requisitos_funcionales.md` y `casos_uso.md`.
+
+### 2026-10-02 · 10 h
+
+**Objetivo de la sesión:** Implementar el cliente del puesto de vigilancia y cerrar las justificaciones y correcciones del Rol A que no requieren la placa.
+
+**Actividades:**
+1. Cliente `vigilancia.py` y script `recolectar-evidencia.sh` (clips y log por SSH). Comandos nuevos `BORRAR`, `REGENERAR_QR` y `BORRAR_CREDENCIALES`.
+2. Profundidad explícita en `queue_grabacion`, justificaciones A4/B2, y documentos H7 (`politica-de-retencion.md`) y H1 (`H1-arquitectura-hilos.md`, 9 hilos).
+3. Correcciones E4 (EOS directo a la cola de grabación) y B6 (al detener se espera a los clips en curso para no dejarlos corruptos).
+4. Medición A3: 29.70 fps con buena luz.
+5. Instrumentación B5 (`Cronometro`) y C4 (la copia para el QR baja de 30 a ~8 por segundo).
+6. Scripts de medición (`a6-grafo.sh`, `analizar-dot.py`, `d1-latencia.sh`, `analizar-segmentos.sh`, `g1-plugins.sh`), actualización del README y guion para la sesión en placa (`guion-placa-rol-a.md`).
+
+**Pendientes:** sesión en placa según el guion.
