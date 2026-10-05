@@ -177,11 +177,11 @@
 </table></div>
 
 <div class="aviso caja">
-  <strong>Validación pendiente</strong>
-  <p>Este procedimiento todavía no se ha ejecutado completo en una máquina limpia
-  (requisito RNF-5, ítem G4). Los pasos salen de la configuración con la que se
-  compilaron las imágenes del proyecto, pero los tiempos de una compilación desde
-  cero no están medidos.</p>
+  <strong>Estado de la validación</strong>
+  <p>Validado el 2026-10-05 en un contenedor Ubuntu 26.04.1 limpio hasta la
+  simulación completa de la compilación (<code>bitbake -n acceso-image</code>: 7623
+  tareas, sin errores). Falta ejecutar la compilación completa y medir su tiempo
+  (requisito RNF-5, ítem G4).</p>
 </div>
 
 <!-- ================================================================== -->
@@ -313,6 +313,13 @@ cd ..</code></pre></div>
   solo porque está en <code>layers/bitbake</code>, al lado de <code>openembedded-core</code>.
 </p>
 <div class="bloque"><div class="etiqueta">Host, desde ~/proyecto-acceso</div><pre><code>source layers/openembedded-core/oe-init-build-env build</code></pre></div>
+<div class="nota caja">
+  <strong>Mensajes normales en la primera ejecución</strong>
+  <p>La primera vez el script avisa <em>"You had no conf/local.conf file"</em>, lo mismo
+  para <code>bblayers.conf</code>, y dice que es la configuración por omisión de
+  <code>openembedded-core</code>. No es un error: son las plantillas que el paso 6
+  reemplaza. Al terminar, la terminal queda dentro de <code>build/</code>.</p>
+</div>
 <div class="aviso caja">
   <strong>En cada terminal nueva</strong>
   <p>El <code>source</code> hay que repetirlo en cada terminal antes de usar
@@ -390,9 +397,36 @@ EOF</code></pre></div>
   <code>app/</code>. <strong>Antes de cada <code>bitbake</code></strong> hay que copiar la
   versión actual:
 </p>
-<div class="bloque"><div class="etiqueta">Host, desde ~/proyecto-acceso</div><pre><code>./scripts/sincronizar-receta.sh</code></pre></div>
+<div class="bloque"><div class="etiqueta">Host, desde build/</div><pre><code>(cd .. && ./scripts/sincronizar-receta.sh)</code></pre></div>
 
-<h3>7.2 Compilar</h3>
+<h3>7.2 Verificar la configuración antes de compilar (recomendado)</h3>
+<p>
+  Estos comandos no compilan nada y tardan minutos. Detectan casi todos los errores
+  de configuración antes de comprometer horas de compilación.
+</p>
+<div class="bloque"><div class="etiqueta">Host, desde build/ (con el entorno iniciado)</div><pre><code># Las 8 capas de bblayers.conf
+bitbake-layers show-layers
+
+# Parsea todas las recetas: sintaxis, compatibilidad de capas, clases inexistentes
+bitbake -p
+
+# Simulación completa: resuelve dependencias sin descargar ni compilar
+bitbake -n acceso-image 2>&1 | grep -E "WARNING|ERROR|Tasks Summary"
+
+# Variables que fallan en silencio
+bitbake -e rpi-config     | grep ^RPI_EXTRA_CONFIG=
+bitbake -e acceso-control | grep ^PYTHON_SITEPACKAGES_DIR=
+bitbake -e virtual/kernel | grep -E "^(PN|PV)="</code></pre></div>
+<div class="tabla"><table>
+  <tr><th>Comando</th><th>Resultado esperado</th></tr>
+  <tr><td><code>bitbake -p</code></td><td><code>Parsing of 3093 .bb files complete ... 0 errors</code> (~1–2 min la primera vez)</td></tr>
+  <tr><td><code>bitbake -n acceso-image</code></td><td><code>Tasks Summary: Attempted 7623 tasks ... all succeeded</code>, sin <code>ERROR</code>. Un <code>Nothing RPROVIDES</code> indica un paquete inexistente o bloqueado por licencia.</td></tr>
+  <tr><td><code>RPI_EXTRA_CONFIG</code></td><td><code>"dtoverlay=pwm,pin=18,func=2\ndtparam=audio=off"</code></td></tr>
+  <tr><td><code>PYTHON_SITEPACKAGES_DIR</code></td><td><code>"/usr/lib/python3.14/site-packages"</code>. Si sale vacío, los módulos se instalarían en la raíz del sistema de archivos.</td></tr>
+  <tr><td><code>virtual/kernel</code></td><td><code>PN="linux-raspberrypi"</code>, <code>PV="6.18.33+git"</code></td></tr>
+</table></div>
+
+<h3>7.3 Compilar</h3>
 <div class="bloque"><div class="etiqueta">Host, desde build/ (con el entorno iniciado)</div><pre><code>bitbake acceso-image</code></pre></div>
 <p>
   La primera compilación descarga todas las fuentes y compila la cadena de herramientas,
@@ -414,7 +448,7 @@ EOF</code></pre></div>
   <strong>No debe usarse como imagen de entrega.</strong></p>
 </div>
 
-<h3>7.3 Resultado</h3>
+<h3>7.4 Resultado</h3>
 <div class="bloque"><div class="etiqueta">Host, desde build/</div><pre><code>ls -lLh tmp/deploy/images/raspberrypi4-64/acceso-image-raspberrypi4-64.rootfs.wic.*</code></pre></div>
 <p>
   Archivos a usar: <code>acceso-image-raspberrypi4-64.rootfs.wic.bz2</code> (~159 MB) y
@@ -592,7 +626,7 @@ activa se ignora en silencio y el elemento no aparece.</p>
 <div class="bloque"><div class="etiqueta">O desde la consola, con el entorno iniciado</div><pre><code>bitbake-config-build enable-fragment core/yocto/sbom-cve-check</code></pre></div>
 <p>
   La configuración de este tutorial no lo activa: el cruce automático de CVE queda
-  pendiente (sección 13). El SBOM SPDX sí se genera (sección 7.3).
+  pendiente (sección 13). El SBOM SPDX sí se genera (sección 7.4).
 </p>
 
 <h3>6. Nombres de paquete del host</h3>
