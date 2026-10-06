@@ -20,7 +20,7 @@ inherit allarch
 # La unidad parametrizada lee /etc/wpa_supplicant/wpa_supplicant-%I.conf,
 # donde %I es el nombre de la interfaz: de ahi el nombre del archivo.
 
-RDEPENDS:${PN} = "wpa-supplicant systemd"
+RDEPENDS:${PN} = "wpa-supplicant systemd tzdata-americas"
 
 do_install() {
     install -d ${D}${sysconfdir}/wpa_supplicant
@@ -32,12 +32,21 @@ do_install() {
     install -m 0644 ${UNPACKDIR}/25-wlan.network \
         ${D}${sysconfdir}/systemd/network/25-wlan.network
 
+    # Zona horaria: DEFAULT_TIMEZONE no crea el enlace cuando se instala el
+    # subpaquete tzdata-americas suelto, y sin /etc/localtime el sistema queda
+    # en UTC. El sello del video saldria 6 h adelantado.
+    install -d ${D}${sysconfdir}
+    ln -sf ../usr/share/zoneinfo/America/Costa_Rica ${D}${sysconfdir}/localtime
+    echo "America/Costa_Rica" > ${D}${sysconfdir}/timezone
+
     install -d ${D}${systemd_system_unitdir}/multi-user.target.wants
     ln -sf ${systemd_system_unitdir}/wpa_supplicant@.service \
         ${D}${systemd_system_unitdir}/multi-user.target.wants/wpa_supplicant@wlan0.service
 }
 
 FILES:${PN} = "\
+    ${sysconfdir}/localtime \
+    ${sysconfdir}/timezone \
     ${sysconfdir}/wpa_supplicant \
     ${sysconfdir}/systemd/network \
     ${systemd_system_unitdir}/multi-user.target.wants \
