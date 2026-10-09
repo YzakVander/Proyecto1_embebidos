@@ -42,6 +42,23 @@ do_install() {
     install -d ${D}${systemd_system_unitdir}/multi-user.target.wants
     ln -sf ${systemd_system_unitdir}/wpa_supplicant@.service \
         ${D}${systemd_system_unitdir}/multi-user.target.wants/wpa_supplicant@wlan0.service
+
+    # systemd-networkd-wait-online espera por omision a que TODAS las
+    # interfaces gestionadas esten configuradas. Con eth0 desconectada se
+    # queda esperando hasta agotar el plazo (~2 min) y retrasa por igual a
+    # network-online.target y a acceso-control, que lo pide con Wants. --any
+    # lo deja seguir en cuanto UNA interfaz tiene direccion, que es lo que
+    # corresponde en una placa que normalmente solo usa wlan0.
+    #
+    # Va como drop-in y no editando la unidad: la unidad pertenece al paquete
+    # systemd y no se toca desde aqui. El ExecStart vacio es obligatorio,
+    # systemd exige limpiar la lista antes de redefinirla.
+    install -d ${D}${systemd_system_unitdir}/systemd-networkd-wait-online.service.d
+    cat > ${D}${systemd_system_unitdir}/systemd-networkd-wait-online.service.d/10-any.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=${systemd_unitdir}/systemd-networkd-wait-online --any --timeout=30
+EOF
 }
 
 FILES:${PN} = "\
@@ -50,6 +67,7 @@ FILES:${PN} = "\
     ${sysconfdir}/wpa_supplicant \
     ${sysconfdir}/systemd/network \
     ${systemd_system_unitdir}/multi-user.target.wants \
+    ${systemd_system_unitdir}/systemd-networkd-wait-online.service.d \
 "
 
 CONFFILES:${PN} = "${sysconfdir}/wpa_supplicant/wpa_supplicant-wlan0.conf"
