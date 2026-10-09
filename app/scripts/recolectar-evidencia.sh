@@ -36,6 +36,7 @@ CLAVE="${CLAVE-}"
 REMOTO="/var/lib/acceso"                # StateDirectory del servicio
 DESTINO="${DESTINO:-$HOME/recoleccion}"
 CONTINUA="evidencia_continua.mp4"
+LIMITE_KBIT="${LIMITE_KBIT:-8000}"   # kbit/s (~1 MB/s): deja holgura a la microSD y al WiFi
 # Los QR van junto con el resto de la recoleccion, fuera del repositorio:
 # asi no se suben a GitHub por accidente con un git add.
 QR_DIR="${QR_DIR:-$DESTINO/QR}"
@@ -61,9 +62,9 @@ done
 # (-O), que dropbear si atiende.
 copiar() {
     local origen="$1" local_dir="${2:-$DESTINO}"
-    sshpass -p "$CLAVE" scp -r "${SSH_OPC[@]}" \
+    sshpass -p "$CLAVE" scp -r -l "$LIMITE_KBIT" "${SSH_OPC[@]}" \
         "$USUARIO@$IP:$origen" "$local_dir/" 2>/dev/null && return 0
-    sshpass -p "$CLAVE" scp -O -r "${SSH_OPC[@]}" \
+    sshpass -p "$CLAVE" scp -O -r -l "$LIMITE_KBIT" "${SSH_OPC[@]}" \
         "$USUARIO@$IP:$origen" "$local_dir/" 2>/dev/null
 }
 

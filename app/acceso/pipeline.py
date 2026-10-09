@@ -137,7 +137,7 @@ class PipelineAcceso:
             partes.append(
                 f"t_h264. ! queue name=queue_grabacion "
                 f"max-size-buffers=0 max-size-bytes=0 "
-                f"max-size-time=1000000000 "
+                f"max-size-time=10000000000 "
                 f"! splitmuxsink name=grabador location={ruta} "
                 f"max-size-time={ns} muxer-factory=mp4mux send-keyframe-requests=true"
             ) #Agrega los bloques de la rama de grabacion. Se pegan al segundo tee (tee_h264)
