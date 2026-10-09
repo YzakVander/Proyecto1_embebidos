@@ -49,7 +49,7 @@ def leer(ruta: str):
 
     elementos = {}          # id -> (tipo, nombre, propiedades)
     for m in RE_ELEMENTO.finditer(texto):
-        partes = m.group("label").split("\\n")
+        partes = re.split(r"\\n|\n", m.group("label"))
         if len(partes) < 2 or not partes[0][:1].isalpha():
             continue
         if m.group("id").endswith(("_sink", "_src")) or "_0x" not in m.group("id"):
