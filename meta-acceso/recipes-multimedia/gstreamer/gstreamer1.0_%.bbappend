@@ -12,3 +12,13 @@
 # una herramienta de diagnostico: se compila aqui, pero el PAQUETE solo se
 # instala en la imagen de desarrollo, via packagegroup-acceso-diagnostico (G2).
 PACKAGECONFIG:append = " tracer-hooks coretracers"
+
+# El plugin de tracers es una herramienta de diagnostico: se separa en su
+# propio paquete para que entre solo en la imagen de desarrollo (G2), igual
+# que v4l-utils y x264enc. Sin esto cae en el paquete gstreamer1.0, que la
+# imagen de entrega necesita, y viajaria en las dos.
+# El =+ es obligatorio: el reparto de archivos sigue el orden de PACKAGES, y
+# si este fuera despues de ${PN} el paquete principal se queda con el .so.
+PACKAGES =+ "${PN}-tracers"
+FILES:${PN}-tracers = "${libdir}/gstreamer-1.0/libgstcoretracers.so"
+RDEPENDS:${PN}-tracers = "${PN}"

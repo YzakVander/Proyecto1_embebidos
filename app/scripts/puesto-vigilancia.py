@@ -354,7 +354,9 @@ class Canal:
         self.rtt_muestras: list[float] = []
         self.al_responder = None            # callback opcional con el texto OK
 
-    def conectar(self) -> bool:
+    def conectar(self, silencioso: bool = False) -> bool:
+        """silencioso=True calla el aviso de fallo: lo usa el reintento de
+        reconexion, que si no inundaria el registro con un error por intento."""
         try:
             self._sock = socket.create_connection((self._host, self._puerto),
                                                   timeout=5)
@@ -363,8 +365,9 @@ class Canal:
             self._sock.settimeout(None)
             self._f = self._sock.makefile("rw", encoding="utf-8", newline="\n")
         except OSError as e:
-            self._al_linea(f"sin conexion con {self._host}:{self._puerto} ({e})",
-                           "error")
+            if not silencioso:
+                self._al_linea(
+                    f"sin conexion con {self._host}:{self._puerto} ({e})", "error")
             self._al_estado(False)
             return False
         threading.Thread(target=self._leer, daemon=True).start()
@@ -572,6 +575,8 @@ class Aplicacion:
         self.lbl_rtt.pack(side="left", padx=16)
         ttk.Button(cab, text="Reabrir video",
                    command=self.receptor.abrir).pack(side="right")
+        ttk.Button(cab, text="Reconectar",
+                   command=self._reconectar).pack(side="right", padx=(0, 6))
 
         libretas = ttk.Notebook(self.raiz)
         libretas.pack(fill="both", expand=True, padx=12, pady=(0, 6))
@@ -702,7 +707,9 @@ class Aplicacion:
                 "El servicio se reinicia.\n\n¿Continuar?",
                 icon="warning"):
             self.borrador.lanzar()
-            self.raiz.after(8000, self.galeria_clips.refrescar)
+            # El servicio se reinicia: hay que reconectar el canal para que la
+            # placa vuelva a dirigir el video hacia aqui (ver _reconectar).
+            self._reconectar()
 
     def _pestana_mediciones(self, padre) -> ttk.Frame:
         f = ttk.Frame(padre, padding=16)
@@ -731,6 +738,44 @@ class Aplicacion:
     def _estado_conexion(self, conectado: bool) -> None:
         self.lbl_estado.config(text="● conectado" if conectado else "● desconectado",
                                fg=COLOR_OK if conectado else COLOR_ERR)
+
+    def _reconectar(self, espera_inicial: float = 6.0, intentos: int = 15) -> None:
+        """Vuelve a abrir el canal despues de que el servicio se reinicia.
+
+        Por que hace falta: el Borrador corre 'systemctl stop/start' en la
+        placa. Al parar el servicio se cierra el socket TCP y este cliente se
+        queda desconectado sin reintentar. Al arrancar de nuevo, la tuberia
+        transmite al 'host' del acceso.conf -- una IP fija que suele estar
+        vieja -- y el destino SOLO se corrige cuando alguien se conecta al
+        canal de decisiones (ServidorDecisiones.al_conectar -> cambiar_destino).
+        Sin esta reconexion el video no vuelve nunca, aunque la placa este
+        grabando y transmitiendo sin problema.
+
+        Corre en su propio hilo: la espera no puede bloquear la interfaz.
+        """
+        def correr():
+            time.sleep(espera_inicial)      # el servicio tarda en volver
+            for i in range(1, intentos + 1):
+                nuevo = Canal(self.ip, PUERTO_TCP, self.log, self._estado_conexion)
+                nuevo.al_responder = self._quizas_abrir_credencial
+                # Solo el ultimo intento avisa del fallo, para no inundar el log
+                if nuevo.conectar(silencioso=(i < intentos)):
+                    self.canal.cerrar()
+                    self.canal = nuevo
+                    self.log(f"canal reconectado al intento {i}: la placa "
+                             "vuelve a transmitir hacia esta computadora", "ok")
+                    # El gst-launch del receptor sigue escuchando en UDP y
+                    # retoma solo; se reabre unicamente si se habia cerrado.
+                    if not self._sin_video and not self.receptor.abierto():
+                        self.receptor.abrir()
+                    self.raiz.after(0, self.galeria_clips.refrescar)
+                    return
+                time.sleep(2.0)
+            self.log("no se pudo reconectar; reintentar con el boton "
+                     "'Reconectar' cuando la placa responda", "error")
+
+        self.log("esperando a que el servicio vuelva para reconectar ...")
+        threading.Thread(target=correr, daemon=True).start()
 
     def _mostrar_fps(self, actual: float, promedio: float) -> None:
         self.lbl_fps.config(text=f"fps: {actual:5.2f} (prom {promedio:5.2f})")
