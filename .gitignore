@@ -7,7 +7,7 @@ sstate-cache/
 # --- Salidas de ejecucion de la aplicacion ---
 app/evidencia/
 app/eventos/
-app/grafos/
+app/grafos/*
 app/accesos.log
 *.mp4
 *.h264
@@ -36,6 +36,9 @@ venv/
 app/credenciales/
 *.png
 
+# Las capturas de las mediciones son evidencia del acta (D2): se versionan
+!app/mediciones/**/*.png
+
 # Credenciales traidas por los clientes de vigilancia: un QR de mantenimiento
 # abre la puerta, no puede llegar al repositorio
 *.bmp
@@ -45,3 +48,7 @@ credenciales-recibidas/
 
 # Respaldos de los scripts de parcheo
 *.bak
+
+# Grafos medidos en la placa: evidencia de A1-A6 (criterio de aceptacion)
+!app/grafos/*-rpi4.dot
+!app/grafos/*-rpi4.svg

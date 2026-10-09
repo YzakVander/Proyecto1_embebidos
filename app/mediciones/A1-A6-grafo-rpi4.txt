@@ -1,0 +1,103 @@
+# A1/A2/A5/A6/B1/B3 - grafo de la tuberia real, volcado por la aplicacion
+# Thu Oct  8 18:05:46 CST 2026 | raspberrypi4-64 | 6.18.33-v8
+# GStreamer 1.28.5
+# configuracion: /etc/acceso/acceso.conf
+
+== A5/A6: inventario del grafo real ==
+   2 GstAppSink
+   4 GstCapsFilter
+   1 GstFileSink
+   2 GstH264Parse
+   1 GstMP4Mux
+   7 GstQueue
+   1 GstRtpH264Pay
+   1 GstSplitMuxSink
+   2 GstTee
+   1 GstUDPSink
+   1 GstV4l2Src
+   2 v4l2convert
+   1 v4l2h264enc
+   2 v4l2jpegdec
+
+  Conversores y decodificadores: 4
+    v4l2convert1 (v4l2convert)
+    v4l2jpegdec1 (v4l2jpegdec)
+    v4l2convert0 (v4l2convert)
+    v4l2jpegdec0 (v4l2jpegdec)
+
+== A1: caps negociados en cada frontera (en orden del flujo) ==
+  v4l2src0 (GstV4l2Src):node_src -> capsfilter0 (GstCapsFilter):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  capsfilter0 (GstCapsFilter):node_src -> queue0 (GstQueue):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  queue0 (GstQueue):node_src -> t_raw (GstTee):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  t_raw (GstTee):node_src_0 -> queue1 (GstQueue):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  queue1 (GstQueue):node_src -> v4l2jpegdec0 (v4l2jpegdec):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  v4l2jpegdec0 (v4l2jpegdec):node_src -> v4l2convert0 (v4l2convert):node_sink
+      video/x-raw(memory:DMABuf), format=DMA_DRM, width=1280, height=720, framerate=30/1
+  v4l2convert0 (v4l2convert):node_src -> v4l2h264enc0 (v4l2h264enc):node_sink
+      video/x-raw(memory:DMABuf), width=1280, height=720, framerate=30/1, format=DMA_DRM
+  v4l2h264enc0 (v4l2h264enc):node_src -> capsfilter1 (GstCapsFilter):node_sink
+      video/x-h264, stream-format=byte-stream, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  capsfilter1 (GstCapsFilter):node_src -> h264parse0 (GstH264Parse):node_sink
+      video/x-h264, stream-format=byte-stream, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  h264parse0 (GstH264Parse):node_src -> t_h264 (GstTee):node_sink
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  t_h264 (GstTee):node_src_0 -> queue_grabacion (GstQueue):node_sink
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  queue_grabacion (GstQueue):node_src -> grabador (GstSplitMuxSink):node_video
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  t_h264 (GstTee):node_src_1 -> queue2 (GstQueue):node_sink
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  queue2 (GstQueue):node_src -> rtph264pay0 (GstRtpH264Pay):node_sink
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  rtph264pay0 (GstRtpH264Pay):node_src -> tx (GstUDPSink):node_sink
+      application/x-rtp, profile=baseline
+  t_h264 (GstTee):node_src_2 -> queue3 (GstQueue):node_sink
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  queue3 (GstQueue):node_src -> h264parse1 (GstH264Parse):node_sink
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  h264parse1 (GstH264Parse):node_src -> capsfilter2 (GstCapsFilter):node_sink
+      video/x-h264, stream-format=byte-stream, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  capsfilter2 (GstCapsFilter):node_src -> captura (GstAppSink):node_sink
+      video/x-h264, stream-format=byte-stream, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  t_raw (GstTee):node_src_1 -> queue4 (GstQueue):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  queue4 (GstQueue):node_src -> v4l2jpegdec1 (v4l2jpegdec):node_sink
+      image/jpeg, width=1280, height=720, framerate=30/1
+  v4l2jpegdec1 (v4l2jpegdec):node_src -> v4l2convert1 (v4l2convert):node_sink
+      video/x-raw(memory:DMABuf), format=DMA_DRM, width=1280, height=720, framerate=30/1
+  v4l2convert1 (v4l2convert):node_src -> capsfilter3 (GstCapsFilter):node_sink
+      video/x-raw, framerate=30/1, format=BGR, width=1280, height=720
+  capsfilter3 (GstCapsFilter):node_src -> qr (GstAppSink):node_sink
+      video/x-raw, framerate=30/1, format=BGR, width=1280, height=720
+  queue_video (GstQueue):node_src -> muxer (GstMP4Mux):node_video_0
+      video/x-h264, stream-format=avc, alignment=au, level=4, profile=baseline, width=1280, height=720, framerate=30/1
+  muxer (GstMP4Mux):node_src -> sink (GstFileSink):node_sink
+      video/quicktime
+
+== A2: lo que llega a cada codificador ==
+  v4l2convert0 (v4l2convert) -> v4l2h264enc0 (v4l2h264enc)
+      video/x-raw(memory:DMABuf), width=1280, height=720, framerate=30/1, format=DMA_DRM
+
+== B1: que sigue a cada salida de tee ==
+  t_h264 (GstTee): 3 salidas
+    -> queue_grabacion (GstQueue)  [OK]
+    -> queue2 (GstQueue)  [OK]
+    -> queue3 (GstQueue)  [OK]
+  t_raw (GstTee): 2 salidas
+    -> queue1 (GstQueue)  [OK]
+    -> queue4 (GstQueue)  [OK]
+
+== B3: profundidad efectiva de cada queue (peor caso a 30 fps) ==
+  (las propiedades sin '*' son las declaradas; '*' = valor por omision)
+  queue0             buffers=8 bytes=10485760* time=1s* leaky=downstream -> peor caso 267 ms
+  queue1             buffers=8 bytes=10485760* time=1s* leaky=downstream -> peor caso 267 ms
+  queue2             buffers=8 bytes=10485760* time=1s* leaky=downstream -> peor caso 267 ms
+  queue3             buffers=8 bytes=10485760* time=1s* leaky=downstream -> peor caso 267 ms
+  queue4             buffers=1 bytes=10485760* time=1s* leaky=downstream -> peor caso 33 ms
+  queue_grabacion    buffers=0 bytes=0 time=1s* leaky=no -> peor caso 1000 ms
+  queue_video        buffers=31 bytes=0 time=0s leaky=no -> peor caso 1033 ms

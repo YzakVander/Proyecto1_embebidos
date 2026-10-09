@@ -1,0 +1,45 @@
+# D2 - latencia de extremo a extremo, independiente del tracer | 2026-10-08 19:07 CST
+# Placa: raspberrypi4-64 (10.26.211.67), imagen Yocto, GStreamer 1.28.5,
+#        /etc/acceso/acceso.conf sin clockoverlay
+# Receptor: laptop (10.26.211.99) con app/scripts/vigilancia.py, misma tuberia
+#           que receptor-vigilancia.sh (rtpjitterbuffer latency=100 ms)
+# Red: WiFi, ambos equipos en el mismo punto de acceso
+#
+# Metodo: cronometro con milisegundos (estopwatch.net) en la pantalla de la
+# laptop; la camara de la placa lo filma y la ventana del video se coloca al
+# lado. Una captura de pantalla congela los dos valores en el mismo instante:
+# latencia = cronometro real - cronometro visto en el video.
+# Evidencia: D2-extremo-a-extremo/D2-1.png ... D2-5.png (en este orden).
+
+ #   cronometro (s)   en el video (s)   latencia (ms)
+ 1   25.399           25.284            115
+ 2   37.522           37.350            172
+ 3   44.707           44.525            182
+ 4   53.902           53.729            173
+ 5   62.402           62.230            172
+
+minimo 115 ms | mediana 172 ms | promedio 163 ms | maximo 182 ms
+
+Resolucion de cada lectura: +-33 ms por el cuadro de la camara (30 fps) y
++-16 ms por el refresco de la pantalla (60 Hz). La muestra 1 (115 ms) queda
+fuera del grupo 172-182 ms; es compatible con esa resolucion (la captura cayo
+justo despues de un cuadro nuevo). Valor representativo: la mediana.
+
+En D2-1.png se ve un tercer cronometro anidado: la camara filmo tambien la
+ventana del video (efecto tunel). La lectura usada es la del primer nivel.
+
+== Presupuesto de extremo a extremo (D4) ==
+
+  etapa                                          estimado     base
+  camara: exposicion + MJPEG por USB             33-50 ms     1 a 1.5 cuadros a 30 fps
+  placa: jpegdec + convert + h264enc + RTP       15-25 ms     D1 en x86: 17 ms (en la placa,
+                                                              pendiente del tracer)
+  red WiFi local                                  5-10 ms
+  rtpjitterbuffer del receptor                     100 ms     configurado (latency=100)
+  decodificar y mostrar en la laptop             16-33 ms     1 a 2 refrescos a 60 Hz
+  total                                         170-220 ms
+  medido (mediana)                                  172 ms    dentro del presupuesto
+
+Mas de la mitad de la latencia (100 de ~172 ms) es el rtpjitterbuffer del
+receptor, puesto a proposito para absorber la variacion del WiFi. Lo que
+agrega la placa, de la camara al udpsink, es del orden de 50-70 ms.
