@@ -1,0 +1,18 @@
+# D1 - latencia medida con el tracer, aplicacion real durante 20 s
+# Fri Oct  9 11:24:25 CST 2026 | raspberrypi4-64 | 6.18.33-v8
+# GStreamer 1.28.5
+# configuracion: /etc/acceso/acceso.conf
+
+== Ruta: fuente -> sink ==
+                                         n      min      p50      p99      max   (ms)
+
+== Etapa: tiempo dentro de cada elemento (de mayor a menor mediana) ==
+                                         n      min      p50      p99      max   (ms)
+  t_raw                               1096     0.11     0.27     0.40     0.47
+  queue0                               548     0.12     0.19     0.26     0.52
+  queue4                               548     0.11     0.17     0.25    16.04
+  capsfilter0                          548     0.11     0.16     0.20     0.21
+  queue1                               548     0.08     0.15     0.19    27.69
+
+== B5: duracion de los callbacks de los appsink (presupuesto: 33 ms por cuadro) ==
+  (no aparecio el resumen de B5 en el log)
