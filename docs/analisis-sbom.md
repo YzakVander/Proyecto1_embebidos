@@ -35,13 +35,13 @@ Conteo sobre el manifiesto de la imagen de entrega:
 
 | Categoría | Paquetes | Proporción |
 |---|---|---|
-| Módulos del kernel (`kernel-module-*`) | **1 866** | **83 %** |
-| Espacio de usuario | **384** | 17 % |
-| **Total** | **2 250** | 100 % |
+| Módulos del kernel (`kernel-module-*`) | **1 865** | **83 %** |
+| Espacio de usuario | **390** | 17 % |
+| **Total** | **2 255** | 100 % |
 
 ### Hallazgo 1 — el 83 % del inventario son módulos del kernel
 
-El número de 2 250 paquetes es engañoso si se lee como medida de complejidad o
+El número de 2 255 paquetes es engañoso si se lee como medida de complejidad o
 de superficie de ataque. La causa está en una sola línea de
 `acceso-image.bb`:
 
@@ -60,7 +60,7 @@ protocolos de red que no se usan— se instala sin que nada lo requiera.
 explotable de forma directa, pero su presencia en disco permite que un atacante
 con acceso local lo cargue (`modprobe`), y cada módulo es código del kernel con
 su propio historial de vulnerabilidades. En un dispositivo empotrado de función
-fija, instalar 1 866 módulos para usar diez es lo contrario de una imagen a la
+fija, instalar 1 865 módulos para usar diez es lo contrario de una imagen a la
 medida.
 
 **Corrección posible y por qué no se aplicó.** Sustituir `kernel-modules` por la
@@ -73,7 +73,7 @@ documentado como la mejora de mayor impacto pendiente.
 
 ## 3. Composición del espacio de usuario
 
-Las 384 entradas restantes, agrupadas por familia:
+Las 390 entradas restantes, agrupadas por familia:
 
 | Familia | Paquetes | Comentario |
 |---|---|---|
@@ -145,21 +145,24 @@ desarrollo. Se resolvió con dos recetas: `acceso-image` (entrega) y
 `acceso-image-dev`, que hereda de la primera y agrega lo que no debe
 entregarse.
 
-**Diferencia medida, paquete por paquete** (13 entradas):
+**Diferencia medida, paquete por paquete** (11 entradas):
 
 | Paquete | Para qué estaba |
 |---|---|
-| `gstreamer1.0-plugins-ugly` y 6 subpaquetes (`-x264`, `-asf`, `-dvdsub`, `-dvdlpcmdec`, `-realmedia`, `-meta`) | `x264enc`, término de comparación por software del ítem C2 |
+| `gstreamer1.0-plugins-ugly-x264`, `-locale-en-gb` | `x264enc`, término de comparación por software del ítem C2 |
 | `libx264-165` | Biblioteca de x264 |
+| `gstreamer1.0-tracers` | `libgstcoretracers.so`: el tracer de latencia del ítem D1 |
 | `v4l-utils`, `libv4l`, `media-ctl` | `v4l2-ctl` para inspeccionar el codificador por hardware |
+| `raspi-utils`, `dtc` | `vcgencmd` para la temperatura y el *throttling* (F4) |
+| `sysstat` | `iostat` (F5) |
 | `packagegroup-acceso-diagnostico` | El agrupador |
 
 | | Entrega | Desarrollo |
 |---|---|---|
-| Paquetes totales | 2 250 | 2 266 |
-| Espacio de usuario | **384** | 397 |
-| Paquetes de GStreamer | **47** | 55 |
-| Tamaño comprimido | **159 MB** | 162 MB |
+| Paquetes totales | 2 255 | 2 266 |
+| Espacio de usuario | **390** | 401 |
+| Paquetes de GStreamer | **47** | 50 |
+| Tamaño comprimido | **161 MB** | 163 MB |
 
 Además, la imagen de entrega **no lleva** `allow-empty-password`,
 `allow-root-login` ni `empty-root-password`, que sí están en la de desarrollo.
@@ -197,6 +200,25 @@ ASF, DVD, DVD-LPCM y RealMedia, y el metapaquete.
 
 ---
 
+### Hallazgo 5 — los tracers hubo que separarlos a mano
+
+Habilitar `coretracers` para poder medir la latencia (ítem D1) deja
+`libgstcoretracers.so` dentro del paquete `gstreamer1.0`, que la imagen de
+entrega necesita: el tracer habría viajado en las dos. Se partió el paquete
+desde un `.bbappend` con `PACKAGES =+ "${PN}-tracers"`, y se declaró en
+`packagegroup-acceso-diagnostico`, para que entre solo en la de desarrollo.
+
+Los *hooks* del tracer, en cambio, quedan compilados dentro de `libgstreamer`
+en **ambas** imágenes. La asimetría es deliberada: así la biblioteca es la
+misma en las dos, y la latencia medida sobre la imagen de desarrollo describe
+también a la de entrega. Con `GST_TRACERS` sin definir —que es el caso del
+servicio— el costo de los hooks es una comprobación por evento.
+
+Es el mismo desglose fino del hallazgo 2, aplicado esta vez a una receta de
+oe-core y no a un packagegroup propio.
+
+---
+
 ## 5. Licencias
 
 El build genera el manifiesto de licencias junto con el SBOM. Dos casos
@@ -220,8 +242,8 @@ el fallo aparece después, como `Nothing RPROVIDES`.
 
 ## 6. Conclusiones
 
-1. **El inventario de 2 250 paquetes está dominado por `kernel-modules`
-   (83 %).** La superficie de ataque real en espacio de usuario es de 384
+1. **El inventario de 2 255 paquetes está dominado por `kernel-modules`
+   (83 %).** La superficie de ataque real en espacio de usuario es de 390
    paquetes. Reemplazar `kernel-modules` por la lista explícita de módulos
    necesarios es la mejora pendiente de mayor impacto.
 
@@ -233,7 +255,7 @@ el fallo aparece después, como `Nothing RPROVIDES`.
    a X11 en un dispositivo que no tiene ninguna de las dos cosas.
 
 4. **La separación entre imagen de entrega y de desarrollo es efectiva y
-   medible:** 13 paquetes de diferencia, todos identificados, más las tres
+   medible:** 11 paquetes de diferencia, todos identificados, más las tres
    features de acceso sin credencial.
 
 5. **El análisis expuso un defecto propio** (hallazgo 4), que es el argumento
