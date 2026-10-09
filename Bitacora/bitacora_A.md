@@ -31,6 +31,7 @@
 | D-06 | 2026-10-01 | Credenciales en BMP en lugar de PNG | OpenCV lo lee y escribe con su codec interno, sin depender de libpng en la imagen de Yocto. |
 | D-07 | 2026-10-01 | Topes de retención separados para `evidencia/` y `eventos/` | Evita que la grabación continua desplace los clips de evento y que la microSD se llene. |
 | D-08 | 2026-10-04 | Validar el tutorial de Yocto en un contenedor Ubuntu 26.04.1 limpio hasta `bitbake -n`, sin la compilación completa | La simulación detecta en minutos los errores de configuración (paquetes, capas, variables); la compilación completa toma horas y queda para G4. |
+| D-09 | 2026-10-08 | Medir la latencia de extremo a extremo (D2) filmando un cronómetro con milisegundos y comparándolo con el video recibido | Es independiente del tracer de GStreamer e incluye cámara, red y receptor; una captura de pantalla congela ambos valores en el mismo instante. |
 
 ---
 
@@ -44,6 +45,7 @@
 | P-04 | 2026-09-30 | Video atascado al aclarar la imagen | El elemento `gamma` en software saturaba un núcleo | Se descartó `gamma`; se fijaron los controles de la cámara en `extra-controls` (`exposure_time_absolute=2000`). |
 | P-05 | 2026-10-02 | Clips corruptos al interrumpir la aplicación durante una solicitud | El apagado no esperaba a que terminara la escritura del clip | Contador de clips en curso; el apagado espera a que lleguen a cero (B6). |
 | P-06 | 2026-10-04 | `RPI_EXTRA_CONFIG` definido en `acceso-image.bb` sin efecto | La variable la consume la receta `rpi-config`, que solo ve la configuración global, no la receta de la imagen | El valor efectivo es el de `local.conf`; verificado con `bitbake -e rpi-config` y documentado en el tutorial. |
+| P-07 | 2026-10-08 | `analizar-dot.py` no separaba tipo y nombre de los elementos en el grafo volcado en la placa | Las etiquetas del `.dot` de GStreamer 1.28.5 traen saltos de línea reales, no la secuencia `\n` escrita | Se separa la etiqueta por ambas formas con `re.split`. |
 
 ---
 
@@ -178,4 +180,38 @@ source layers/openembedded-core/oe-init-build-env build
 bitbake -p
 bitbake -n acceso-image
 bitbake -e rpi-config | grep ^RPI_EXTRA_CONFIG=
+```
+
+### 2026-10-05 · 1.5 h
+
+**Objetivo de la sesión:** Obtener el grafo GStreamer del receptor del puesto de vigilancia (equivalente a A6, del lado de la computadora que recibe el video).
+
+**Actividades:**
+1. Script `grafo-receptor.sh`: corre la misma tubería que abre `puesto-vigilancia.py` con `GST_DEBUG_DUMP_DOT_DIR` definido, la cierra con SIGINT para obtener el volcado `PLAYING_PAUSED` (el único con los caps ya negociados) y lo convierte a imagen con Graphviz.
+2. Opción `-i`: el script abre el canal TCP 5001 con la placa durante la captura para que redirija el video a la computadora, sin necesidad de tener un cliente abierto. Opciones para puerto, duración, carpeta, formato (svg, png, pdf) y sink.
+
+**Comandos relevantes:**
+```bash
+./app/scripts/grafo-receptor.sh -i <ip-rpi>
+```
+
+### 2026-10-08 · 6 h
+
+**Objetivo de la sesión:** Obtener en la placa, con la imagen Yocto, el grafo real de la tubería y la medición de latencia de extremo a extremo.
+
+**Actividades:**
+1. Volcado del grafo de la aplicación en la Raspberry Pi 4 (GStreamer 1.28.5, `/etc/acceso/acceso.conf`) y análisis con `analizar-dot.py`: inventario de elementos (A5/A6), caps negociados en cada frontera (A1), entrada del codificador `v4l2h264enc` en DMABuf (A2), salidas de cada `tee` (B1) y profundidad de cada `queue` (B3). Resultado en `A1-A6-grafo-rpi4.txt`, junto con el `.dot` y el `.svg`.
+2. Corrección de `analizar-dot.py`: el `.dot` de la placa trae saltos de línea reales en las etiquetas (P-07).
+3. Medición D2 de latencia de extremo a extremo con un cronómetro filmado por la cámara (D-09): 5 capturas, mediana de 172 ms (mínimo 115, máximo 182). Comparación con el presupuesto D4 (170-220 ms): más de la mitad corresponde al `rtpjitterbuffer` de 100 ms del receptor.
+4. `.gitignore`: se versionan como evidencia del acta los grafos `*-rpi4.dot`/`*-rpi4.svg` y las capturas de `app/mediciones/`.
+
+**Resultados:** la ruta de video en la placa usa solo decodificadores, conversores y codificador por hardware (`v4l2jpegdec`, `v4l2convert`, `v4l2h264enc`); latencia medida dentro del presupuesto.
+
+**Pendientes:** medición D1 con el tracer en la placa.
+
+**Comandos relevantes:**
+```bash
+python3 app/scripts/analizar-dot.py app/grafos/acceso-rpi4.dot
+dot -Tsvg app/grafos/acceso-rpi4.dot -o app/grafos/pipeline-acceso-rpi4.svg
+python3 app/scripts/vigilancia.py
 ```
