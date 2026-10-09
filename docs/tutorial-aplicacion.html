@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial de operación del sistema de control de acceso</title>
+<style>
+  :root {
+    --fondo: #fbfaf7;
+    --superficie: #ffffff;
+    --texto: #1f2328;
+    --tenue: #5b636d;
+    --borde: #dcd8cf;
+    --acento: #1f5f8b;
+    --codigo-fondo: #f2efe8;
+    --nota-fondo: #eaf2f8;   --nota-borde: #1f5f8b;
+    --aviso-fondo: #fdf3e1;  --aviso-borde: #b26b00;
+    --todo-fondo: #fbe9e7;   --todo-borde: #a33a2a;
+    --ok-fondo: #e9f4ec;     --ok-borde: #2f6b3f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fondo: #16181b;
+      --superficie: #1e2125;
+      --texto: #e6e3dc;
+      --tenue: #a3a9b1;
+      --borde: #343a41;
+      --acento: #7fb6dc;
+      --codigo-fondo: #262a2f;
+      --nota-fondo: #1b2a36;   --nota-borde: #7fb6dc;
+      --aviso-fondo: #33281a;  --aviso-borde: #e0a24a;
+      --todo-fondo: #3a2220;   --todo-borde: #e07a6a;
+      --ok-fondo: #1e3024;     --ok-borde: #7cc191;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fondo: #16181b;
+    --superficie: #1e2125;
+    --texto: #e6e3dc;
+    --tenue: #a3a9b1;
+    --borde: #343a41;
+    --acento: #7fb6dc;
+    --codigo-fondo: #262a2f;
+    --nota-fondo: #1b2a36;   --nota-borde: #7fb6dc;
+    --aviso-fondo: #33281a;  --aviso-borde: #e0a24a;
+    --todo-fondo: #3a2220;   --todo-borde: #e07a6a;
+    --ok-fondo: #1e3024;     --ok-borde: #7cc191;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--texto);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  }
+  .contenedor {
+    display: grid;
+    grid-template-columns: 270px minmax(0, 1fr);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  nav.indice {
+    position: sticky; top: 0;
+    align-self: start;
+    height: 100vh; overflow-y: auto;
+    padding: 28px 20px;
+    border-right: 1px solid var(--borde);
+    font-size: 14px;
+  }
+  nav.indice h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--tenue); margin: 0 0 12px; }
+  nav.indice ol { margin: 0; padding-left: 20px; }
+  nav.indice li { margin: 4px 0; }
+  nav.indice a { color: var(--texto); text-decoration: none; }
+  nav.indice a:hover { color: var(--acento); text-decoration: underline; }
+
+  main { padding: 32px 48px 80px; min-width: 0; }
+  header.portada { border-bottom: 1px solid var(--borde); padding-bottom: 20px; margin-bottom: 28px; }
+  header.portada h1 { font-size: 30px; line-height: 1.25; margin: 0 0 8px; }
+  header.portada .sub { color: var(--tenue); margin: 2px 0; }
+  h2 { font-size: 23px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--borde); }
+  h3 { font-size: 18px; margin: 28px 0 8px; }
+  a { color: var(--acento); }
+  code { font: 14px/1.4 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--codigo-fondo); padding: 1px 5px; border-radius: 4px; }
+
+  .bloque { position: relative; margin: 12px 0 18px; }
+  .bloque pre {
+    margin: 0; padding: 14px 16px; overflow-x: auto;
+    background: var(--codigo-fondo); border: 1px solid var(--borde); border-radius: 8px;
+    font: 14px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  .bloque pre code { background: none; padding: 0; }
+  .bloque .etiqueta { font-size: 12px; color: var(--tenue); margin-bottom: 4px; }
+  .bloque button {
+    position: absolute; top: 26px; right: 8px;
+    font-size: 12px; padding: 3px 9px; cursor: pointer;
+    background: var(--superficie); color: var(--texto);
+    border: 1px solid var(--borde); border-radius: 6px;
+  }
+  .bloque button:hover { border-color: var(--acento); }
+
+  .caja { border-left: 4px solid; border-radius: 6px; padding: 10px 14px; margin: 14px 0; }
+  .caja p { margin: 4px 0; }
+  .caja strong:first-child { display: block; margin-bottom: 2px; }
+  .nota  { background: var(--nota-fondo);  border-color: var(--nota-borde); }
+  .aviso { background: var(--aviso-fondo); border-color: var(--aviso-borde); }
+  .todo  { background: var(--todo-fondo);  border-color: var(--todo-borde); }
+  .ok    { background: var(--ok-fondo);    border-color: var(--ok-borde); }
+
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 18px; font-size: 15px; }
+  th, td { border: 1px solid var(--borde); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--codigo-fondo); }
+  .tabla { overflow-x: auto; }
+  ol.pasos > li { margin: 6px 0; }
+
+  @media (max-width: 860px) {
+    .contenedor { display: block; }
+    nav.indice { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--borde); padding: 16px; }
+    main { padding: 20px 16px 60px; }
+    header.portada h1 { font-size: 24px; }
+  }
+  @media print {
+    nav.indice, .bloque button { display: none; }
+    .contenedor { display: block; }
+    main { padding: 0; }
+    h2 { break-after: avoid; }
+    .bloque, .caja, table { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="contenedor">
+
+<nav class="indice" aria-label="Índice">
+  <h2>Contenido</h2>
+  <ol>
+    <li><a href="#alcance">Alcance</a></li>
+    <li><a href="#preparar">Preparar la computadora del vigilante</a></li>
+    <li><a href="#conectar">Encontrar la placa y conectarse</a></li>
+    <li><a href="#comprobar">Comprobar que la placa está sana</a></li>
+    <li><a href="#abrir">Abrir el puesto de vigilancia</a></li>
+    <li><a href="#ventana">La ventana, parte por parte</a></li>
+    <li><a href="#recorrido">Recorrido de prueba del sistema</a></li>
+    <li><a href="#consola">El cliente de consola</a></li>
+    <li><a href="#placa">Operar desde la placa</a></li>
+    <li><a href="#protocolo">Protocolo de comandos</a></li>
+    <li><a href="#problemas">Problemas conocidos</a></li>
+    <li><a href="#rutas">Dónde queda cada cosa</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="portada">
+  <h1>Operación y prueba del sistema de control de acceso</h1>
+  <p class="sub">Proyecto 1 · Taller de Sistemas Embebidos · Instituto Tecnológico de Costa Rica · II Semestre 2026</p>
+  <p class="sub">Isaac Vanderlucht López (Rol A) · Daniel Chavarría García (Rol B)</p>
+  <p class="sub">Versión del 2026-10-09</p>
+</header>
+
+<!-- ================================================================== -->
+<h2 id="alcance">1. Alcance</h2>
+<p>
+  Este documento explica cómo <strong>operar y probar</strong> el sistema una vez que la
+  placa ya tiene la imagen grabada y arranca sola. Cubre la computadora del vigilante,
+  la conexión con la Raspberry Pi y un recorrido completo que ejercita todos los casos
+  de uso.
+</p>
+<p>
+  <strong>No cubre la construcción de la imagen.</strong> Eso está en el tutorial
+  <em>Síntesis e instalación de la imagen Yocto</em>, que termina justo donde este
+  empieza: con la placa encendida y el servicio <code>acceso-control</code> activo.
+</p>
+
+<div class="nota caja">
+  <strong>Qué hace el sistema, en una línea</strong>
+  <p>La placa captura video de una cámara USB, graba la evidencia en segmentos de un
+  minuto, transmite en vivo al puesto de vigilancia, lee credenciales QR y acciona un
+  buzzer según la decisión de acceso. El vigilante, desde otra computadora, ve el video,
+  decide los accesos que no son automáticos, gestiona credenciales y extrae la
+  evidencia.</p>
+</div>
+
+<h3>1.1 Las dos computadoras y los dos canales</h3>
+<div class="tabla"><table>
+  <tr><th>Canal</th><th>Puerto</th><th>Sentido</th><th>Para qué</th></tr>
+  <tr><td>Comandos</td><td><strong>TCP 5001</strong></td><td>Vigilante → placa, con respuesta</td><td>Solicitudes, decisiones, credenciales, estado</td></tr>
+  <tr><td>Video</td><td><strong>UDP 5000</strong></td><td>Placa → vigilante</td><td>RTP con H.264 en vivo</td></tr>
+  <tr><td>Archivos</td><td>TCP 22</td><td>Vigilante → placa</td><td><code>scp</code> para traer evidencia, clips y credenciales</td></tr>
+</table></div>
+<p>
+  El destino del video <strong>no se configura a mano</strong>. Cuando el puesto de
+  vigilancia abre el canal de comandos, la placa toma la dirección de ese mismo socket y
+  redirige la transmisión hacia ella. Eso resuelve las direcciones que rotan por DHCP.
+</p>
+
+<!-- ================================================================== -->
+<h2 id="preparar">2. Preparar la computadora del vigilante</h2>
+<p>Es una computadora común, no usa Yocto. En Ubuntu o derivados:</p>
+
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>sudo apt update
+sudo apt install python3-tk python3-opencv gstreamer1.0-tools \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
+    openssh-client sshpass ffmpeg</code></pre></div>
+
+<div class="tabla"><table>
+  <tr><th>Paquete</th><th>Para qué</th><th>¿Imprescindible?</th></tr>
+  <tr><td><code>python3-tk</code></td><td>La interfaz gráfica (Tkinter)</td><td>Sí</td></tr>
+  <tr><td><code>python3-opencv</code></td><td>Miniaturas de las credenciales en la galería</td><td>Sí</td></tr>
+  <tr><td><code>gstreamer1.0-tools</code></td><td><code>gst-launch-1.0</code>, que recibe el video</td><td>Sí</td></tr>
+  <tr><td><code>-plugins-good</code>, <code>-bad</code>, <code>-libav</code></td><td><code>udpsrc</code>, <code>rtpjitterbuffer</code>, <code>rtph264depay</code>, <code>h264parse</code>, <code>avdec_h264</code></td><td>Sí</td></tr>
+  <tr><td><code>ffmpeg</code></td><td>Unir los segmentos de 60 s en un solo MP4 al recolectar</td><td>Solo para recolectar</td></tr>
+  <tr><td><code>sshpass</code></td><td>Solo si root de la placa tuviera contraseña</td><td>No, con la imagen de desarrollo</td></tr>
+</table></div>
+
+<p>Y una copia del repositorio, que es de donde se ejecutan los clientes:</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>git clone -b main https://github.com/YzakVander/Proyecto1_embebidos.git ~/proyecto-acceso
+cd ~/proyecto-acceso</code></pre></div>
+
+<div class="aviso caja">
+  <strong>El firewall</strong>
+  <p>El video llega por UDP 5000 <em>entrante</em>. Si no aparece imagen y el canal de
+  comandos sí conecta, lo primero a revisar es que el firewall de esta computadora
+  permita ese puerto.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="conectar">3. Encontrar la placa y conectarse</h2>
+
+<h3>3.1 Conexiones físicas</h3>
+<div class="tabla"><table>
+  <tr><th>Elemento</th><th>Dónde</th></tr>
+  <tr><td>Cámara</td><td>Webcam USB (UVC) con MJPEG 1280×720 a 30 fps, en cualquier puerto. Aparece como <code>/dev/video0</code>.</td></tr>
+  <tr><td>Buzzer pasivo</td><td>Positivo a GPIO 18 (pin físico 12), negativo a GND (pin físico 14).</td></tr>
+  <tr><td>Red</td><td>WiFi: la placa se conecta sola a las redes configuradas en la receta <code>red-acceso</code>. También sirve Ethernet.</td></tr>
+  <tr><td>Alimentación</td><td>Fuente USB-C de la Raspberry Pi 4.</td></tr>
+</table></div>
+
+<h3>3.2 Averiguar la dirección IP</h3>
+<p>La placa pide dirección por DHCP, así que cambia de una sesión a otra. Primero mirá en
+qué red estás:</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>ip -4 addr show | grep inet</code></pre></div>
+<p>Y barré esa red. Para una red pequeña, como el punto de acceso de un celular:</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>for i in $(seq 1 14); do
+  ping -c1 -W1 172.20.10.$i &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo "172.20.10.$i responde"
+done</code></pre></div>
+<p>Para una red doméstica, con <code>nmap</code>:</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>nmap -sn 192.168.1.0/24</code></pre></div>
+<p>
+  Descartá tu propia dirección y la del router; la que sobra es la placa. En el punto de
+  acceso de un celular, la lista de dispositivos conectados del teléfono es más rápida
+  que cualquier barrido.
+</p>
+
+<h3>3.3 Entrar por SSH</h3>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>export PI=172.20.10.2          # reemplazar por la dirección real
+ssh root@$PI</code></pre></div>
+
+<div class="aviso caja">
+  <strong>«Host key verification failed» después de regrabar la tarjeta</strong>
+  <p>Cada imagen nueva genera sus propias llaves de servidor, así que SSH avisa que la
+  huella cambió. Hay que borrar la entrada vieja:</p>
+  <div class="bloque"><pre><code>ssh-keygen -f ~/.ssh/known_hosts -R "$PI"</code></pre></div>
+</div>
+
+<div class="nota caja">
+  <strong>Cómo saber si estás en la placa o en tu computadora</strong>
+  <p>El <em>prompt</em> de la placa es <code>root@raspberrypi4-64</code>. Y
+  <code>gst-inspect-1.0 --version</code> responde <strong>1.28.5</strong> con rutas en
+  <code>/usr/lib/gstreamer-1.0/</code>, sin <code>x86_64-linux-gnu</code>. Es un error
+  frecuente ejecutar en la computadora equivocada comandos pensados para la otra.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="comprobar">4. Comprobar que la placa está sana</h2>
+<p>Antes de abrir el cliente conviene verificar cinco cosas. Todas tienen que funcionar
+<strong>sin tocar nada</strong>: vienen horneadas en la imagen.</p>
+
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code># 1. Red: se conectó sola
+ip -4 addr show wlan0 | grep inet
+
+# 2. Hora local correcta, no UTC
+date
+
+# 3. PWM del buzzer activo
+pinctrl get 18                       # a5  pd | lo // GPIO18 = PWM0_0
+
+# 4. Cámara detectada
+ls -l /dev/video0
+
+# 5. Servicio arrancado solo
+systemctl is-enabled acceso-control  # enabled
+systemctl is-active  acceso-control  # active</code></pre></div>
+
+<h3>4.1 La comprobación que de verdad importa: ¿está grabando?</h3>
+<p>
+  Que el servicio diga <code>active</code> no alcanza. Lo definitivo es que el segmento
+  en curso <strong>crezca</strong>:
+</p>
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code>ls -l /var/lib/acceso/evidencia/ | tail -n 2
+sleep 60
+ls -l /var/lib/acceso/evidencia/ | tail -n 2</code></pre></div>
+
+<div class="ok caja">
+  <strong>Resultado esperado</strong>
+  <p>El último archivo creció, y cada minuto aparece uno nuevo de unos <strong>18 MB</strong>.
+  Si el tamaño no cambia, la tubería está congelada: ver la sección 11.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="abrir">5. Abrir el puesto de vigilancia</h2>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante, desde ~/proyecto-acceso</div><pre><code>python3 app/scripts/puesto-vigilancia.py --ip 172.20.10.2</code></pre></div>
+
+<div class="tabla"><table>
+  <tr><th>Opción</th><th>Para qué</th></tr>
+  <tr><td><code>--ip</code></td><td>Dirección de la placa. Obligatoria en la práctica.</td></tr>
+  <tr><td><code>--clave</code></td><td>Contraseña de root, solo si la imagen la pide. Requiere <code>sshpass</code>.</td></tr>
+  <tr><td><code>--sin-video</code></td><td>No abre la ventana de video. Útil para probar solo el canal de comandos.</td></tr>
+  <tr><td><code>--base</code></td><td>Carpeta de datos en la placa. Por omisión <code>/var/lib/acceso</code>.</td></tr>
+</table></div>
+
+<p>Al arrancar, en este orden:</p>
+<ol class="pasos">
+  <li>Se abre la ventana del video, que queda escuchando en UDP 5000.</li>
+  <li>Novecientos milisegundos después se conecta el canal de comandos (TCP 5001).</li>
+  <li>La placa detecta la conexión y <strong>redirige el video a esta computadora</strong>.</li>
+  <li>Se cargan las galerías de credenciales y de clips.</li>
+</ol>
+
+<div class="nota caja">
+  <strong>Por qué el video se abre antes de conectar</strong>
+  <p>El receptor tiene que estar escuchando antes de que la placa empiece a transmitir
+  hacia acá; si no, los primeros paquetes se pierden.</p>
+</div>
+
+<!-- ================================================================== -->
+<h2 id="ventana">6. La ventana, parte por parte</h2>
+
+<h3>6.1 Cabecera</h3>
+<div class="tabla"><table>
+  <tr><th>Indicador</th><th>Qué dice</th></tr>
+  <tr><td><strong>● conectado</strong> / ● desconectado</td><td>Estado del canal de comandos (TCP 5001), no del video.</td></tr>
+  <tr><td><strong>fps</strong></td><td>Cuadros por segundo realmente recibidos, instantáneo y promedio. Es la medición de RF-1.</td></tr>
+  <tr><td><strong>RTT</strong></td><td>Tiempo de ida y vuelta del último comando, en milisegundos. Es RF-3.</td></tr>
+  <tr><td>Botón <strong>Reconectar</strong></td><td>Reabre el canal de comandos. Úsalo si el servicio se reinició y el video no volvió.</td></tr>
+  <tr><td>Botón <strong>Reabrir video</strong></td><td>Relanza la ventana del video si se cerró.</td></tr>
+</table></div>
+
+<h3>6.2 Pestaña «Operación»</h3>
+<div class="tabla"><table>
+  <tr><th>Botón</th><th>Qué hace</th></tr>
+  <tr><td><strong>SOLICITUD</strong></td><td>Abre una solicitud de acceso y arranca el plazo de decisión de 30 s.</td></tr>
+  <tr><td><strong>ESTADO</strong></td><td>Informa si hay una solicitud pendiente y cuántos segundos le quedan.</td></tr>
+  <tr><td><strong>PERMITIR</strong> (verde)</td><td>Resuelve la solicitud pendiente como permitida.</td></tr>
+  <tr><td><strong>DENEGAR</strong> (rojo)</td><td>Resuelve la solicitud pendiente como denegada.</td></tr>
+  <tr><td><strong>Comando libre…</strong></td><td>Envía cualquier comando del protocolo a mano (sección 10).</td></tr>
+</table></div>
+
+<h3>6.3 Pestaña «Credenciales»</h3>
+<p>
+  Se escribe el nombre, se elige el rol y se genera. La credencial se crea en la placa,
+  se trae a esta computadora y <strong>se abre sola</strong>, lista para imprimir o
+  compartir.
+</p>
+<div class="tabla"><table>
+  <tr><th>Rol</th><th>Comportamiento en la puerta</th></tr>
+  <tr><td><code>mantenimiento</code></td><td>Acceso automático: el sistema abre sin consultar al vigilante.</td></tr>
+  <tr><td><code>visitante</code></td><td>Escala al vigilante, que decide dentro del plazo.</td></tr>
+</table></div>
+<div class="nota caja">
+  <strong>Por qué no aparece el rol «vigilante»</strong>
+  <p>El vigilante opera este puesto y decide los accesos; no se identifica con un QR en
+  la puerta. El rol existe en el registro de la placa, pero la interfaz no lo ofrece a
+  propósito.</p>
+</div>
+<p>Abajo, tres acciones sobre el registro:</p>
+<div class="tabla"><table>
+  <tr><th>Botón</th><th>Qué hace</th></tr>
+  <tr><td><strong>LISTAR activas</strong></td><td>Muestra las credenciales vigentes con su identificador, rol y nombre.</td></tr>
+  <tr><td><strong>Revocar (BAJA)…</strong></td><td>Invalida una credencial. El registro se conserva como histórico.</td></tr>
+  <tr><td><strong>REGENERAR_QR</strong></td><td>Rehace las imágenes de las credenciales activas con el mismo identificador. No cambia quién tiene acceso.</td></tr>
+</table></div>
+<div class="aviso caja">
+  <strong>La revocación es permanente</strong>
+  <p>No hay forma de reactivar una credencial dada de baja. Si la persona vuelve, se le
+  genera una nueva con identificador nuevo. Un QR impreso que vuelve a servir es un
+  riesgo que no compensa la comodidad.</p>
+</div>
+
+<h3>6.4 Pestañas «Galería de QR» y «Clips de eventos»</h3>
+<p>
+  Traen de la placa las imágenes de las credenciales activas y los clips de cada evento.
+  Se hace clic en uno para abrirlo con el visor del sistema. El botón de refrescar vuelve
+  a consultar la placa.
+</p>
+
+<h3>6.5 Pestaña «Evidencia»</h3>
+<div class="tabla"><table>
+  <tr><th>Botón</th><th>Qué hace</th></tr>
+  <tr><td><strong>RECOLECTAR</strong></td><td>Trae la grabación continua, los clips, la bitácora y los QR activos. Une los segmentos de 60 s en un solo <code>evidencia_continua.mp4</code>. Todo queda en <code>~/recoleccion</code>.</td></tr>
+  <tr><td><strong>BORRAR evidencia y bitácora</strong> (rojo)</td><td>Borra en la placa la evidencia, los clips y la bitácora. Las credenciales no se tocan. Pide confirmación.</td></tr>
+</table></div>
+<div class="nota caja">
+  <strong>La recolección avisa cuándo termina</strong>
+  <p>El panel inferior va mostrando <code>[recolectar] copiando evidencia …</code>,
+  <code>copiando eventos …</code>, y al final
+  <strong><code>recoleccion terminada en ~/recoleccion</code></strong> en verde. No hay
+  barra de progreso. La transferencia está limitada a 1 MB/s a propósito, para no
+  saturar la microSD ni el enlace mientras la placa sigue grabando y transmitiendo: por
+  eso tarda.</p>
+</div>
+<div class="aviso caja">
+  <strong>Borrar reinicia el servicio</strong>
+  <p>El borrado detiene el servicio para que el segmento en curso se cierre con su índice,
+  borra, y lo vuelve a arrancar. El video se corta unos segundos y el cliente se reconecta
+  solo: en el panel se ve <code>esperando a que el servicio vuelva para reconectar …</code>
+  y luego <code>canal reconectado</code>. Si no vuelve, el botón <strong>Reconectar</strong>
+  lo fuerza.</p>
+</div>
+
+<h3>6.6 Pestaña «Mediciones»</h3>
+<div class="tabla"><table>
+  <tr><th>Botón</th><th>Qué hace</th></tr>
+  <tr><td><strong>RF-3: medir RTT (20 PING)</strong></td><td>Envía veinte <code>PING</code> y reporta el tiempo de ida y vuelta. El requisito es ≤ 100 ms.</td></tr>
+  <tr><td><strong>Guardar evidencia a archivo</strong></td><td>Vuelca las mediciones de fps y RTT de esta sesión a un archivo de texto.</td></tr>
+</table></div>
+
+<h3>6.7 Panel de registro</h3>
+<p>La franja inferior muestra todo lo que ocurre, con color:</p>
+<div class="tabla"><table>
+  <tr><th>Color</th><th>Qué es</th></tr>
+  <tr><td>Verde</td><td>Respuesta <code>OK</code> de la placa, u operación terminada bien.</td></tr>
+  <tr><td>Rojo</td><td>Respuesta <code>ERROR</code> o fallo del cliente.</td></tr>
+  <tr><td>Ámbar</td><td>Línea <code>EVENTO …</code>: algo que la placa avisa sin que se lo pidan, como una lectura de QR o el vencimiento de un plazo.</td></tr>
+</table></div>
+
+<!-- ================================================================== -->
+<h2 id="recorrido">7. Recorrido de prueba del sistema</h2>
+<p>
+  Nueve pasos que ejercitan todos los casos de uso. Toma unos diez minutos. Cada paso
+  indica qué tiene que verse; si algo no coincide, está señalado qué revisar.
+</p>
+
+<div class="aviso caja">
+  <strong>Antes de empezar</strong>
+  <p>Verificá que la placa esté grabando (sección 4.1). Si venís de un congelamiento,
+  hacé un <strong>corte de energía</strong>, no un <code>systemctl restart</code>: ver la
+  sección 11.</p>
+</div>
+
+<h3>Paso 1 — Video en vivo (RF-1, RF-2, CU-2)</h3>
+<p>
+  Con el cliente abierto, la ventana del video debe mostrar la imagen de la cámara con el
+  <strong>sello de fecha y hora quemado en la esquina inferior derecha</strong>, y la
+  cabecera debe marcar fps.
+</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p><strong>≥ 15 fps</strong>, con el reloj del video avanzando segundo a segundo. Que el
+  reloj avance es la señal más rápida de que la tubería está viva.</p>
+</div>
+<p>Si no hay imagen: revisá el firewall en UDP 5000, y que la cabecera diga «● conectado».</p>
+
+<h3>Paso 2 — Latencia de comandos (RF-3)</h3>
+<p>Pestaña «Mediciones» → <strong>RF-3: medir RTT (20 PING)</strong>.</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p>RTT muy por debajo de <strong>100 ms</strong>. Como el <code>PONG</code> se envía
+  <em>después</em> de procesar el comando, el RTT incluye ida, procesamiento y vuelta:
+  si el RTT cumple, la detección también, sin necesidad de sincronizar relojes.</p>
+</div>
+
+<h3>Paso 3 — Alta de credencial (CU-11)</h3>
+<p>
+  Pestaña «Credenciales» → nombre, rol <code>mantenimiento</code> →
+  <strong>Generar credencial</strong>.
+</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p>La imagen se abre sola. Lleva el QR, el nombre y el rol impresos, y el identificador
+  <code>ACC-XXXXXX</code> al pie. <strong>Dentro del QR va solo el identificador</strong>:
+  una foto del código no revela datos personales de nadie.</p>
+</div>
+<p>Repetí con rol <code>visitante</code>. Vas a necesitar las dos para los pasos 4 y 5.</p>
+
+<h3>Paso 4 — Acceso automático por QR (CU-13)</h3>
+<p>
+  Mostrá a la cámara la credencial de <strong>mantenimiento</strong>, impresa o en la
+  pantalla del celular con el brillo alto.
+</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p>En el panel: <code>EVENTO QR-AUTORIZADO ACC-XXXXXX mantenimiento …</code> seguido de
+  <code>EVENTO RESULTADO … permitido</code>. El buzzer suena con <strong>un tono agudo
+  continuo</strong> (2500 Hz, 0.8 s). No hace falta tocar nada.</p>
+</div>
+<p>
+  Si el QR no se lee, acercá la credencial hasta que ocupe alrededor de un cuarto del alto
+  de la imagen y evitá los reflejos.
+</p>
+
+<h3>Paso 5 — Visitante con decisión del vigilante (CU-3)</h3>
+<p>Mostrá la credencial de <strong>visitante</strong>.</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p><code>EVENTO QR-VISITANTE … requiere decision del vigilante</code>. La placa
+  <strong>no abre</strong>. Apretá <strong>PERMITIR</strong>: suena el tono agudo y el panel
+  muestra <code>EVENTO RESULTADO … permitido</code>.</p>
+</div>
+
+<h3>Paso 6 — Vencimiento del plazo (H2, CU-5)</h3>
+<p>
+  Apretá <strong>SOLICITUD</strong> y <strong>no respondas nada</strong>. Mientras esperás,
+  apretá <strong>ESTADO</strong> un par de veces para ver bajar el plazo.
+</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p>A los <strong>30 segundos</strong>, sin que nadie toque nada:
+  <code>EVENTO RESULTADO … denegado_por_vencimiento</code> y el buzzer con
+  <strong>tres pitidos graves cortos</strong> (800 Hz). El estado por omisión es negar: un
+  control de acceso que ante una falla abre la puerta es peor que uno que no abre.</p>
+  <p>Y algo que conviene mirar: <strong>el video no se detuvo</strong> durante esos 30 s.
+  La decisión corre en su propio hilo y nunca bloquea la tubería.</p>
+</div>
+
+<h3>Paso 7 — El clip del evento (CU-8)</h3>
+<p>
+  Esperá unos segundos y refrescá la pestaña <strong>«Clips de eventos»</strong>. Abrí el
+  clip más reciente.
+</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p>Un MP4 de alrededor de <strong>10 segundos</strong>: cinco <em>antes</em> del evento y
+  cinco después. Los cinco segundos previos vienen del búfer circular en memoria, que
+  guarda cuadros ya comprimidos. El archivo pesa unos 3 MB y empieza en un cuadro clave,
+  así que se reproduce en cualquier reproductor.</p>
+</div>
+
+<h3>Paso 8 — Revocación (CU-12)</h3>
+<p>
+  Pestaña «Credenciales» → <strong>Revocar (BAJA)…</strong> con el identificador del
+  visitante. Después, mostrá <strong>esa misma credencial</strong> a la cámara.
+</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p><code>EVENTO QR-DESCONOCIDO … requiere decision del vigilante</code>. La credencial
+  dejó de resolver a una persona, aunque la imagen impresa siga existiendo. Nótese que
+  <strong>no se deniega de entrada</strong>: escala al vigilante, igual que un visitante,
+  porque negar automáticamente a quien no está registrado haría imposible atender a un
+  proveedor que llega sin credencial.</p>
+</div>
+
+<h3>Paso 9 — Extracción de evidencia (CU-2)</h3>
+<p>Pestaña «Evidencia» → <strong>RECOLECTAR</strong>.</p>
+<div class="ok caja">
+  <strong>Esperado</strong>
+  <p>El panel va informando cada etapa y termina con
+  <code>recoleccion terminada en ~/recoleccion</code> en verde. Ahí quedan la carpeta
+  <code>evidencia/</code> con los segmentos, <code>eventos/</code> con los clips,
+  <code>accesos.log</code>, los QR de las credenciales activas y el
+  <code>evidencia_continua.mp4</code> con todo unido.</p>
+</div>
+<p>Y la bitácora, que es la prueba de H6 y RF-4:</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>cat ~/recoleccion/accesos.log</code></pre></div>
+<p>
+  Una línea JSON por evento, con marca de tiempo ISO-8601, identificador, resultado,
+  latencia de la decisión y la ruta del clip. Sobrevive a reinicios y a cortes de energía
+  porque cada línea se escribe con <code>fsync</code>.
+</p>
+
+<!-- ================================================================== -->
+<h2 id="consola">8. El cliente de consola</h2>
+<p>
+  Hace lo mismo sin interfaz gráfica. Sirve cuando no hay entorno de escritorio o para
+  guionizar una prueba.
+</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>python3 app/scripts/vigilancia.py --ip 172.20.10.2</code></pre></div>
+<p>
+  Acepta los mismos comandos escritos a mano y abre la ventana del video por separado.
+  <code>ayuda</code> lista lo disponible.
+</p>
+
+<!-- ================================================================== -->
+<h2 id="placa">9. Operar desde la placa</h2>
+<p>
+  Sin el cliente, la placa acepta los mismos comandos por un FIFO local. Es la vía más
+  directa para probar sin red.
+</p>
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code>echo 'SOLICITUD PRUEBA-001' &gt; /tmp/acceso-eventos
+echo 'PERMITIR'             &gt; /tmp/acceso-eventos
+echo 'DENEGAR'              &gt; /tmp/acceso-eventos
+echo 'LISTAR'               &gt; /tmp/acceso-eventos</code></pre></div>
+<p>Y para ver qué está pasando:</p>
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code># Registro del servicio en vivo
+journalctl -u acceso-control -f
+
+# Bitácora de accesos, legible
+acceso-control --ver-bitacora
+
+# La tubería que la aplicación arma con su configuración real
+acceso-control --mostrar-tuberia
+
+# Evidencia y clips en disco
+ls -lh /var/lib/acceso/evidencia/ | tail
+ls -lh /var/lib/acceso/eventos/   | tail</code></pre></div>
+
+<!-- ================================================================== -->
+<h2 id="protocolo">10. Protocolo de comandos</h2>
+<p>
+  Texto plano, una línea por mensaje. Cada comando recibe exactamente una respuesta,
+  <code>OK …</code> o <code>ERROR …</code>. Se usa TCP y no UDP porque una decisión de
+  acceso no se puede perder en la red.
+</p>
+<div class="tabla"><table>
+  <tr><th>Comando</th><th>Qué hace</th></tr>
+  <tr><td><code>SOLICITUD [id]</code></td><td>Abre una solicitud y arranca el plazo. Sin identificador, la placa genera uno con la fecha y hora.</td></tr>
+  <tr><td><code>PERMITIR</code> / <code>DENEGAR</code></td><td>Resuelven la solicitud pendiente.</td></tr>
+  <tr><td><code>ESTADO</code></td><td>Informa si hay solicitud pendiente y el plazo restante.</td></tr>
+  <tr><td><code>PING</code></td><td>Responde <code>PONG</code> sin tocar nada. Sirve para medir el RTT.</td></tr>
+  <tr><td><code>ALTA &lt;rol&gt; &lt;nombre&gt;</code></td><td>Registra una persona y genera su credencial. El rol va primero porque es una sola palabra, así el nombre puede llevar espacios.</td></tr>
+  <tr><td><code>BAJA &lt;id&gt; [motivo]</code></td><td>Revoca el acceso. El registro se conserva.</td></tr>
+  <tr><td><code>LISTAR</code></td><td>Credenciales activas.</td></tr>
+  <tr><td><code>REGENERAR_QR</code></td><td>Rehace las imágenes de las credenciales activas.</td></tr>
+  <tr><td><code>BORRAR_CREDENCIALES SI</code></td><td>Vacía el registro completo. Exige la palabra <code>SI</code>: deja sin acceso por QR a todo el personal y no puede ejecutarse por un error de tipeo.</td></tr>
+  <tr><td><code>SALIR</code></td><td>Apaga el servicio. <strong>Solo por FIFO local</strong>; por red se rechaza, porque nadie en la red debería poder apagar el control de acceso.</td></tr>
+</table></div>
+<p>Además, la placa difunde a todos los clientes conectados líneas que nadie pidió:</p>
+<div class="bloque"><pre><code>EVENTO SOLICITUD &lt;id&gt; plazo=30s
+EVENTO RESULTADO &lt;id&gt; permitido | denegado | denegado_por_vencimiento
+EVENTO QR-AUTORIZADO &lt;id&gt; &lt;rol&gt; &lt;nombre&gt;
+EVENTO QR-VISITANTE  &lt;id&gt; &lt;nombre&gt; requiere decision del vigilante
+EVENTO QR-DESCONOCIDO &lt;id&gt; requiere decision del vigilante</code></pre></div>
+<p>
+  El temporizador corre en la placa, así que el vigilante se entera de un vencimiento
+  aunque no haya enviado nada.
+</p>
+
+<!-- ================================================================== -->
+<h2 id="problemas">11. Problemas conocidos</h2>
+
+<h3>1. La tubería se congela y el video se detiene</h3>
+<p>
+  <strong>Síntoma:</strong> el servicio sigue en <code>active</code>, no hay ningún error
+  en el registro ni en <code>dmesg</code>, pero el video se queda quieto, el reloj del
+  sello no avanza y el MP4 en curso deja de crecer.
+</p>
+<p><strong>Cómo confirmarlo:</strong></p>
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code>SEG=$(ls -t /var/lib/acceso/evidencia/*.mp4 | head -n 1)
+ls -l "$SEG"; sleep 10; ls -l "$SEG"</code></pre></div>
+<p>Si el tamaño no cambia, está congelada. Para ver dónde se detuvo:</p>
+<div class="bloque"><div class="etiqueta">Placa</div><pre><code>PID=$(systemctl show -p MainPID --value acceso-control)
+for t in /proc/$PID/task/*; do
+  printf "%-20s %s\n" "$(cat $t/comm)" "$(cat $t/wchan 2&gt;/dev/null)"
+done</code></pre></div>
+<div class="tabla"><table>
+  <tr><th>Hilo</th><th>Tubería sana</th><th>Congelada</th></tr>
+  <tr><td><code>v4l2src0:src</code></td><td>poll</td><td>poll</td></tr>
+  <tr><td><code>v4l2jpegdec0/1</code></td><td><strong>poll</strong></td><td><strong>futex</strong></td></tr>
+  <tr><td><code>v4l2h264enc0</code></td><td>poll</td><td>poll</td></tr>
+</table></div>
+<p>
+  Un hilo V4L2 está <em>siempre</em> en <code>poll()</code> esperando su próximo buffer:
+  el estado del codificador no distingue nada. Lo que distingue son los decodificadores
+  en <code>futex</code>, o sea <strong>ociosos, sin trabajo en la cola</strong>, lo que
+  indica que la cadena se seca en la captura.
+</p>
+<div class="aviso caja">
+  <strong>El corte de energía recupera; <code>systemctl restart</code> no</strong>
+  <p>Medido el 2026-10-09: después de un corte de energía la placa grabó más de quince
+  minutos; después de un reinicio del servicio se volvió a congelar en dos o tres
+  minutos, y en dos casos el proceso nuevo no recibió <strong>ni un solo cuadro</strong>.
+  Si se congela, <strong>desconectar la alimentación diez segundos</strong> y esperar
+  sesenta.</p>
+</div>
+<p>
+  La causa probable conecta con otra decisión del diseño: se midió que el EOS no atraviesa
+  nunca los elementos V4L2 en la Raspberry Pi 4, así que para poder cerrar los MP4 se
+  inyecta directamente en la cola de grabación. El precio es que la tubería pasa a
+  <code>NULL</code> con el controlador posiblemente con buffers todavía encolados, y el
+  proceso siguiente hereda ese estado.
+</p>
+
+<h3>2. El video no vuelve después de borrar la evidencia</h3>
+<p>
+  El borrado reinicia el servicio. La tubería nueva transmite al <code>host</code> del
+  <code>acceso.conf</code> hasta que un cliente se conecta al canal de comandos, que es lo
+  que corrige el destino. El cliente reconecta solo; si no lo hace, el botón
+  <strong>Reconectar</strong> lo fuerza.
+</p>
+
+<h3>3. Hay canal de comandos pero no llega video</h3>
+<p>
+  Si la cabecera dice «● conectado» y los comandos responden, pero la ventana está negra:
+  es la red, no la placa. Revisar el firewall en UDP 5000 y que las dos computadoras estén
+  en la misma subred.
+</p>
+
+<h3>4. El QR no se lee</h3>
+<p>
+  El detector analiza cinco cuadros por segundo sobre una versión reducida a 640 px de
+  ancho. Funciona con la credencial ocupando alrededor de un cuarto del alto de la imagen.
+  En pantalla de celular, brillo al máximo y sin reflejos. Un mismo identificador se ignora
+  durante cinco segundos después de leerlo, para que sostener la credencial no genere
+  quince solicitudes; uno distinto pasa de inmediato.
+</p>
+
+<h3>5. «Host key verification failed»</h3>
+<p>La tarjeta se regrabó y las llaves del servidor son nuevas: ver la sección 3.3.</p>
+
+<h3>6. Los scripts de medición desaparecen al reiniciar</h3>
+<p>
+  <code>/tmp</code> en la placa es <code>tmpfs</code>: se vacía en cada arranque. Los
+  scripts auxiliares hay que volver a subirlos, y <strong>cualquier medición que quede en
+  <code>/tmp</code> debe bajarse a la computadora apenas termine</strong>, no al final de
+  la sesión.
+</p>
+<div class="bloque"><div class="etiqueta">Computadora del vigilante</div><pre><code>scp scripts/verificar-pipeline.sh app/scripts/a6-grafo.sh \
+    app/scripts/analizar-dot.py app/scripts/d1-latencia.sh root@$PI:/tmp/</code></pre></div>
+
+<!-- ================================================================== -->
+<h2 id="rutas">12. Dónde queda cada cosa</h2>
+
+<h3>12.1 En la placa</h3>
+<div class="tabla"><table>
+  <tr><th>Ruta</th><th>Contenido</th></tr>
+  <tr><td><code>/etc/acceso/acceso.conf</code></td><td>Configuración: cámara, codificador, grabación, transmisión, clips, buzzer, plazos, QR.</td></tr>
+  <tr><td><code>/var/lib/acceso/evidencia/</code></td><td>Grabación continua, un MP4 por minuto de ~18 MB. Tope de 5500 MB; se borra lo más viejo.</td></tr>
+  <tr><td><code>/var/lib/acceso/eventos/</code></td><td>Clips de cada solicitud, ~10 s y ~3 MB. Tope de 1000 MB.</td></tr>
+  <tr><td><code>/var/lib/acceso/accesos.log</code></td><td>Bitácora, una línea JSON por decisión.</td></tr>
+  <tr><td><code>/var/lib/acceso/credenciales.json</code></td><td>Registro de credenciales, activas y revocadas.</td></tr>
+  <tr><td><code>/var/lib/acceso/credenciales/</code></td><td>Imágenes de las credenciales.</td></tr>
+  <tr><td><code>/tmp/acceso-eventos</code></td><td>FIFO de comandos locales.</td></tr>
+</table></div>
+<p>
+  Todo lo de <code>/var/lib/acceso/</code> persiste entre reinicios: lo gestiona systemd con
+  <code>StateDirectory</code>.
+</p>
+
+<h3>12.2 En la computadora del vigilante</h3>
+<div class="tabla"><table>
+  <tr><th>Ruta</th><th>Contenido</th></tr>
+  <tr><td><code>~/recoleccion/</code></td><td>Resultado de RECOLECTAR: evidencia, clips, bitácora, QR y el MP4 unido.</td></tr>
+  <tr><td><code>recibidos/</code></td><td>Caché de archivos traídos por las galerías.</td></tr>
+  <tr><td><code>app/scripts/puesto-vigilancia.py</code></td><td>Cliente gráfico.</td></tr>
+  <tr><td><code>app/scripts/vigilancia.py</code></td><td>Cliente de consola.</td></tr>
+  <tr><td><code>app/scripts/recolectar-evidencia.sh</code></td><td>El script que ejecuta el botón RECOLECTAR.</td></tr>
+</table></div>
+
+<div class="nota caja">
+  <strong>Valores de referencia medidos en la placa</strong>
+  <p>Para comparar contra lo que se observe:</p>
+</div>
+<div class="tabla"><table>
+  <tr><th>Magnitud</th><th>Valor medido (2026-10-09)</th></tr>
+  <tr><td>Arranque hasta el servicio activo</td><td>13.6 s</td></tr>
+  <tr><td>Segmento de grabación continua</td><td>~18 MB por minuto</td></tr>
+  <tr><td>Clip de evento</td><td>10.4 a 10.7 s, ~3.2 MB, 309 a 318 cuadros</td></tr>
+  <tr><td>Procesamiento de un comando en la placa</td><td>0.83 a 1.96 ms</td></tr>
+  <tr><td>Búfer circular lleno</td><td>450 de 450 cuadros, 4.46 MB</td></tr>
+  <tr><td>Callback de clips (p99)</td><td>2.14 ms, sobre un presupuesto de 33 ms</td></tr>
+  <tr><td>CPU del servicio</td><td>~129 %, es decir 1.3 de los 4 núcleos</td></tr>
+</table></div>
+
+</main>
+</div>
+
+<script>
+  document.querySelectorAll(".bloque").forEach(function (bloque) {
+    var pre = bloque.querySelector("pre");
+    if (!pre) return;
+    var boton = document.createElement("button");
+    boton.type = "button";
+    boton.textContent = "Copiar";
+    if (!bloque.querySelector(".etiqueta")) boton.style.top = "8px";
+    boton.addEventListener("click", function () {
+      var texto = pre.innerText;
+      var listo = function () {
+        boton.textContent = "Copiado";
+        setTimeout(function () { boton.textContent = "Copiar"; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(listo, function () {});
+      }
+    });
+    bloque.appendChild(boton);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+2026-10-09T11:02:18-0600
+--- disparador: DENEGAR y PERMITIR seguidos, dos solicitudes
+-rw-r--r--    1 root     root       1691433 Oct  9 10:56 evidencia_00037.mp4
+-rw-r--r--    1 root     root      18456025 Oct  9 10:57 evidencia_00038.mp4
+-rw-r--r--    1 root     root      14753532 Oct  9 10:58 evidencia_00039.mp4
+python3              poll_schedule_timeout.constprop.0
+retencion            futex_do_wait
+[pango] fontcon      futex_do_wait
+pool-spawner         futex_do_wait
+queue_video:src      futex_do_wait
+queue_grabacion      futex_do_wait
+queue2:src           futex_do_wait
+queue3:src           futex_do_wait
+queue4:src           futex_do_wait
+queue1:src           futex_do_wait
+queue0:src           futex_do_wait
+v4l2src0:src         poll_schedule_timeout.constprop.0
+lector-qr            futex_do_wait
+Thread-1 (_escu      wait_for_partner
+red-decisiones       poll_schedule_timeout.constprop.0
+gmain                poll_schedule_timeout.constprop.0
+v4l2jpegdec1:sr      futex_do_wait
+v4l2jpegdec0:sr      futex_do_wait
+v4l2h264enc0:sr      poll_schedule_timeout.constprop.0
+muxer:src            futex_do_wait
+lector-qr            futex_do_wait
+lector-qr            futex_do_wait
+lector-qr            futex_do_wait
+--- journal
+Oct 09 10:56:50 raspberrypi4-64 systemd[1]: Stopped Sistema de control de acceso (GStreamer).
+Oct 09 10:56:50 raspberrypi4-64 systemd[1]: acceso-control.service: Consumed 33min 12.828s CPU time over 25min 49.250s wall clock time.
+Oct 09 10:56:53 raspberrypi4-64 systemd[1]: Started Sistema de control de acceso (GStreamer).
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,004 INFO    acceso.buffer_circular buffer circular: 10 s a 30 fps -> capacidad 450 cuadros
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,005 INFO    acceso.registro        registro de credenciales: /var/lib/acceso/credenciales.json (1 activas de 2)
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,007 INFO    acceso.actuador        buzzer por PWM de hardware: /sys/class/pwm/pwmchip0/pwm0
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,008 INFO    acceso.decision        bitacora de accesos: /var/lib/acceso/accesos.log
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,018 INFO    acceso.retencion       verificacion de clips: 45 revisados, 0 corruptos borrados
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,018 INFO    acceso.retencion       retencion: /var/lib/acceso/evidencia/ con tope de 5500 MB
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,019 INFO    acceso.retencion       retencion: /var/lib/acceso/eventos/ con tope de 1000 MB
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,033 INFO    acceso.pipeline        tuberia: v4l2src device=/dev/video0 extra-controls="c,auto_exposure=1,exposure_time_absolute=2000,gain=5,brightness=0,contrast=300,saturation=200,gamma=10,sharpness=64,backlight_compensation=0,white_balance_temperature=4500,power_line_frequency=2" ! image/jpeg,width=1280,height=720,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! tee name=t_raw t_raw. ! queue max-size-buffers=8 leaky=downstream ! v4l2jpegdec ! v4l2convert ! clockoverlay time-format="%Y-%m-%d %H:%M:%S" valignment=bottom halignment=right shaded-background=true font-desc="DejaVu Sans 16" ! v4l2h264enc extra-controls="controls,video_bitrate=2500000,h264_i_frame_period=30,repeat_sequence_header=1" ! video/x-h264,level=(string)4 ! h264parse config-interval=-1 ! tee name=t_h264 t_h264. ! queue name=queue_grabacion max-size-buffers=0 max-size-bytes=0 max-size-time=10000000000 ! splitmuxsink name=grabador location=/var/lib/acceso/evidencia/evidencia_%05d.mp4 max-size-time=60000000000 muxer-factory=mp4mux send-keyframe-requests=true t_h264. ! queue max-size-buffers=8 leaky=downstream ! rtph264pay config-interval=1 pt=96 aggregate-mode=zero-latency ! udpsink name=tx host=127.0.0.1 port=5000 sync=false async=false t_h264. ! queue max-size-buffers=8 leaky=downstream ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au ! appsink name=captura emit-signals=true sync=false max-buffers=600 drop=true t_raw. ! queue max-size-buffers=1 leaky=downstream ! v4l2jpegdec ! v4l2convert ! video/x-raw,format=BGR ! appsink name=qr emit-signals=true sync=false max-buffers=1 drop=true
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,110 INFO    acceso.pipeline        grabacion continua: primer segmento con numero 38
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,309 INFO    acceso.pipeline        tuberia en PLAYING
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,311 INFO    acceso.lector_qr       lector de QR activo (5 analisis/s, enfriamiento 5 s)
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,312 INFO    acceso.servicio        eventos por FIFO: /tmp/acceso-eventos
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,313 INFO    acceso.servicio          solicitud : echo 'SOLICITUD ID-001' > /tmp/acceso-eventos
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,314 INFO    acceso.servicio          permitir  : echo 'PERMITIR'        > /tmp/acceso-eventos
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,314 INFO    acceso.servicio          denegar   : echo 'DENEGAR'         > /tmp/acceso-eventos
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,314 INFO    acceso.red             canal de decisiones escuchando en TCP 5001
+Oct 09 10:56:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:56:55,316 INFO    acceso.servicio        servicio de control de acceso en operacion
+Oct 09 10:57:55 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:57:55,448 INFO    acceso.pipeline        segmento cerrado: /var/lib/acceso/evidencia/evidencia_00038.mp4
+Oct 09 10:58:20 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:20,627 INFO    acceso.red             puesto de vigilancia conectado: 172.20.10.12
+Oct 09 10:58:20 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:20,629 INFO    acceso.pipeline        destino de transmision: 127.0.0.1 -> 172.20.10.12:5000
+Oct 09 10:58:28 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:28,448 INFO    acceso.servicio        === SOLICITUD #1: S-20261009-105828 (plazo 30 s) ===
+Oct 09 10:58:28 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:28,449 INFO    acceso.red             red 172.20.10.12: 'SOLICITUD' procesado en 1.75 ms
+Oct 09 10:58:29 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:29,153 INFO    acceso.actuador        >>>>>>>>>>  ACCESO DENEGADO  |  S-20261009-105828  <<<<<<<<<<
+Oct 09 10:58:29 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:29,153 INFO    acceso.red             red 172.20.10.12: 'DENEGAR' procesado en 0.83 ms
+Oct 09 10:58:29 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:29,197 INFO    acceso.decision        bitacora: S-20261009-105828 -> denegado
+Oct 09 10:58:29 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:29,840 INFO    acceso.servicio        === SOLICITUD #2: S-20261009-105829 (plazo 30 s) ===
+Oct 09 10:58:29 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:29,842 INFO    acceso.red             red 172.20.10.12: 'SOLICITUD' procesado en 1.96 ms
+Oct 09 10:58:30 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:30,401 INFO    acceso.actuador        >>>>>>>>>>  ACCESO PERMITIDO  |  S-20261009-105829  <<<<<<<<<<
+Oct 09 10:58:30 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:30,401 INFO    acceso.red             red 172.20.10.12: 'PERMITIR' procesado en 0.92 ms
+Oct 09 10:58:30 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:30,426 INFO    acceso.decision        bitacora: S-20261009-105829 -> permitido
+Oct 09 10:58:34 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:34,199 INFO    acceso.buffer_circular instantanea: 311 cuadros (10.0 s solicitados, inicio IDR)
+Oct 09 10:58:34 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:34,301 INFO    acceso.buffer_circular clip escrito: /var/lib/acceso/eventos/evento_20261009-105829_S-20261009-105828.mp4 (311 cuadros, 10.5 s, 3175 KiB)
+Oct 09 10:58:35 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:35,428 INFO    acceso.buffer_circular instantanea: 318 cuadros (10.0 s solicitados, inicio IDR)
+Oct 09 10:58:35 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:58:35,624 INFO    acceso.buffer_circular clip escrito: /var/lib/acceso/eventos/evento_20261009-105830_S-20261009-105829.mp4 (318 cuadros, 10.7 s, 3241 KiB)
+Oct 09 10:59:06 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:59:06,792 INFO    acceso.red             puesto de vigilancia desconectado: 172.20.10.12
+Oct 09 10:59:12 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:59:12,885 INFO    acceso.red             puesto de vigilancia conectado: 172.20.10.12
+Oct 09 10:59:23 raspberrypi4-64 acceso-control[899]: 2026-10-09 10:59:23,788 INFO    acceso.red             puesto de vigilancia desconectado: 172.20.10.12

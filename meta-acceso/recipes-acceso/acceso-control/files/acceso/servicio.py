@@ -598,6 +598,9 @@ class ServicioAcceso:
             return
         self._reconectando.set()
         log.error("ALERTA: fallo de la fuente de video -> %s", mensaje)
+        # El vigilante tiene que enterarse: el log solo llega al journal de la
+        # placa, y quien opera el puesto esta en otra computadora.
+        self._difundir(f"CAMARA-FALLO {mensaje}")
         threading.Thread(target=self._reconectar, daemon=True).start()
 
     def _reconectar(self) -> None:
@@ -613,6 +616,7 @@ class ServicioAcceso:
 
             log.warning("ALERTA: camara no disponible. Reintento %d en %.0f s",
                         intento, cfg.reintento_s)
+            self._difundir(f"CAMARA-REINTENTO {intento} en {cfg.reintento_s:.0f} s")
             time.sleep(cfg.reintento_s)
 
             try:
@@ -620,6 +624,7 @@ class ServicioAcceso:
                 self._pipeline.construir()
                 self._pipeline.iniciar()
                 log.info("camara reconectada tras %d intentos", intento)
+                self._difundir(f"CAMARA-RECONECTADA tras {intento} intentos")
                 self._reconectando.clear()
                 return
             except Exception as exc:                  # noqa: BLE001
